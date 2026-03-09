@@ -57,7 +57,37 @@ end
 function M.close_chat_box()
   if M.chat_win_id then
     local chat_buf = vim.api.nvim_win_get_buf(M.chat_win_id)
-    M.flush_to_buf(chat_buf, M.main_buf)
+    vim.api.nvim_buf_set_lines(M.main_buf, M.start_line - 1, M.end_line, false, { "Thinking..." })
+    local json = vim.json.encode({
+      contents = {
+        {
+          parts = {
+            { text = "Explain how AI works in a few words" },
+          },
+        },
+      },
+    })
+
+    vim.system({
+      "curl",
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent",
+      "-H",
+      "Content-Type: application/json",
+      "-H",
+      "x-goog-api-key: " .. M.api_key,
+      "-X",
+      "POST",
+      "-d",
+      json,
+    }, { text = true }, function(res)
+      local data = vim.json.decode(res.stdout)
+      local text = data.candidates[1].content.parts[1].text
+      local lines = vim.split(text, "\n")
+      vim.schedule(function()
+        vim.api.nvim_buf_set_lines(chat_buf, 0, -1, false, lines)
+        M.flush_to_buf(chat_buf, M.main_buf)
+      end)
+    end)
     vim.api.nvim_win_close(M.chat_win_id, true)
     M.chat_win_id = nil
   else
