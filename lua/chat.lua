@@ -2,6 +2,7 @@ local M = {}
 
 function M.setup(opts)
   opts = opts or {}
+  M.api_key = opts.api_key or ""
   local help = [[
   1. Select lines and <Leader>88 to open chat box window
   2. Prompt and <Leader>88 to apply changes and close the chat box window]]
