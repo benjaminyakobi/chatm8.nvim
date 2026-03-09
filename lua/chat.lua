@@ -57,12 +57,18 @@ end
 function M.close_chat_box()
   if M.chat_win_id then
     local chat_buf = vim.api.nvim_win_get_buf(M.chat_win_id)
-    vim.api.nvim_buf_set_lines(M.main_buf, M.start_line - 1, M.end_line, false, { "Thinking..." })
+    vim.api.nvim_buf_set_lines(M.main_buf, M.start_line - 1, M.start_line - 1, false, { "Thinking..." })
+    local win_buf_lines = vim.api.nvim_buf_get_lines(chat_buf, 0, -1, false)
+    local win_buf_text = table.concat(win_buf_lines, "\n")
     local json = vim.json.encode({
       contents = {
         {
           parts = {
-            { text = "Explain how AI works in a few words" },
+            {
+              text = "Implement this code & Respond with code only, do not surround code with backticks (`)! ```"
+                .. win_buf_text
+                .. "```",
+            },
           },
         },
       },
@@ -99,7 +105,7 @@ function M.flush_to_buf(source_buf, target_buf)
   local win_buf_lines = vim.api.nvim_buf_get_lines(source_buf, 0, -1, false)
   -- start_line-1 is inclusive and 0-indexed while user TUI is 1-index
   -- end_line is exclusive because of the 0-index property
-  vim.api.nvim_buf_set_lines(target_buf, M.start_line - 1, M.end_line, false, win_buf_lines)
+  vim.api.nvim_buf_set_lines(target_buf, M.start_line - 1, M.end_line + 1, false, win_buf_lines)
   M.start_line = nil
   M.end_line = nil
 end
