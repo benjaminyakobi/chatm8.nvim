@@ -57,7 +57,22 @@ end
 function M.close_chat_box()
   if M.chat_win_id then
     local chat_buf = vim.api.nvim_win_get_buf(M.chat_win_id)
-    vim.api.nvim_buf_set_lines(M.main_buf, M.start_line - 1, M.start_line - 1, false, { "Thinking..." })
+    local spinner = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
+    local spin_index = 1
+    local timer = vim.uv.new_timer()
+    local row = math.min(M.start_line, M.end_line) - 2
+
+    timer:start(
+      0,
+      100,
+      vim.schedule_wrap(function()
+        local frame = spinner[spin_index]
+
+        vim.api.nvim_buf_set_lines(M.main_buf, row, row + 1, false, { "Thinking " .. frame })
+
+        spin_index = spin_index % #spinner + 1
+      end)
+    )
     local win_buf_lines = vim.api.nvim_buf_get_lines(chat_buf, 0, -1, false)
     local win_buf_text = table.concat(win_buf_lines, "\n")
     local json = vim.json.encode({
@@ -91,6 +106,8 @@ function M.close_chat_box()
       local lines = vim.split(text, "\n")
       vim.schedule(function()
         vim.api.nvim_buf_set_lines(chat_buf, 0, -1, false, lines)
+        timer:stop()
+        timer:close()
         M.flush_to_buf(chat_buf, M.main_buf)
       end)
     end)
@@ -105,7 +122,7 @@ function M.flush_to_buf(source_buf, target_buf)
   local win_buf_lines = vim.api.nvim_buf_get_lines(source_buf, 0, -1, false)
   -- start_line-1 is inclusive and 0-indexed while user TUI is 1-index
   -- end_line is exclusive because of the 0-index property
-  vim.api.nvim_buf_set_lines(target_buf, M.start_line - 1, M.end_line + 1, false, win_buf_lines)
+  vim.api.nvim_buf_set_lines(target_buf, M.start_line - 2, M.end_line + 1, false, win_buf_lines)
   M.start_line = nil
   M.end_line = nil
 end
@@ -114,8 +131,8 @@ function M.get_visual_selection()
   -- Get start and end positions
   local _, s_line, s_col, _ = unpack(vim.fn.getpos("v"))
   local _, e_line, e_col, _ = unpack(vim.fn.getpos("."))
-  M.start_line = s_line
-  M.end_line = e_line
+  M.start_line = math.min(s_line, e_line)
+  M.end_line = math.max(s_line, e_line)
   -- Ensure start is before end for selection logic
   if s_line > e_line or (s_line == e_line and s_col > e_col) then
     s_line, e_line = e_line, s_line
