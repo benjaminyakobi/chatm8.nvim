@@ -68,7 +68,7 @@ function M.close_chat_box()
       vim.schedule_wrap(function()
         local frame = spinner[spin_index]
 
-        vim.api.nvim_buf_set_lines(M.main_buf, row, row + 1, false, { "Thinking " .. frame })
+        vim.api.nvim_buf_set_lines(M.main_buf, row + 1, row + 1, false, { "Thinking " .. frame })
 
         spin_index = spin_index % #spinner + 1
       end)
