@@ -60,15 +60,21 @@ function M.close_chat_box()
     local spinner = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
     local spin_index = 1
     local timer = vim.uv.new_timer()
-    local row = math.min(M.start_line, M.end_line) - 2
-
+    local row = math.min(M.start_line, M.end_line) - 1
+    local ns = vim.api.nvim_create_namespace("spinner")
+    local mark_id
+    vim.api.nvim_buf_set_lines(M.main_buf, row, row, false, { "" })
     timer:start(
       0,
       100,
       vim.schedule_wrap(function()
         local frame = spinner[spin_index]
 
-        vim.api.nvim_buf_set_lines(M.main_buf, row + 1, row + 1, false, { "Thinking " .. frame })
+        mark_id = vim.api.nvim_buf_set_extmark(M.main_buf, ns, row, 0, {
+          id = mark_id, -- reuse same extmark
+          virt_text = { { "Thinking " .. frame, "Comment" } },
+          virt_text_pos = "eol",
+        })
 
         spin_index = spin_index % #spinner + 1
       end)
@@ -106,8 +112,7 @@ function M.close_chat_box()
       local lines = vim.split(text, "\n")
       vim.schedule(function()
         vim.api.nvim_buf_set_lines(chat_buf, 0, -1, false, lines)
-        timer:stop()
-        timer:close()
+        M.stop_spinner(M.main_buf, timer, ns, mark_id)
         M.flush_to_buf(chat_buf, M.main_buf)
       end)
     end)
@@ -118,11 +123,24 @@ function M.close_chat_box()
   end
 end
 
+function M.stop_spinner(buf, timer, ns, mark)
+  if timer then
+    timer:stop()
+    timer:close()
+    timer = nil
+  end
+
+  if mark then
+    vim.api.nvim_buf_del_extmark(buf, ns, mark)
+    mark = nil
+  end
+end
+
 function M.flush_to_buf(source_buf, target_buf)
   local win_buf_lines = vim.api.nvim_buf_get_lines(source_buf, 0, -1, false)
   -- start_line-1 is inclusive and 0-indexed while user TUI is 1-index
   -- end_line is exclusive because of the 0-index property
-  vim.api.nvim_buf_set_lines(target_buf, M.start_line - 2, M.end_line + 1, false, win_buf_lines)
+  vim.api.nvim_buf_set_lines(target_buf, M.start_line - 1, M.end_line + 1, false, win_buf_lines)
   M.start_line = nil
   M.end_line = nil
 end
