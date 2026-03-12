@@ -57,28 +57,6 @@ end
 function M.close_chat_box()
   if M.chat_win_id then
     local chat_buf = vim.api.nvim_win_get_buf(M.chat_win_id)
-    local spinner = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
-    local spin_index = 1
-    local timer = vim.uv.new_timer()
-    local row = math.min(M.start_line, M.end_line) - 1
-    local ns = vim.api.nvim_create_namespace("spinner")
-    local mark_id
-    vim.api.nvim_buf_set_lines(M.main_buf, row, row, false, { "" })
-    timer:start(
-      0,
-      100,
-      vim.schedule_wrap(function()
-        local frame = spinner[spin_index]
-
-        mark_id = vim.api.nvim_buf_set_extmark(M.main_buf, ns, row, 0, {
-          id = mark_id, -- reuse same extmark
-          virt_text = { { "Thinking " .. frame, "Comment" } },
-          virt_text_pos = "eol",
-        })
-
-        spin_index = spin_index % #spinner + 1
-      end)
-    )
     local win_buf_lines = vim.api.nvim_buf_get_lines(chat_buf, 0, -1, false)
     local win_buf_text = table.concat(win_buf_lines, "\n")
     local json = vim.json.encode({
@@ -95,6 +73,7 @@ function M.close_chat_box()
       },
     })
 
+    local timer, ns = M.start_spinner()
     vim.system({
       "curl",
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent",
@@ -112,7 +91,7 @@ function M.close_chat_box()
       local lines = vim.split(text, "\n")
       vim.schedule(function()
         vim.api.nvim_buf_set_lines(chat_buf, 0, -1, false, lines)
-        M.stop_spinner(M.main_buf, timer, ns, mark_id)
+        M.stop_spinner(M.main_buf, timer, ns, M.mark_id)
         M.flush_to_buf(chat_buf, M.main_buf)
       end)
     end)
@@ -121,6 +100,31 @@ function M.close_chat_box()
   else
     print("chat.nvim: Select lines first")
   end
+end
+
+function M.start_spinner()
+  local spinner = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
+  local spin_index = 1
+  local timer = vim.uv.new_timer()
+  local row = math.min(M.start_line, M.end_line) - 1
+  local ns = vim.api.nvim_create_namespace("spinner")
+  vim.api.nvim_buf_set_lines(M.main_buf, row, row, false, { "" })
+  timer:start(
+    0,
+    100,
+    vim.schedule_wrap(function()
+      local frame = spinner[spin_index]
+
+      M.mark_id = vim.api.nvim_buf_set_extmark(M.main_buf, ns, row, 0, {
+        id = M.mark_id, -- reuse same extmark
+        virt_text = { { "Thinking " .. frame, "Comment" } },
+        virt_text_pos = "eol",
+      })
+
+      spin_index = spin_index % #spinner + 1
+    end)
+  )
+  return timer, ns
 end
 
 function M.stop_spinner(buf, timer, ns, mark)
