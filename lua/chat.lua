@@ -106,7 +106,7 @@ function M.start_spinner()
   local spinner = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
   local spin_index = 1
   local timer = vim.uv.new_timer()
-  local row = math.min(M.start_line, M.end_line) - 1
+  local row = M.start_line - 1
   local ns = vim.api.nvim_create_namespace("spinner")
   vim.api.nvim_buf_set_lines(M.main_buf, row, row, false, { "" })
   timer:start(
