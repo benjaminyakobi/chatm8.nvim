@@ -54,47 +54,64 @@ function M.show_chat_box()
   vim.api.nvim_set_option_value("number", true, { win = M.chat_win_id })
 end
 
+function M.call_api(propmt)
+  local json = vim.json.encode({
+    contents = {
+      {
+        parts = {
+          {
+            text = propmt,
+          },
+        },
+      },
+    },
+  })
+
+  local timer, ns = M.start_spinner()
+  vim.system({
+    "curl",
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent",
+    "-H",
+    "Content-Type: application/json",
+    "-H",
+    "x-goog-api-key: " .. M.api_key,
+    "-X",
+    "POST",
+    "-d",
+    json,
+  }, { text = true }, function(res)
+    local data = vim.json.decode(res.stdout)
+    local text = data.candidates[1].content.parts[1].text
+    local lines = vim.split(text, "\n")
+    vim.schedule(function()
+      -- vim.api.nvim_buf_set_lines(chat_buf, 0, -1, false, lines)
+      M.stop_spinner(M.main_buf, timer, ns, M.mark_id)
+      -- M.flush_to_buf(chat_buf, M.main_buf)
+      vim.api.nvim_buf_set_lines(M.main_buf, M.start_line - 1, M.end_line + 1, false, lines)
+      M.start_line = nil
+      M.end_line = nil
+    end)
+  end)
+end
+
+function M.complete_implementation()
+  local selected_lines = M.get_visual_selection()
+  local selected_text = table.concat(selected_lines, "\n")
+  local prompt = "Implement this code & Respond with code only, do not surround code with backticks (`)! ```"
+    .. selected_text
+    .. "```"
+  M.call_api(prompt)
+end
+
 function M.close_chat_box()
   if M.chat_win_id then
     local chat_buf = vim.api.nvim_win_get_buf(M.chat_win_id)
     local win_buf_lines = vim.api.nvim_buf_get_lines(chat_buf, 0, -1, false)
     local win_buf_text = table.concat(win_buf_lines, "\n")
-    local json = vim.json.encode({
-      contents = {
-        {
-          parts = {
-            {
-              text = "Implement this code & Respond with code only, do not surround code with backticks (`)! ```"
-                .. win_buf_text
-                .. "```",
-            },
-          },
-        },
-      },
-    })
-
-    local timer, ns = M.start_spinner()
-    vim.system({
-      "curl",
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent",
-      "-H",
-      "Content-Type: application/json",
-      "-H",
-      "x-goog-api-key: " .. M.api_key,
-      "-X",
-      "POST",
-      "-d",
-      json,
-    }, { text = true }, function(res)
-      local data = vim.json.decode(res.stdout)
-      local text = data.candidates[1].content.parts[1].text
-      local lines = vim.split(text, "\n")
-      vim.schedule(function()
-        vim.api.nvim_buf_set_lines(chat_buf, 0, -1, false, lines)
-        M.stop_spinner(M.main_buf, timer, ns, M.mark_id)
-        M.flush_to_buf(chat_buf, M.main_buf)
-      end)
-    end)
+    local prompt = "Implement this code & Respond with code only, do not surround code with backticks (`)! ```"
+      .. win_buf_text
+      .. "```"
+    M.call_api(prompt)
     vim.api.nvim_win_close(M.chat_win_id, true)
     M.chat_win_id = nil
   else
