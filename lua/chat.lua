@@ -84,9 +84,7 @@ function M.call_api(propmt)
     local text = data.candidates[1].content.parts[1].text
     local lines = vim.split(text, "\n")
     vim.schedule(function()
-      -- vim.api.nvim_buf_set_lines(chat_buf, 0, -1, false, lines)
       M.stop_spinner(M.main_buf, timer, ns, M.mark_id)
-      -- M.flush_to_buf(chat_buf, M.main_buf)
       vim.api.nvim_buf_set_lines(M.main_buf, M.start_line - 1, M.end_line + 1, false, lines)
       M.start_line = nil
       M.end_line = nil
