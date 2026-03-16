@@ -1,6 +1,7 @@
 local M = {}
 
 function M.setup(opts)
+  M.main_buf = vim.api.nvim_get_current_buf()
   opts = opts or {}
   M.api_key = opts.api_key or ""
   local help = [[
@@ -13,7 +14,9 @@ function M.setup(opts)
       print("chat.nvim: remote setup\n" .. help)
     end
   end, { desc = "Help" })
-
+  vim.keymap.set("v", "<Leader>8i", function()
+    M.complete_implementation()
+  end, { desc = "Complete implementation" })
   vim.keymap.set("v", "<Leader>88", function()
     M.show_chat_box()
   end, { desc = "Open selected in chat box" })
@@ -22,9 +25,7 @@ end
 
 function M.show_chat_box()
   -- Get selected lines
-  M.main_buf = vim.api.nvim_get_current_buf()
-  local lines = {}
-  lines = M.get_visual_selection()
+  local lines = M.get_visual_selection()
 
   -- Create new buffer
   local new_buf = vim.api.nvim_create_buf(false, true)
