@@ -58,12 +58,8 @@ end
 function M.call_api(propmt)
   local json = vim.json.encode({
     contents = {
-      {
-        parts = {
-          {
-            text = propmt,
-          },
-        },
+      parts = {
+        text = propmt,
       },
     },
   })
