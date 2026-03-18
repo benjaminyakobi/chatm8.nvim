@@ -55,7 +55,7 @@ function M.show_chat_box()
   vim.api.nvim_set_option_value("number", true, { win = M.chat_win_id })
 end
 
-function M.call_api(propmt)
+function M.call_api(propmt, buf, s_line, e_line, win_chat)
   local json = vim.json.encode({
     contents = {
       parts = {
@@ -64,7 +64,7 @@ function M.call_api(propmt)
     },
   })
 
-  local timer, ns = M.start_spinner()
+  local timer, ns = M.start_spinner(buf, s_line)
   vim.system({
     "curl",
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent",
@@ -79,10 +79,13 @@ function M.call_api(propmt)
   }, { text = true }, function(res)
     local data = vim.json.decode(res.stdout)
     local text = data.candidates[1].content.parts[1].text
+    if win_chat then
+      text = "\nResponse:\n" .. text
+    end
     local lines = vim.split(text, "\n")
     vim.schedule(function()
-      M.stop_spinner(M.main_buf, timer, ns, M.mark_id)
-      vim.api.nvim_buf_set_lines(M.main_buf, M.start_line - 1, M.end_line + 1, false, lines)
+      M.stop_spinner(buf, timer, ns, M.mark_id)
+      vim.api.nvim_buf_set_lines(buf, s_line, e_line, false, lines)
       M.start_line = nil
       M.end_line = nil
     end)
@@ -95,7 +98,7 @@ function M.complete_implementation()
   local prompt = "Implement this code & Respond with code only, do not surround code with backticks (`)! ```"
     .. selected_text
     .. "```"
-  M.call_api(prompt)
+  M.call_api(prompt, M.main_buf, M.start_line - 1, M.end_line + 1, false)
 end
 
 function M.close_chat_box()
@@ -103,31 +106,31 @@ function M.close_chat_box()
     local chat_buf = vim.api.nvim_win_get_buf(M.chat_win_id)
     local win_buf_lines = vim.api.nvim_buf_get_lines(chat_buf, 0, -1, false)
     local win_buf_text = table.concat(win_buf_lines, "\n")
-    local prompt = "Implement this code & Respond with code only, do not surround code with backticks (`)! ```"
-      .. win_buf_text
-      .. "```"
-    M.call_api(prompt)
-    vim.api.nvim_win_close(M.chat_win_id, true)
-    M.chat_win_id = nil
+    -- local prompt = "Implement this code & Respond with code only, do not surround code with backticks (`)! ```"
+    --   .. win_buf_text
+    --   .. "```"
+    M.call_api(win_buf_text, chat_buf, #win_buf_lines, #win_buf_lines, true)
+    -- vim.api.nvim_win_close(M.chat_win_id, true)
+    -- M.chat_win_id = nil
   else
     print("chat.nvim: Select lines first")
   end
 end
 
-function M.start_spinner()
+function M.start_spinner(buf, s_line)
   local spinner = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
   local spin_index = 1
   local timer = vim.uv.new_timer()
-  local row = M.start_line - 1
+  local row = s_line
   local ns = vim.api.nvim_create_namespace("spinner")
-  vim.api.nvim_buf_set_lines(M.main_buf, row, row, false, { "" })
+  vim.api.nvim_buf_set_lines(buf, row, row, false, { "" })
   timer:start(
     0,
     100,
     vim.schedule_wrap(function()
       local frame = spinner[spin_index]
 
-      M.mark_id = vim.api.nvim_buf_set_extmark(M.main_buf, ns, row, 0, {
+      M.mark_id = vim.api.nvim_buf_set_extmark(buf, ns, row, 0, {
         id = M.mark_id, -- reuse same extmark
         virt_text = { { "Thinking " .. frame, "Comment" } },
         virt_text_pos = "eol",
