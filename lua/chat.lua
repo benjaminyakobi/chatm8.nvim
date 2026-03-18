@@ -97,7 +97,8 @@ function M.complete_implementation()
   local selected_text = table.concat(selected_lines, "\n")
   local prompt = "Implement this code & Respond with code only, do not surround code with backticks (`)! ```"
     .. selected_text
-    .. "```"
+    .. "```, filetype: "
+    .. vim.bo.filetype
   M.call_api(prompt, M.main_buf, M.start_line - 1, M.end_line + 1, false)
 end
 
