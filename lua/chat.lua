@@ -35,8 +35,8 @@ function M.show_chat_box()
 
   -- Calc window dimensions
   local width = math.min(80, vim.o.columns - 4)
-  local height = math.min(10, vim.o.lines - 4)
-  local row = math.floor((vim.o.lines - height) / 2)
+  local height = math.min(60, vim.o.lines - 6)
+  local row = math.floor((vim.o.lines - height - 4) / 2)
   local col = math.floor((vim.o.columns - width) / 2)
 
   -- Open floating window
