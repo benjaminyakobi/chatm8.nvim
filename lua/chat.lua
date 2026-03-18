@@ -34,7 +34,7 @@ function M.show_chat_box()
   vim.api.nvim_buf_set_lines(new_buf, 0, -1, false, lines)
 
   -- Calc window dimensions
-  local width = math.min(80, vim.o.columns - 4)
+  local width = math.min(90, vim.o.columns - 12)
   local height = math.min(60, vim.o.lines - 6)
   local row = math.floor((vim.o.lines - height - 4) / 2)
   local col = math.floor((vim.o.columns - width) / 2)
