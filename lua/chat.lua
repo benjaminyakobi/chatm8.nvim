@@ -113,12 +113,7 @@ function M.close_chat_box()
     local chat_buf = vim.api.nvim_win_get_buf(M.chat_win_id)
     local win_buf_lines = vim.api.nvim_buf_get_lines(chat_buf, 0, -1, false)
     local win_buf_text = table.concat(win_buf_lines, "\n")
-    -- local prompt = "Implement this code & Respond with code only, do not surround code with backticks (`)! ```"
-    --   .. win_buf_text
-    --   .. "```"
     M.call_api(win_buf_text, chat_buf, #win_buf_lines, #win_buf_lines, true)
-    -- vim.api.nvim_win_close(M.chat_win_id, true)
-    -- M.chat_win_id = nil
   else
     print("chat.nvim: Select lines first")
   end
