@@ -5,8 +5,8 @@ function M.setup(opts)
   opts = opts or {}
   M.api_key = opts.api_key or ""
   local help = [[
-  1. Select lines and <Leader>88 to open chat box window
-  2. Prompt and <Leader>88 to apply changes and close the chat box window]]
+  1. Select lines and <Leader>88 to open chat window
+  2. Write your prompt and <Leader>88 to send propmt]]
   vim.keymap.set("n", "<Leader>8?", function()
     if opts.dev then
       print("chat.nvim: local setup\n" .. help)
