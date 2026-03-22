@@ -61,14 +61,25 @@ function M.show_chat_box()
   vim.api.nvim_set_option_value("number", true, { win = M.chat_win_id })
 end
 
+function M.safe_notify(msg)
+  vim.schedule(function()
+    vim.notify(msg, vim.log.levels.ERROR)
+  end)
+end
+
 function M.call_api(propmt, buf, s_line, e_line, win_chat)
-  local json = vim.json.encode({
+  -- safe encode
+  local ok_encode, json = pcall(vim.json.encode, {
     contents = {
       parts = {
         text = propmt,
       },
     },
   })
+  if not ok_encode then
+    M.safe_notify("JSON encode failed: " .. json)
+    return
+  end
 
   local timer, ns = M.start_spinner(buf, s_line)
   vim.system({
@@ -83,17 +94,52 @@ function M.call_api(propmt, buf, s_line, e_line, win_chat)
     "-d",
     json,
   }, { text = true }, function(res)
-    local data = vim.json.decode(res.stdout)
-    local text = data.candidates[1].content.parts[1].text
+    local function cleanup(ok)
+      vim.schedule(function()
+        M.stop_spinner(buf, timer, ns, M.mark_id)
+        M.start_line = nil
+        M.end_line = nil
+        vim.api.nvim_input("<Esc>") -- exiting visual mode
+        if not ok then
+          -- removing spinner row
+          vim.api.nvim_buf_set_lines(buf, s_line, s_line + 1, false, {})
+        end
+      end)
+    end
+
+    -- ensuring request success
+    if res.code ~= 0 then
+      cleanup(false)
+      M.safe_notify("Request failed: " .. (res.stderr or "unknown error"))
+      return
+    end
+
+    -- safe decode
+    local ok_decode, data = pcall(vim.json.decode, res.stdout)
+    if not ok_decode then
+      cleanup(false)
+      M.safe_notify("JSON encode failed: " .. json)
+      return
+    end
+
+    -- safe extract
+    local text
+    local ok_extract, err = pcall(function()
+      text = data.candidates[1].content.parts[1].text
+    end)
+    if not ok_extract or not text then
+      cleanup(false)
+      M.safe_notify("Invalid API response structure: " .. err)
+      return
+    end
+
     if win_chat then
       text = "\nResponse:\n" .. text
     end
     local lines = vim.split(text, "\n")
     vim.schedule(function()
-      M.stop_spinner(buf, timer, ns, M.mark_id)
+      cleanup(true)
       vim.api.nvim_buf_set_lines(buf, s_line, e_line, false, lines)
-      M.start_line = nil
-      M.end_line = nil
     end)
   end)
 end
