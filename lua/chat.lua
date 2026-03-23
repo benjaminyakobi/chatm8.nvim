@@ -16,6 +16,7 @@ function M.setup(opts)
   vim.keymap.set("n", "<Leader>8?", function()
     if opts.dev then
       print("chat.nvim: local setup\n" .. help)
+      M.get_func_data_ts_text()
     else
       print("chat.nvim: remote setup\n" .. help)
     end
@@ -27,6 +28,48 @@ function M.setup(opts)
     M.show_chat_box()
   end, { desc = "Open selected in chat box" })
   vim.keymap.set("n", "<Leader>88", M.close_chat_box, { desc = "Apply changes" })
+end
+
+local queries = {
+  lua = [[
+        (function_declaration
+          name: (identifier) @name
+          parameters: (parameters) @params) @function
+        ]],
+  go = [[
+        (function_declaration
+          name: (identifier) @name
+          parameters: (parameter_list) @params
+          result: (parameter_list)? @return) @function
+        ]],
+}
+
+-- NOTE: TreeSitter approach - full func text
+function M.get_func_data_ts_text()
+  local ft = vim.bo.filetype
+  local ts = vim.treesitter
+  local parser = ts.get_parser(0, ft)
+  if not parser then
+    return {}
+  end
+  local tree = parser:parse()[1]
+  local root = tree:root()
+  local query = ts.query.parse(ft, queries[ft])
+  if not query then
+    M.safe_notify("no query defined for language: " .. ft)
+    return {}
+  end
+
+  for id, node, metadata in query:iter_captures(root, 0) do
+    local name = query.captures[id]
+
+    if name == "function" then
+      local start_row, start_col, end_row, end_col = node:range()
+      local text = ts.get_node_text(node, 0)
+
+      print("Full function:", text)
+    end
+  end
 end
 
 function M.show_chat_box()
