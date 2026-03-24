@@ -17,6 +17,7 @@ function M.setup(opts)
     if opts.dev then
       print("chat.nvim: local setup\n" .. help)
       M.get_func_data_ts_sig()
+      M.get_func_data_ts_text()
     else
       print("chat.nvim: remote setup\n" .. help)
     end
@@ -33,16 +34,26 @@ end
 -- NOTE: TreeSitter queries
 local queries = {
   lua = [[
-        (function_declaration
-          name: (identifier) @name
-          parameters: (parameters) @params) @function
-        ]],
+      (function_declaration
+        name: (identifier) @name
+        parameters: (parameters) @params) @function
+    ]],
+  python = [[
+      (function_definition
+        name: (identifier) @name
+        parameters: (parameters) @params) @function
+    ]],
+  javascript = [[
+      (function_declaration
+        name: (identifier) @name
+        parameters: (formal_parameters) @params) @function
+    ]],
   go = [[
-        (function_declaration
-          name: (identifier) @name
-          parameters: (parameter_list) @params
-          result: (parameter_list)? @return) @function
-        ]],
+      (function_declaration
+        name: (identifier) @name
+        parameters: (parameter_list) @params
+        result: (parameter_list)? @return) @function
+    ]],
 }
 
 -- NOTE: TreeSitter approach - func signature
@@ -55,9 +66,14 @@ function M.get_func_data_ts_sig()
   end
   local tree = parser:parse()[1]
   local root = tree:root()
-  local query = ts.query.parse(ft, queries[ft])
-  if not query then
+  local query_str = queries[ft]
+  if not query_str then
     M.safe_notify("no query defined for language: " .. ft)
+    return {}
+  end
+  local query = ts.query.parse(ft, query_str)
+  if not query then
+    M.safe_notify("failed to parse query for language: " .. ft)
     return {}
   end
 
@@ -67,9 +83,9 @@ function M.get_func_data_ts_sig()
 
   local signatures = {}
 
+  print(vim.inspect(root))
   for _, match, _ in query:iter_matches(root, 0) do
     local name_node, params_node
-
     for i, cap in ipairs(query.captures) do
       if cap == "name" then
         name_node = match[i]
@@ -82,7 +98,7 @@ function M.get_func_data_ts_sig()
       local fname = get_text(name_node[1])
       local params = get_text(params_node[1])
       local signature = string.format("function %s%s", fname, params)
-      print(signature)
+      print(signature) -- TODO: remove later
       table.insert(signatures, signature)
     end
   end
@@ -100,9 +116,14 @@ function M.get_func_data_ts_text()
   end
   local tree = parser:parse()[1]
   local root = tree:root()
-  local query = ts.query.parse(ft, queries[ft])
-  if not query then
+  local query_str = queries[ft]
+  if not query_str then
     M.safe_notify("no query defined for language: " .. ft)
+    return {}
+  end
+  local query = ts.query.parse(ft, query_str)
+  if not query then
+    M.safe_notify("failed to parse query for language: " .. ft)
     return {}
   end
 
@@ -113,7 +134,7 @@ function M.get_func_data_ts_text()
       local start_row, start_col, end_row, end_col = node:range()
       local text = ts.get_node_text(node, 0)
 
-      print("Full function:", text)
+      print("Full function:", text) -- TODO: remove later
     end
   end
 end
