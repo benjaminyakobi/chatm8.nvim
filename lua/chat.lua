@@ -16,8 +16,7 @@ function M.setup(opts)
   vim.keymap.set("n", "<Leader>8?", function()
     if opts.dev then
       print("chat.nvim: local setup\n" .. help)
-      M.get_func_data_ts_sig()
-      M.get_func_data_ts_text()
+      M.get_functions_body_and_signature(true, false)
     else
       print("chat.nvim: remote setup\n" .. help)
     end
@@ -31,7 +30,7 @@ function M.setup(opts)
   vim.keymap.set("n", "<Leader>88", M.close_chat_box, { desc = "Apply changes" })
 end
 
--- NOTE: TreeSitter queries
+-- treesitter queries
 local queries = {
   lua = [[
       (function_declaration
@@ -56,58 +55,11 @@ local queries = {
     ]],
 }
 
--- NOTE: TreeSitter approach - func signature
-function M.get_func_data_ts_sig()
-  local ft = vim.bo.filetype
-  local ts = vim.treesitter
-  local parser = ts.get_parser(0, ft)
-  if not parser then
-    return {}
-  end
-  local tree = parser:parse()[1]
-  local root = tree:root()
-  local query_str = queries[ft]
-  if not query_str then
-    M.safe_notify("no query defined for language: " .. ft)
-    return {}
-  end
-  local query = ts.query.parse(ft, query_str)
-  if not query then
-    M.safe_notify("failed to parse query for language: " .. ft)
-    return {}
-  end
-
+function M.get_functions_body_and_signature(signature_flag, body_flag)
   local function get_text(node)
     return vim.treesitter.get_node_text(node, 0)
   end
 
-  local signatures = {}
-
-  print(vim.inspect(root))
-  for _, match, _ in query:iter_matches(root, 0) do
-    local name_node, params_node
-    for i, cap in ipairs(query.captures) do
-      if cap == "name" then
-        name_node = match[i]
-      elseif cap == "params" then
-        params_node = match[i]
-      end
-    end
-
-    if name_node and params_node then
-      local fname = get_text(name_node[1])
-      local params = get_text(params_node[1])
-      local signature = string.format("function %s%s", fname, params)
-      print(signature) -- TODO: remove later
-      table.insert(signatures, signature)
-    end
-  end
-
-  return signatures
-end
-
--- NOTE: TreeSitter approach - full func text
-function M.get_func_data_ts_text()
   local ft = vim.bo.filetype
   local ts = vim.treesitter
   local parser = ts.get_parser(0, ft)
@@ -127,16 +79,44 @@ function M.get_func_data_ts_text()
     return {}
   end
 
-  for id, node, metadata in query:iter_captures(root, 0) do
-    local name = query.captures[id]
+  -- collecting function signatures
+  local signatures = {}
+  if signature_flag then
+    for _, match, _ in query:iter_matches(root, 0) do
+      local name_node, params_node
+      for i, cap in ipairs(query.captures) do
+        if cap == "name" then
+          name_node = match[i]
+        elseif cap == "params" then
+          params_node = match[i]
+        end
+      end
 
-    if name == "function" then
-      local start_row, start_col, end_row, end_col = node:range()
-      local text = ts.get_node_text(node, 0)
-
-      print("Full function:", text) -- TODO: remove later
+      if name_node and params_node then
+        local fname = get_text(name_node[1])
+        local params = get_text(params_node[1])
+        local signature = string.format("function %s%s", fname, params)
+        print(signature) -- TODO: remove later
+        table.insert(signatures, signature)
+      end
     end
   end
+
+  -- collecting function bodies
+  local bodies = {}
+  if body_flag then
+    for id, node, metadata in query:iter_captures(root, 0) do
+      local name = query.captures[id]
+
+      if name == "function" then
+        local start_row, start_col, end_row, end_col = node:range()
+        local text = ts.get_node_text(node, 0)
+        print(text) -- TODO: remove later
+      end
+    end
+  end
+
+  return signatures, bodies
 end
 
 function M.show_chat_box()
