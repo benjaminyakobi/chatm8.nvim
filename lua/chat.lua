@@ -16,7 +16,7 @@ function M.setup(opts)
   vim.keymap.set("n", "<Leader>8?", function()
     if opts.dev then
       print("chat.nvim: local setup\n" .. help)
-      M.get_func_data_ts_text()
+      M.get_func_data_ts_sig()
     else
       print("chat.nvim: remote setup\n" .. help)
     end
@@ -30,6 +30,7 @@ function M.setup(opts)
   vim.keymap.set("n", "<Leader>88", M.close_chat_box, { desc = "Apply changes" })
 end
 
+-- NOTE: TreeSitter queries
 local queries = {
   lua = [[
         (function_declaration
@@ -43,6 +44,51 @@ local queries = {
           result: (parameter_list)? @return) @function
         ]],
 }
+
+-- NOTE: TreeSitter approach - func signature
+function M.get_func_data_ts_sig()
+  local ft = vim.bo.filetype
+  local ts = vim.treesitter
+  local parser = ts.get_parser(0, ft)
+  if not parser then
+    return {}
+  end
+  local tree = parser:parse()[1]
+  local root = tree:root()
+  local query = ts.query.parse(ft, queries[ft])
+  if not query then
+    M.safe_notify("no query defined for language: " .. ft)
+    return {}
+  end
+
+  local function get_text(node)
+    return vim.treesitter.get_node_text(node, 0)
+  end
+
+  local signatures = {}
+
+  for _, match, _ in query:iter_matches(root, 0) do
+    local name_node, params_node
+
+    for i, cap in ipairs(query.captures) do
+      if cap == "name" then
+        name_node = match[i]
+      elseif cap == "params" then
+        params_node = match[i]
+      end
+    end
+
+    if name_node and params_node then
+      local fname = get_text(name_node[1])
+      local params = get_text(params_node[1])
+      local signature = string.format("function %s%s", fname, params)
+      print(signature)
+      table.insert(signatures, signature)
+    end
+  end
+
+  return signatures
+end
 
 -- NOTE: TreeSitter approach - full func text
 function M.get_func_data_ts_text()
