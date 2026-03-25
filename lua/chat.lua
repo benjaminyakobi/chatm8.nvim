@@ -16,7 +16,9 @@ function M.setup(opts)
   vim.keymap.set("n", "<Leader>8?", function()
     if opts.dev then
       print("chat.nvim: local setup\n" .. help)
-      M.get_functions_body_and_signature(true, false)
+      -- M.get_functions_body_and_signature(true, false)
+      local res = M.get_func_ast_data(0)
+      print(vim.inspect(res))
     else
       print("chat.nvim: remote setup\n" .. help)
     end
@@ -42,6 +44,159 @@ local function get_text(node)
     return nil
   end
   return ts.get_node_text(node, 0)
+end
+
+local function get_parser_root(buf, lang)
+  local parser = ts.get_parser(buf, lang)
+  if not parser then
+    return
+  end
+  local tree = parser:parse()[1]
+  return tree and tree:root()
+end
+
+local function normalize_node(node)
+  if type(node) == "table" then
+    return node[1]
+  end
+  return node
+end
+
+local function build_signature(lang, item)
+  if lang == "lua" then
+    return string.format("function %s%s", item.name, item.params)
+  end
+
+  if lang == "go" then
+    local sig
+
+    if item.receiver then
+      sig = string.format("func %s %s%s", item.receiver, item.name, item.params)
+    else
+      sig = string.format("func %s%s", item.name, item.params)
+    end
+
+    if item.return_type then
+      sig = sig .. " " .. item.return_type
+    end
+
+    return sig
+  end
+end
+
+-- ---------- extractors ----------
+
+local extractors = {}
+
+-- NOTE: Lua extractor
+extractors.lua = function(match, query)
+  local name, params, function_node
+
+  for i, cap in ipairs(query.captures) do
+    local node = match[i]
+
+    if cap == "name" then
+      name = get_text(node)
+    elseif cap == "params" then
+      params = get_text(node)
+    elseif cap == "func" or cap == "anonymous_function" then
+      function_node = node
+    end
+  end
+
+  if not params then
+    return nil
+  end
+
+  function_node = normalize_node(function_node)
+
+  local range
+  if function_node then
+    local start_row, start_col, end_row, end_col = function_node:range()
+    range = { start_row, start_col, end_row, end_col }
+  end
+
+  return {
+    name = name or "<anonymous>",
+    params = params,
+    range = range,
+  }
+end
+
+-- NOTE: Go extractor
+extractors.go = function(match, query)
+  local name, params, ret, receiver, function_node
+
+  for i, cap in ipairs(query.captures) do
+    local node = match[i]
+
+    if cap == "name" then
+      name = get_text(node)
+    elseif cap == "params" then
+      params = get_text(node)
+    elseif cap == "return" then
+      ret = get_text(node)
+    elseif cap == "receiver" then
+      receiver = get_text(node)
+    elseif cap == "func" or cap == "method" or cap == "anonymous_function" then
+      function_node = node
+    end
+  end
+
+  if not params then
+    return nil
+  end
+
+  function_node = normalize_node(function_node)
+
+  local range
+  if function_node then
+    local start_row, start_col, end_row, end_col = function_node:range()
+    range = { start_row, start_col, end_row, end_col }
+  end
+
+  return {
+    name = name or "<anonymous>",
+    params = params,
+    return_type = ret,
+    receiver = receiver,
+    range = range,
+  }
+end
+
+function M.get_func_ast_data(buf)
+  buf = buf or 0
+  local lang = vim.bo[buf].filetype
+
+  local root = get_parser_root(buf, lang)
+  if not root then
+    return {}
+  end
+
+  local query = ts.query.get(lang, "functions")
+  if not query then
+    vim.notify("No query for " .. lang, vim.log.levels.WARN)
+    return {}
+  end
+
+  local extractor = extractors[lang]
+  if not extractor then
+    vim.notify("No extractor for " .. lang, vim.log.levels.WARN)
+    return {}
+  end
+
+  local results = {}
+
+  for _, match in query:iter_matches(root, buf) do
+    local item = extractor(match, query)
+    if item then
+      item.lang = lang
+      item.signature = build_signature(lang, item)
+      table.insert(results, item)
+    end
+  end
+
+  return results
 end
 
 function M.get_functions_body_and_signature(signature_flag, body_flag)
