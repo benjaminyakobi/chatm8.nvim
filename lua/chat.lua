@@ -16,9 +16,8 @@ function M.setup(opts)
   vim.keymap.set("n", "<Leader>8?", function()
     if opts.dev then
       print("chat.nvim: local setup\n" .. help)
-      -- M.get_functions_body_and_signature(true, false)
-      local res = M.get_func_ast_data(0)
-      print(vim.inspect(res))
+      local func_data = M.get_func_ast_data(0)
+      print(vim.inspect(func_data)) -- TODO: remove later
     else
       print("chat.nvim: remote setup\n" .. help)
     end
