@@ -30,11 +30,21 @@ function M.setup(opts)
   vim.keymap.set("n", "<Leader>88", M.close_chat_box, { desc = "Apply changes" })
 end
 
-function M.get_functions_body_and_signature(signature_flag, body_flag)
-  local function get_text(node)
-    return vim.treesitter.get_node_text(node, 0)
-  end
+local ts = vim.treesitter
 
+-- ---------- helpers ----------
+
+local function get_text(node)
+  if type(node) == "table" then
+    node = node[1]
+  end
+  if not node then
+    return nil
+  end
+  return ts.get_node_text(node, 0)
+end
+
+function M.get_functions_body_and_signature(signature_flag, body_flag)
   local ft = vim.bo.filetype
   local ts = vim.treesitter
   local parser = ts.get_parser(0, ft)
