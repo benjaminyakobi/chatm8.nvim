@@ -30,31 +30,6 @@ function M.setup(opts)
   vim.keymap.set("n", "<Leader>88", M.close_chat_box, { desc = "Apply changes" })
 end
 
--- treesitter queries
-local queries = {
-  lua = [[
-      (function_declaration
-        name: (identifier) @name
-        parameters: (parameters) @params) @function
-    ]],
-  python = [[
-      (function_definition
-        name: (identifier) @name
-        parameters: (parameters) @params) @function
-    ]],
-  javascript = [[
-      (function_declaration
-        name: (identifier) @name
-        parameters: (formal_parameters) @params) @function
-    ]],
-  go = [[
-      (function_declaration
-        name: (identifier) @name
-        parameters: (parameter_list) @params
-        result: (parameter_list)? @return) @function
-    ]],
-}
-
 function M.get_functions_body_and_signature(signature_flag, body_flag)
   local function get_text(node)
     return vim.treesitter.get_node_text(node, 0)
@@ -68,14 +43,9 @@ function M.get_functions_body_and_signature(signature_flag, body_flag)
   end
   local tree = parser:parse()[1]
   local root = tree:root()
-  local query_str = queries[ft]
-  if not query_str then
-    M.safe_notify("no query defined for language: " .. ft)
-    return {}
-  end
-  local query = ts.query.parse(ft, query_str)
+  local query = ts.query.get(ft, "functions")
   if not query then
-    M.safe_notify("failed to parse query for language: " .. ft)
+    M.safe_notify("no query defined for language: " .. ft)
     return {}
   end
 
