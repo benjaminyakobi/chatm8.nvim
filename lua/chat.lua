@@ -174,13 +174,13 @@ function M.get_func_ast_data(buf)
 
   local query = ts.query.get(lang, "functions")
   if not query then
-    vim.notify("No query for " .. lang, vim.log.levels.WARN)
+    M.safe_notify("No query for " .. lang, vim.log.levels.WARN)
     return {}
   end
 
   local extractor = extractors[lang]
   if not extractor then
-    vim.notify("No extractor for " .. lang, vim.log.levels.WARN)
+    M.safe_notify("No extractor for " .. lang, vim.log.levels.WARN)
     return {}
   end
 
@@ -230,9 +230,9 @@ function M.show_chat_box()
   vim.api.nvim_set_option_value("number", true, { win = M.chat_win_id })
 end
 
-function M.safe_notify(msg)
+function M.safe_notify(msg, lvl)
   vim.schedule(function()
-    vim.notify(msg, vim.log.levels.ERROR)
+    vim.notify(msg, lvl)
   end)
 end
 
@@ -246,7 +246,7 @@ function M.call_api(propmt, buf, s_line, e_line, win_chat)
     },
   })
   if not ok_encode then
-    M.safe_notify("JSON encode failed: " .. json)
+    M.safe_notify("JSON encode failed: " .. json, vim.log.levels.ERROR)
     return
   end
 
@@ -279,7 +279,7 @@ function M.call_api(propmt, buf, s_line, e_line, win_chat)
     -- ensuring request success
     if res.code ~= 0 then
       cleanup(false)
-      M.safe_notify("Request failed: " .. (res.stderr or "unknown error"))
+      M.safe_notify("Request failed: " .. (res.stderr or "unknown error"), vim.log.levels.ERROR)
       return
     end
 
@@ -287,7 +287,7 @@ function M.call_api(propmt, buf, s_line, e_line, win_chat)
     local ok_decode, data = pcall(vim.json.decode, res.stdout)
     if not ok_decode then
       cleanup(false)
-      M.safe_notify("JSON encode failed: " .. json)
+      M.safe_notify("JSON encode failed: " .. json, vim.log.levels.ERROR)
       return
     end
 
@@ -298,7 +298,7 @@ function M.call_api(propmt, buf, s_line, e_line, win_chat)
     end)
     if not ok_extract or not text then
       cleanup(false)
-      M.safe_notify("Invalid API response structure: " .. err)
+      M.safe_notify("Invalid API response structure: " .. err, vim.log.levels.ERROR)
       return
     end
 
