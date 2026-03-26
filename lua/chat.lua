@@ -83,6 +83,31 @@ local function build_signature(lang, item)
   end
 end
 
+local function is_function_node(node)
+  if not node then
+    return false
+  end
+  local t = node:type()
+
+  return t == "function_declaration"
+    or t == "function_definition" -- Lua
+    or t == "method_decleration" -- Go
+    or t == "func_literal" -- Go
+end
+
+local function is_function_nested(node)
+  local parent = node
+
+  while parent do
+    parent = parent:parent()
+    if parent and is_function_node(parent) then
+      return true
+    end
+  end
+
+  return false
+end
+
 -- ---------- ast data extractors ----------
 
 local extractors = {}
@@ -108,6 +133,7 @@ extractors.lua = function(match, query)
   end
 
   function_node = normalize_node(function_node)
+  local is_nested = is_function_nested(function_node)
 
   local range
   if function_node then
@@ -119,6 +145,7 @@ extractors.lua = function(match, query)
     name = name or "<anonymous>",
     params = params,
     range = range,
+    nested = is_nested,
   }
 end
 
@@ -147,6 +174,7 @@ extractors.go = function(match, query)
   end
 
   function_node = normalize_node(function_node)
+  local is_nested = is_function_nested(function_node)
 
   local range
   if function_node then
@@ -160,6 +188,7 @@ extractors.go = function(match, query)
     return_type = ret,
     receiver = receiver,
     range = range,
+    nested = is_nested,
   }
 end
 
