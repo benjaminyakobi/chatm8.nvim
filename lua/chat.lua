@@ -16,8 +16,6 @@ function M.setup(opts)
   vim.keymap.set("n", "<Leader>8?", function()
     if opts.dev then
       print("chat.nvim: local setup\n" .. help)
-      local func_data = M.get_func_ast_data(0)
-      print(vim.inspect(func_data)) -- TODO: remove later
     else
       print("chat.nvim: remote setup\n" .. help)
     end
@@ -106,6 +104,16 @@ local function is_function_nested(node)
   end
 
   return false
+end
+
+function M.get_func_signatures(func_data, nested)
+  local signatures = {}
+  for _, item in ipairs(func_data) do
+    if item.nested == nested then
+      table.insert(signatures, item.signature)
+    end
+  end
+  return signatures
 end
 
 -- ---------- ast data extractors ----------
@@ -344,11 +352,16 @@ end
 
 function M.complete_implementation()
   local selected_lines = M.get_visual_selection()
+  local func_data = M.get_func_ast_data(0)
+  local func_signatures = M.get_func_signatures(func_data)
   local selected_text = table.concat(selected_lines, "\n")
   local prompt = "Implement this code & Respond with code only, do not surround code with backticks (`)! ```"
     .. selected_text
-    .. "```, filetype: "
+    .. "```, language:"
     .. vim.bo.filetype
+    .. "available function signatures you can use:"
+    .. table.concat(func_signatures, ",")
+    .. "if something looks incorrect, like duplicate function signatures do not implement and return an error & what to change inside a comment"
   M.call_api(prompt, M.main_buf, M.start_line - 1, M.end_line + 1, false)
 end
 
