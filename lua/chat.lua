@@ -355,13 +355,19 @@ function M.complete_implementation()
   local func_data = M.get_func_ast_data(0)
   local func_signatures = M.get_func_signatures(func_data)
   local selected_text = table.concat(selected_lines, "\n")
-  local prompt = "Implement this code & Respond with code only, do not surround code with backticks (`)! ```"
+  local prompt = "Implement the following code.\n"
+    .. "Respond with code only. Do NOT wrap the output in backticks.\n\n"
+    .. "Code:\n"
     .. selected_text
-    .. "```, language:"
+    .. "\n\n"
+    .. "Language: "
     .. vim.bo.filetype
-    .. "available function signatures you can use:"
-    .. table.concat(func_signatures, ",")
-    .. "if something looks incorrect, like duplicate function signatures do not implement and return an error & what to change inside a comment"
+    .. "\n\n"
+    .. "Available function signatures:\n"
+    .. table.concat(func_signatures, "\n")
+    .. "\n\n"
+    .. "If something looks incorrect (e.g., duplicate function signatures) or or if the task is unclear, do NOT implement the code.\n"
+    .. "Instead, return a regular comment (under the code) explaining what should be changed."
   M.call_api(prompt, M.main_buf, M.start_line - 1, M.end_line + 1, false)
 end
 
