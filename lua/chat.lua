@@ -16,6 +16,7 @@ function M.setup(opts)
   vim.keymap.set("n", "<Leader>8?", function()
     if opts.dev then
       print("chat.nvim: local setup\n" .. help)
+      print(vim.inspect(M.get_func_ast_data(0)))
     else
       print("chat.nvim: remote setup\n" .. help)
     end
@@ -86,6 +87,10 @@ local function build_signature(lang, item)
       sig = string.format("def %s %s%s", item.receiver, item.name, item.params)
     else
       sig = string.format("def %s%s", item.name, item.params)
+    end
+
+    if item.receiver then
+      sig = item.receiver .. "." .. sig
     end
 
     if item.return_type then
@@ -217,7 +222,7 @@ end
 
 -- NOTE: python extractor
 extractors.python = function(match, query)
-  local name, params, function_node
+  local name, params, function_node, return_type
   local kind = "function"
 
   for i, cap in ipairs(query.captures) do
@@ -229,6 +234,8 @@ extractors.python = function(match, query)
       params = get_text(node)
     elseif cap == "func" then
       function_node = node
+    elseif cap == "return" then
+      return_type = get_text(node)
     end
   end
 
@@ -254,7 +261,7 @@ extractors.python = function(match, query)
   return {
     name = name or "<anonymous>",
     params = params or "()",
-    return_type = nil,
+    return_type = return_type,
     receiver = nil,
     kind = kind,
     range = range,
