@@ -79,6 +79,21 @@ local function build_signature(lang, item)
 
     return sig
   end
+
+  if lang == "python" then
+    local sig = string.format("func %s%s", item.name, item.params)
+    if item.receiver then
+      sig = string.format("def %s %s%s", item.receiver, item.name, item.params)
+    else
+      sig = string.format("def %s%s", item.name, item.params)
+    end
+
+    if item.return_type then
+      sig = sig .. " -> " .. item.return_type
+    end
+
+    return sig
+  end
 end
 
 local function is_function_node(node)
@@ -195,6 +210,53 @@ extractors.go = function(match, query)
     params = params,
     return_type = ret,
     receiver = receiver,
+    range = range,
+    nested = is_nested,
+  }
+end
+
+-- NOTE: python extractor
+extractors.python = function(match, query)
+  local name, params, function_node
+  local kind = "function"
+
+  for i, cap in ipairs(query.captures) do
+    local node = match[i]
+
+    if cap == "name" then
+      name = get_text(node)
+    elseif cap == "params" then
+      params = get_text(node)
+    elseif cap == "func" then
+      function_node = node
+    end
+  end
+
+  function_node = normalize_node(function_node)
+  local is_nested = is_function_nested(function_node)
+
+  if not function_node then
+    return nil
+  end
+
+  -- Detect lambda
+  if function_node:type() == "lambda" then
+    kind = "anonymous"
+  end
+
+  -- Range
+  local range
+  if function_node then
+    local start_row, start_col, end_row, end_col = function_node:range()
+    range = { start_row, start_col, end_row, end_col }
+  end
+
+  return {
+    name = name or "<anonymous>",
+    params = params or "()",
+    return_type = nil,
+    receiver = nil,
+    kind = kind,
     range = range,
     nested = is_nested,
   }
