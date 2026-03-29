@@ -269,6 +269,57 @@ extractors.python = function(match, query)
   }
 end
 
+-- NOTE: JavaScript extractor
+extractors.javascript = function(match, query)
+  local name, params, function_node
+  local kind = "function"
+
+  for i, cap in ipairs(query.captures) do
+    local node = match[i]
+
+    if cap == "name" then
+      name = get_text(node)
+    elseif cap == "params" then
+      params = get_text(node)
+    elseif cap == "func" then
+      function_node = node
+    end
+  end
+
+  function_node = normalize_node(function_node)
+
+  if not function_node then
+    return nil
+  end
+
+  local node_type = function_node:type()
+
+  -- Detect function kind
+  if node_type == "arrow_function" then
+    kind = "anonymous"
+  elseif node_type == "method_definition" then
+    kind = "method"
+  elseif node_type == "function_expression" and not name then
+    kind = "anonymous"
+  end
+
+  -- Range
+  local range
+  if function_node then
+    local start_row, start_col, end_row, end_col = function_node:range()
+    range = { start_row, start_col, end_row, end_col }
+  end
+
+  return {
+    name = name or "<anonymous>",
+    params = params or "()",
+    return_type = nil,
+    receiver = nil, -- TODO: add receiver (class name, etc.)
+    kind = kind,
+    range = range,
+  }
+end
+
 function M.get_func_ast_data(buf)
   buf = buf or 0
   local lang = vim.bo[buf].filetype
