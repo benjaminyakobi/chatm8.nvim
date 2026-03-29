@@ -16,7 +16,6 @@ function M.setup(opts)
   vim.keymap.set("n", "<Leader>8?", function()
     if opts.dev then
       print("chat.nvim: local setup\n" .. help)
-      print(vim.inspect(M.get_func_ast_data(0)))
     else
       print("chat.nvim: remote setup\n" .. help)
     end
@@ -473,7 +472,7 @@ end
 function M.complete_implementation()
   local selected_lines = M.get_visual_selection()
   local func_data = M.get_func_ast_data(0)
-  local func_signatures = M.get_func_signatures(func_data)
+  local func_signatures = M.get_func_signatures(func_data, false)
   local selected_text = table.concat(selected_lines, "\n")
   local prompt = "Implement the following code.\n"
     .. "Respond with code only. Do NOT wrap the output in backticks.\n\n"
