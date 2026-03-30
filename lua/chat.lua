@@ -25,8 +25,8 @@ function M.setup(opts)
   end, { desc = "Complete implementation" })
   vim.keymap.set("v", "<Leader>88", function()
     M.show_chat_box()
-  end, { desc = "Open selected in chat box" })
-  vim.keymap.set("n", "<Leader>88", M.close_chat_box, { desc = "Apply changes" })
+  end, { desc = "Open chat window" })
+  vim.keymap.set("n", "<Leader>88", M.close_chat_box, { desc = "Close chat window" })
 end
 
 -- ---------- ast data extractor helpers ----------
@@ -501,13 +501,15 @@ function M.close_chat_box()
   end
 end
 
-function M.start_spinner(buf, s_line)
+function M.start_spinner(buf, row)
   local spinner = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
   local spin_index = 1
-  local timer = vim.uv.new_timer()
-  local row = s_line
   local ns = vim.api.nvim_create_namespace("spinner")
   vim.api.nvim_buf_set_lines(buf, row, row, false, { "" })
+  local timer = vim.uv.new_timer()
+  if not timer then
+    return nil, ns
+  end
   timer:start(
     0,
     100,
