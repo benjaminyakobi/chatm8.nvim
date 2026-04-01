@@ -81,7 +81,7 @@ local function build_signature(lang, item)
   end
 
   if lang == "python" then
-    local sig = string.format("func %s%s", item.name, item.params)
+    local sig = string.format("def %s%s", item.name, item.params)
     if item.receiver then
       sig = string.format("def %s %s%s", item.receiver, item.name, item.params)
     else
