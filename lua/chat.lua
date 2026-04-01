@@ -98,6 +98,11 @@ local function build_signature(lang, item)
 
     return sig
   end
+
+  if lang == "javascript" then
+    local sig = string.format("function %s%s", item.name, item.params)
+    return sig
+  end
 end
 
 local function is_function_node(node)
@@ -286,6 +291,7 @@ extractors.javascript = function(match, query)
   end
 
   function_node = normalize_node(function_node)
+  local is_nested = is_function_nested(function_node)
 
   if not function_node then
     return nil
@@ -316,6 +322,7 @@ extractors.javascript = function(match, query)
     receiver = nil, -- TODO: add receiver (class name, etc.)
     kind = kind,
     range = range,
+    nested = is_nested,
   }
 end
 
