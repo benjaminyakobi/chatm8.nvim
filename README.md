@@ -4,23 +4,22 @@ NeoVim AI Plugin inspired by ThePrimeagen/99
 ## Installation
 Using [lazy.nvim](https://github.com/folke/lazy.nvim)
 
-Add one of the following to your Neovim configuration:
-
+Basic setup (currently `gemini` only):
 ```lua
   {
     'benjaminyakobi/chat.nvim',
     config = function()
-      require('chat').setup({})
+      require('chat').setup({ api_key = 'gemini-api-key' })
     end,
   },
 ```
-or
+Local dev setup:
 
 ```lua
   {
     'benjaminyakobi/chat.nvim',
     config = function()
-      require('chat').setup({ name = 'your-name' })
+      require('chat').setup({ dev = true, api_key = 'gemini-api-key' })
     end,
   },
 ```
