@@ -26,7 +26,7 @@ function M.setup(opts)
   vim.keymap.set("v", "<Leader>88", function()
     M.show_chat_box()
   end, { desc = "Open chat window" })
-  vim.keymap.set("n", "<Leader>88", M.close_chat_box, { desc = "Close chat window" })
+  vim.keymap.set("n", "<Leader>88", M.call_api_win_chat, { desc = "Send prompt" })
 end
 
 -- ---------- ast data extractor helpers ----------
@@ -497,7 +497,7 @@ function M.complete_implementation()
   M.call_api(prompt, M.main_buf, M.start_line - 1, M.end_line + 1, false)
 end
 
-function M.close_chat_box()
+function M.call_api_win_chat()
   if M.chat_win_id then
     local chat_buf = vim.api.nvim_win_get_buf(M.chat_win_id)
     local win_buf_lines = vim.api.nvim_buf_get_lines(chat_buf, 0, -1, false)
