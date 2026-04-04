@@ -24,9 +24,9 @@ function M.setup(opts)
     M.complete_implementation()
   end, { desc = "Complete implementation" })
   vim.keymap.set("v", "<Leader>88", function()
-    M.show_chat_box()
+    M.select_and_open_chat_window()
   end, { desc = "Select & Open chat window" })
-  vim.keymap.set("n", "<Leader>88", M.select_and_open_chat_window, { desc = "Send prompt" })
+  vim.keymap.set("n", "<Leader>88", M.send_prompt_from_chat_window, { desc = "Send prompt" })
 end
 
 -- ---------- ast data extractor helpers ----------
@@ -361,7 +361,7 @@ function M.get_func_ast_data(buf)
   return results
 end
 
-function M.show_chat_box()
+function M.select_and_open_chat_window()
   -- Get selected lines
   local lines = M.get_visual_selection()
 
@@ -497,7 +497,7 @@ function M.complete_implementation()
   M.call_api(prompt, M.main_buf, M.start_line - 1, M.end_line + 1, false)
 end
 
-function M.select_and_open_chat_window()
+function M.send_prompt_from_chat_window()
   if M.chat_win_id then
     local chat_buf = vim.api.nvim_win_get_buf(M.chat_win_id)
     local win_buf_lines = vim.api.nvim_buf_get_lines(chat_buf, 0, -1, false)
