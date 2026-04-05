@@ -5,14 +5,19 @@ function M.setup(opts)
   opts = opts or {}
   M.api_key = opts.api_key or ""
   local help = [[
-<Leader>88: Chat Interface
-1. [Visual Mode] Select lines and press <Leader>88 to open the chat window.
-2. [Chat Window] Type your request and press <Leader>88 to send the prompt.
+<Leader>8p: Prompt Interface
+1. [Visual Mode] Select text (either code snippets or natural language instructions) and press <Leader>8p to open the prompt window.
+2. [Prompt Window] Type your prompt and press <Leader>8p to send the prompt.
 
 <Leader>8i: Inline Implementation
 1. [Visual Mode] Select text (either code snippets or natural language instructions).
 2. Press <Leader>8i to automatically complete the implementation or transform 
-   the selection directly in the current buffer.]]
+   the selection directly in the current buffer.
+
+<Leader>8c: Persistent Chat
+1. [Normal/Visual Mode] Press `<Leader>8c` to toggle a persistent chat window in a split view.
+2. [Chat Window] Maintain a continuous, multi-turn conversation with the model that persists across different files and buffers.]]
+
   vim.keymap.set("n", "<Leader>8?", function()
     if opts.dev then
       print("chat.nvim: local setup\n" .. help)
@@ -23,13 +28,13 @@ function M.setup(opts)
   vim.keymap.set("v", "<Leader>8i", function()
     M.complete_implementation()
   end, { desc = "Complete implementation" })
-  vim.keymap.set("v", "<Leader>88", function()
-    M.select_and_open_chat_window()
-  end, { desc = "Select & Open chat window" })
-  vim.keymap.set("n", "<Leader>88", M.send_prompt_from_chat_window, { desc = "Send prompt" })
-  vim.keymap.set("n", "<Leader>8w", function()
-    M.open_persistent_chat_window()
-  end, { desc = "Open persistent chat window" })
+  vim.keymap.set("v", "<Leader>8p", function()
+    M.select_and_open_prompt_window()
+  end, { desc = "Select & Open prompt window" })
+  vim.keymap.set("n", "<Leader>8p", M.send_prompt, { desc = "Send prompt" })
+  vim.keymap.set("n", "<Leader>8c", function()
+    M.toggle_persistent_chat_window()
+  end, { desc = "Toggle persistent chat window" })
 end
 
 -- ---------- ast data extractor helpers ----------
@@ -364,7 +369,7 @@ function M.get_func_ast_data(buf)
   return results
 end
 
-function M.ensure_chat_buffer()
+function M.ensure_persistent_chat_window_setup()
   -- checking if valid buffer alreay exist
   if M.chat_buf and vim.api.nvim_buf_is_valid(M.chat_buf) then
     return M.chat_buf
@@ -385,11 +390,21 @@ function M.ensure_chat_buffer()
     vim.api.nvim_buf_set_lines(M.chat_buf, 0, -1, false, { "Chat session started" })
   end
 
+  -- detecting window close with `:q` or other autocmd commands
+  vim.api.nvim_create_autocmd("WinClosed", {
+    callback = function(args)
+      local closed_win = tonumber(args.match)
+      if M.chat_win and closed_win == M.chat_win then
+        M.chat_win = nil
+      end
+    end,
+  })
+
   return M.chat_buf
 end
 
-function M.open_persistent_chat_window()
-  M.ensure_chat_buffer()
+function M.toggle_persistent_chat_window()
+  M.ensure_persistent_chat_window_setup()
 
   -- if already open -> close
   if M.chat_win and vim.api.nvim_buf_is_valid(M.chat_buf) then
@@ -404,7 +419,7 @@ function M.open_persistent_chat_window()
   vim.api.nvim_win_set_buf(M.chat_win, M.chat_buf)
 end
 
-function M.select_and_open_chat_window()
+function M.select_and_open_prompt_window()
   -- Get selected lines
   local lines = M.get_visual_selection()
 
@@ -540,7 +555,7 @@ function M.complete_implementation()
   M.call_api(prompt, M.main_buf, M.start_line - 1, M.end_line + 1, false)
 end
 
-function M.send_prompt_from_chat_window()
+function M.send_prompt()
   if M.chat_win_id then
     local chat_buf = vim.api.nvim_win_get_buf(M.chat_win_id)
     local win_buf_lines = vim.api.nvim_buf_get_lines(chat_buf, 0, -1, false)
@@ -591,6 +606,7 @@ function M.stop_spinner(buf, timer, ns, mark)
   end
 end
 
+-- TODO: REMOVE LATER
 function M.flush_to_buf(source_buf, target_buf)
   local win_buf_lines = vim.api.nvim_buf_get_lines(source_buf, 0, -1, false)
   -- start_line-1 is inclusive and 0-indexed while user TUI is 1-index
