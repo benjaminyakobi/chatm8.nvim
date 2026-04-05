@@ -1,4 +1,4 @@
-local M = {}
+local M = { chat_buf = nil }
 
 function M.setup(opts)
   M.main_buf = vim.api.nvim_get_current_buf()
@@ -27,6 +27,9 @@ function M.setup(opts)
     M.select_and_open_chat_window()
   end, { desc = "Select & Open chat window" })
   vim.keymap.set("n", "<Leader>88", M.send_prompt_from_chat_window, { desc = "Send prompt" })
+  vim.keymap.set("n", "<Leader>8w", function()
+    M.open_persistent_chat_window()
+  end, { desc = "Open persistent chat window" })
 end
 
 -- ---------- ast data extractor helpers ----------
@@ -359,6 +362,46 @@ function M.get_func_ast_data(buf)
   end
 
   return results
+end
+
+function M.ensure_chat_buffer()
+  -- checking if valid buffer alreay exist
+  if M.chat_buf and vim.api.nvim_buf_is_valid(M.chat_buf) then
+    return M.chat_buf
+  end
+
+  -- create new scracth buffer
+  M.chat_buf = vim.api.nvim_create_buf(false, true)
+
+  -- set buffer options
+  vim.api.nvim_set_option_value("buftype", "nofile", { buf = M.chat_buf })
+  vim.api.nvim_set_option_value("bufhidden", "hide", { buf = M.chat_buf })
+  vim.api.nvim_set_option_value("swapfile", false, { buf = M.chat_buf })
+  vim.api.nvim_set_option_value("buflisted", false, { buf = M.chat_buf })
+  vim.api.nvim_set_option_value("filetype", "chat", { buf = M.chat_buf })
+
+  -- set first line
+  if vim.api.nvim_buf_line_count(M.chat_buf) == 1 then
+    vim.api.nvim_buf_set_lines(M.chat_buf, 0, -1, false, { "Chat session started\n", "" })
+  end
+
+  return M.chat_buf
+end
+
+function M.open_persistent_chat_window()
+  M.ensure_chat_buffer()
+
+  -- if already open -> close
+  if M.chat_win and vim.api.nvim_buf_is_valid(M.chat_buf) then
+    vim.api.nvim_win_close(M.chat_win, true)
+    M.chat_win = nil
+    return
+  end
+
+  -- open new split
+  vim.cmd("vsplit") -- or "split"
+  M.chat_win = vim.api.nvim_get_current_win()
+  vim.api.nvim_win_set_buf(M.chat_win, M.chat_buf)
 end
 
 function M.select_and_open_chat_window()
