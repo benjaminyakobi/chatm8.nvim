@@ -1,4 +1,4 @@
-local M = { chat_buf = nil }
+local M = { chat_buf = nil, prompt_buf = nil }
 
 function M.setup(opts)
   M.main_buf = vim.api.nvim_get_current_buf()
@@ -25,13 +25,15 @@ function M.setup(opts)
       print("chat.nvim: remote setup\n" .. help)
     end
   end, { desc = "Help" })
+
   vim.keymap.set("v", "<Leader>8i", function()
     M.complete_implementation()
   end, { desc = "Complete implementation" })
+
   vim.keymap.set("v", "<Leader>8p", function()
-    M.select_and_open_prompt_window()
-  end, { desc = "Select & Open prompt window" })
-  vim.keymap.set("n", "<Leader>8p", M.send_prompt, { desc = "Send prompt" })
+    M.open_prompt_window()
+  end, { desc = "Open prompt window" })
+
   vim.keymap.set("n", "<Leader>8c", function()
     M.toggle_persistent_chat_window()
   end, { desc = "Toggle persistent chat window" })
@@ -419,15 +421,15 @@ function M.toggle_persistent_chat_window()
   vim.api.nvim_win_set_buf(M.chat_win, M.chat_buf)
 end
 
-function M.select_and_open_prompt_window()
+function M.open_prompt_window()
   -- Get selected lines
   local lines = M.get_visual_selection()
 
   -- Create new buffer
-  local new_buf = vim.api.nvim_create_buf(false, true)
+  M.prompt_buf = vim.api.nvim_create_buf(false, true)
 
   -- Set lines into new buffer
-  vim.api.nvim_buf_set_lines(new_buf, 0, -1, false, lines)
+  vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, lines)
 
   -- Calc window dimensions
   local width = math.min(90, vim.o.columns - 12)
@@ -436,7 +438,7 @@ function M.select_and_open_prompt_window()
   local col = math.floor((vim.o.columns - width) / 2)
 
   -- Open floating window
-  M.chat_win_id = vim.api.nvim_open_win(new_buf, true, {
+  M.prompt_win = vim.api.nvim_open_win(M.prompt_buf, true, {
     relative = "editor",
     row = row,
     col = col,
@@ -448,7 +450,21 @@ function M.select_and_open_prompt_window()
     title_pos = "center",
   })
 
-  vim.api.nvim_set_option_value("number", true, { win = M.chat_win_id })
+  vim.api.nvim_set_option_value("number", true, { win = M.prompt_win })
+
+  -- detecting window close with `:q` or other autocmd commands
+  vim.api.nvim_create_autocmd("WinClosed", {
+    callback = function(args)
+      local closed_win = tonumber(args.match)
+      if M.prompt_win and closed_win == M.prompt_win then
+        M.prompt_win = nil
+        vim.api.nvim_buf_delete(M.prompt_buf, { force = true })
+        M.prompt_buf = nil
+      end
+    end,
+  })
+
+  vim.keymap.set("n", "<Leader>8p", M.send_prompt, { desc = "Send prompt", buf = M.prompt_buf })
 end
 
 function M.safe_notify(msg, lvl)
@@ -457,7 +473,7 @@ function M.safe_notify(msg, lvl)
   end)
 end
 
-function M.call_api(propmt, buf, s_line, e_line, win_chat)
+function M.call_api(propmt, buf, s_line, e_line, prompt_win)
   -- safe encode
   local ok_encode, json = pcall(vim.json.encode, {
     contents = {
@@ -523,7 +539,7 @@ function M.call_api(propmt, buf, s_line, e_line, win_chat)
       return
     end
 
-    if win_chat then
+    if prompt_win then
       text = "\nResponse:\n" .. text
     end
     local lines = vim.split(text, "\n")
@@ -556,11 +572,10 @@ function M.complete_implementation()
 end
 
 function M.send_prompt()
-  if M.chat_win_id then
-    local chat_buf = vim.api.nvim_win_get_buf(M.chat_win_id)
-    local win_buf_lines = vim.api.nvim_buf_get_lines(chat_buf, 0, -1, false)
+  if M.prompt_win then
+    local win_buf_lines = vim.api.nvim_buf_get_lines(M.prompt_buf, 0, -1, false)
     local win_buf_text = table.concat(win_buf_lines, "\n")
-    M.call_api(win_buf_text, chat_buf, #win_buf_lines, #win_buf_lines, true)
+    M.call_api(win_buf_text, M.prompt_buf, #win_buf_lines, #win_buf_lines, true)
   else
     print("chat.nvim: Select lines first")
   end
@@ -604,16 +619,6 @@ function M.stop_spinner(buf, timer, ns, mark)
     vim.api.nvim_buf_del_extmark(buf, ns, mark)
     mark = nil
   end
-end
-
--- TODO: REMOVE LATER
-function M.flush_to_buf(source_buf, target_buf)
-  local win_buf_lines = vim.api.nvim_buf_get_lines(source_buf, 0, -1, false)
-  -- start_line-1 is inclusive and 0-indexed while user TUI is 1-index
-  -- end_line is exclusive because of the 0-index property
-  vim.api.nvim_buf_set_lines(target_buf, M.start_line - 1, M.end_line + 1, false, win_buf_lines)
-  M.start_line = nil
-  M.end_line = nil
 end
 
 function M.get_visual_selection()
