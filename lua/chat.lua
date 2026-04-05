@@ -377,12 +377,12 @@ function M.ensure_chat_buffer()
   vim.api.nvim_set_option_value("buftype", "nofile", { buf = M.chat_buf })
   vim.api.nvim_set_option_value("bufhidden", "hide", { buf = M.chat_buf })
   vim.api.nvim_set_option_value("swapfile", false, { buf = M.chat_buf })
-  vim.api.nvim_set_option_value("buflisted", false, { buf = M.chat_buf })
+  vim.api.nvim_set_option_value("buflisted", true, { buf = M.chat_buf })
   vim.api.nvim_set_option_value("filetype", "chat", { buf = M.chat_buf })
 
   -- set first line
   if vim.api.nvim_buf_line_count(M.chat_buf) == 1 then
-    vim.api.nvim_buf_set_lines(M.chat_buf, 0, -1, false, { "Chat session started\n", "" })
+    vim.api.nvim_buf_set_lines(M.chat_buf, 0, -1, false, { "Chat session started" })
   end
 
   return M.chat_buf
