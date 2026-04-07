@@ -412,7 +412,7 @@ function M.toggle_persistent_chat_window()
   if M.chat_win and vim.api.nvim_buf_is_valid(M.chat_buf) then
     vim.api.nvim_win_close(M.chat_win, true)
     M.chat_win = nil
-    M.resize_prompt_window()
+    M.set_prompt_window_conf()
     return
   end
 
@@ -420,34 +420,40 @@ function M.toggle_persistent_chat_window()
   vim.cmd("vsplit") -- or "split"
   M.chat_win = vim.api.nvim_get_current_win()
   vim.api.nvim_win_set_buf(M.chat_win, M.chat_buf)
-  M.resize_prompt_window()
+  M.set_prompt_window_conf()
 end
 
-function M.resize_prompt_window()
+function M.set_prompt_window_conf()
+  if M.prompt_buf == nil then
+    return
+  end
+  -- parent size
+  local parent_width = vim.api.nvim_win_get_width(M.parent_win)
+  local parent_height = vim.api.nvim_win_get_height(M.parent_win)
+
+  -- your desired size
+  local width = math.min(90, parent_width - 12)
+  local height = math.min(60, parent_height - 6)
+
+  -- center position
+  local col = math.floor((parent_width - width) / 2)
+  local row = math.floor((parent_height - height) / 2)
+  local win_conf = {
+    relative = "win",
+    win = M.parent_win,
+    row = row,
+    col = col,
+    width = width,
+    height = height,
+    style = "minimal",
+    border = "rounded",
+    title = " Chat Box ",
+    title_pos = "center",
+  }
   if M.prompt_win then
-    -- parent size
-    local parent_width = vim.api.nvim_win_get_width(M.parent_win)
-    local parent_height = vim.api.nvim_win_get_height(M.parent_win)
-
-    -- your desired size
-    local width = math.min(90, parent_width - 12)
-    local height = math.min(60, parent_height - 6)
-
-    -- center position
-    local col = math.floor((parent_width - width) / 2)
-    local row = math.floor((parent_height - height) / 2)
-    vim.api.nvim_win_set_config(M.prompt_win, {
-      relative = "win",
-      win = M.parent_win,
-      row = row,
-      col = col,
-      width = width,
-      height = height,
-      style = "minimal",
-      border = "rounded",
-      title = " Chat Box ",
-      title_pos = "center",
-    })
+    vim.api.nvim_win_set_config(M.prompt_win, win_conf)
+  else
+    M.prompt_win = vim.api.nvim_open_win(M.prompt_buf, true, win_conf)
   end
 end
 
@@ -462,24 +468,7 @@ function M.open_prompt_window()
   -- Set lines into new buffer
   vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, lines)
 
-  -- Calc window dimensions
-  local width = math.min(90, vim.o.columns - 12)
-  local height = math.min(60, vim.o.lines - 6)
-  local row = math.floor((vim.o.lines - height - 4) / 2)
-  local col = math.floor((vim.o.columns - width) / 2)
-
-  -- Open floating window
-  M.prompt_win = vim.api.nvim_open_win(M.prompt_buf, true, {
-    relative = "editor",
-    row = row,
-    col = col,
-    width = width,
-    height = height,
-    style = "minimal",
-    border = "rounded",
-    title = " Chat Box ",
-    title_pos = "center",
-  })
+  M.set_prompt_window_conf()
 
   vim.api.nvim_set_option_value("number", true, { win = M.prompt_win })
 
@@ -489,7 +478,7 @@ function M.open_prompt_window()
       local closed_win = tonumber(args.match)
       if M.prompt_win and closed_win == M.prompt_win then
         M.prompt_win = nil
-        vim.api.nvim_buf_delete(M.prompt_buf, { force = true })
+        vim.api.nvim_buf_delete(M.prompt_buf, { force = false })
         M.prompt_buf = nil
       end
     end,
