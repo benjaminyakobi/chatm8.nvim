@@ -464,6 +464,9 @@ function M.open_prompt_window()
 
   -- Create new buffer
   M.prompt_buf = vim.api.nvim_create_buf(false, true)
+  vim.bo[M.prompt_buf].buftype = "prompt"
+  vim.bo[M.prompt_buf].bufhidden = "wipe"
+  vim.bo[M.prompt_buf].swapfile = false
 
   -- Set lines into new buffer
   vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, lines)
