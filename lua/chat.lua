@@ -462,11 +462,12 @@ function M.open_prompt_window()
   -- Get selected lines
   local lines = M.get_visual_selection()
 
-  -- Create new buffer
+  -- Create new prompt buffer
   M.prompt_buf = vim.api.nvim_create_buf(false, true)
   vim.bo[M.prompt_buf].buftype = "prompt"
   vim.bo[M.prompt_buf].bufhidden = "wipe"
   vim.bo[M.prompt_buf].swapfile = false
+  vim.fn.prompt_setprompt(M.prompt_buf, "❯ ")
 
   -- Set lines into new buffer
   vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, lines)
@@ -474,6 +475,18 @@ function M.open_prompt_window()
   M.set_prompt_window_conf()
 
   vim.api.nvim_set_option_value("number", true, { win = M.prompt_win })
+
+  -- callback when user presses Enter
+  vim.fn.prompt_setcallback(M.prompt_buf, function()
+    M.send_prompt()
+  end)
+
+  -- start insert mode automatically
+  vim.cmd("startinsert")
+
+  -- block escape leaving insert
+  vim.keymap.set("i", "<C-c>", "<Nop>", { buffer = M.prompt_buf })
+  vim.keymap.set("i", "<C-[>", "<Nop>", { buffer = M.prompt_buf })
 
   -- detecting window close with `:q` or other autocmd commands
   vim.api.nvim_create_autocmd("WinClosed", {
@@ -486,8 +499,6 @@ function M.open_prompt_window()
       end
     end,
   })
-
-  vim.keymap.set("n", "<Leader>8p", M.send_prompt, { desc = "Send prompt", buf = M.prompt_buf })
 end
 
 function M.safe_notify(msg, lvl)
