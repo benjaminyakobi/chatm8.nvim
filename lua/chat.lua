@@ -488,6 +488,21 @@ function M.open_prompt_window()
   vim.keymap.set("i", "<C-c>", "<Nop>", { buffer = M.prompt_buf })
   vim.keymap.set("i", "<C-[>", "<Nop>", { buffer = M.prompt_buf })
 
+  -- double esc logic
+  local esc_pressed = false
+
+  vim.keymap.set("i", "<Esc>", function()
+    if esc_pressed then
+      vim.api.nvim_win_close(M.prompt_win, true)
+      return
+    end
+
+    esc_pressed = true
+    vim.defer_fn(function()
+      esc_pressed = false
+    end, 250)
+  end, { buffer = M.prompt_buf })
+
   -- detecting window close with `:q` or other autocmd commands
   vim.api.nvim_create_autocmd("WinClosed", {
     callback = function(args)
