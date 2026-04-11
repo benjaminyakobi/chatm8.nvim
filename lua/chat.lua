@@ -484,6 +484,19 @@ function M.open_prompt_window()
   -- start insert mode automatically
   vim.cmd("startinsert")
 
+  -- disabled key maps
+  vim.keymap.set("v", "<Leader>8p", function()
+    M.safe_notify("Disabled on open prompt window", vim.log.levels.INFO)
+  end, { desc = "Open prompt window (Disabled)", buf = M.prompt_buf })
+
+  vim.keymap.set("v", "<Leader>8i", function()
+    M.safe_notify("Disabled on open prompt window", vim.log.levels.INFO)
+  end, { desc = "Complete implementation (Disabled)", buf = M.prompt_buf })
+
+  vim.keymap.set("n", "<Leader>8c", function()
+    M.safe_notify("Disabled on open prompt window", vim.log.levels.INFO)
+  end, { desc = "Toggle persistent chat window (Disabled)", buf = M.prompt_buf })
+
   -- detecting window close with `:q` or other autocmd commands
   vim.api.nvim_create_autocmd("WinClosed", {
     callback = function(args)
