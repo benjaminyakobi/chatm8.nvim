@@ -416,6 +416,15 @@ function M.toggle_persistent_chat_window()
     return
   end
 
+  -- disabled key maps
+  vim.keymap.set("v", "<Leader>8p", function()
+    M.safe_notify("Disabled on chat window", vim.log.levels.INFO)
+  end, { desc = "Open prompt window (Disabled)", buf = M.chat_buf })
+
+  vim.keymap.set("v", "<Leader>8i", function()
+    M.safe_notify("Disabled on chat window", vim.log.levels.INFO)
+  end, { desc = "Complete implementation (Disabled)", buf = M.chat_buf })
+
   -- open new split
   vim.cmd("vsplit") -- or "split"
   M.chat_win = vim.api.nvim_get_current_win()
@@ -486,15 +495,15 @@ function M.open_prompt_window()
 
   -- disabled key maps
   vim.keymap.set("v", "<Leader>8p", function()
-    M.safe_notify("Disabled on open prompt window", vim.log.levels.INFO)
+    M.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
   end, { desc = "Open prompt window (Disabled)", buf = M.prompt_buf })
 
   vim.keymap.set("v", "<Leader>8i", function()
-    M.safe_notify("Disabled on open prompt window", vim.log.levels.INFO)
+    M.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
   end, { desc = "Complete implementation (Disabled)", buf = M.prompt_buf })
 
   vim.keymap.set("n", "<Leader>8c", function()
-    M.safe_notify("Disabled on open prompt window", vim.log.levels.INFO)
+    M.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
   end, { desc = "Toggle persistent chat window (Disabled)", buf = M.prompt_buf })
 
   -- detecting window close with `:q` or other autocmd commands
