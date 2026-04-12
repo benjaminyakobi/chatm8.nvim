@@ -475,6 +475,7 @@ function M.open_prompt_window()
   M.prompt_buf = vim.api.nvim_create_buf(false, true)
   vim.bo[M.prompt_buf].buftype = "prompt"
   vim.bo[M.prompt_buf].bufhidden = "wipe"
+  vim.bo[M.prompt_buf].filetype = "markdown"
   vim.bo[M.prompt_buf].swapfile = false
   vim.fn.prompt_setprompt(M.prompt_buf, "❯ ")
 
