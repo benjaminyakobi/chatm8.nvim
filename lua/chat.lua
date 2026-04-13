@@ -536,7 +536,7 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
     },
   })
   if not ok_encode then
-    M.safe_notify("JSON encode failed: " .. json, vim.log.levels.ERROR)
+    M.append_message(buf, "Error", "JSON encode failed: " .. json)
     return
   end
 
@@ -569,7 +569,7 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
     -- ensuring request success
     if res.code ~= 0 then
       cleanup(false)
-      M.safe_notify("Request failed: " .. (res.stderr or "unknown error"), vim.log.levels.ERROR)
+      M.append_message(buf, "Error", "Request failed: " .. (res.stderr or "unknown error"))
       return
     end
 
@@ -577,7 +577,7 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
     local ok_decode, data = pcall(vim.json.decode, res.stdout)
     if not ok_decode then
       cleanup(false)
-      M.safe_notify("JSON encode failed: " .. json, vim.log.levels.ERROR)
+      M.append_message(buf, "Error", "JSON encode failed: " .. json)
       return
     end
 
