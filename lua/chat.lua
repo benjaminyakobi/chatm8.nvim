@@ -588,10 +588,7 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
     end)
     if not ok_extract or not text then
       cleanup(false)
-      local timestamp = os.date("%H:%M:%S")
-      local header = "LLMChat | " .. timestamp
-      M.append_message(buf, header, "Invalid API response structure: " .. err)
-      -- M.safe_notify("Invalid API response structure: " .. err, vim.log.levels.ERROR)
+      M.append_message(buf, "Error", "Invalid API response structure: " .. err)
       return
     end
 
@@ -607,26 +604,31 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
 end
 
 local ns = vim.api.nvim_create_namespace("llm-chat")
-vim.api.nvim_set_hl(0, "LLMUser", { fg = "#89b4fa", bold = true })
-vim.api.nvim_set_hl(0, "LLMChat", { fg = "#a6e3a1", bold = true })
+vim.api.nvim_set_hl(0, "You", { fg = "#89b4fa", bold = true })
+vim.api.nvim_set_hl(0, "Assistant", { fg = "#a6e3a1", bold = true })
+vim.api.nvim_set_hl(0, "Error", { fg = "#d43131", bold = true })
 
 function M.append_message(buf, role, text)
+  local function build_header(role)
+    local timestamp = os.date("%d-%m-%Y %H:%M:%S")
+    local header = "❯ " .. role .. " | " .. timestamp
+    return header
+  end
+
+  local header = build_header(role)
   vim.schedule(function()
     local lines = vim.split(text, "\n", { plain = true })
-
     local header_line = vim.api.nvim_buf_line_count(buf)
 
     vim.api.nvim_buf_set_lines(buf, -1, -1, false, {
-      role,
+      header,
       unpack(lines),
       "",
     })
 
-    local hl = role == "You" and "LLMUser" or "LLMChat"
-
     vim.api.nvim_buf_set_extmark(buf, ns, header_line, 0, {
-      hl_group = hl,
-      end_col = #role,
+      hl_group = role,
+      end_col = #header,
     })
 
     local win = vim.fn.bufwinid(buf)
