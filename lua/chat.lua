@@ -588,7 +588,10 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
     end)
     if not ok_extract or not text then
       cleanup(false)
-      M.safe_notify("Invalid API response structure: " .. err, vim.log.levels.ERROR)
+      local timestamp = os.date("%H:%M:%S")
+      local header = "LLMChat | " .. timestamp
+      M.append_message(buf, header, "Invalid API response structure: " .. err)
+      -- M.safe_notify("Invalid API response structure: " .. err, vim.log.levels.ERROR)
       return
     end
 
