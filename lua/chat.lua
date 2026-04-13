@@ -603,6 +603,39 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
   end)
 end
 
+local ns = vim.api.nvim_create_namespace("llm-chat")
+vim.api.nvim_set_hl(0, "LLMUser", { fg = "#89b4fa", bold = true })
+vim.api.nvim_set_hl(0, "LLMChat", { fg = "#a6e3a1", bold = true })
+
+function M.append_message(buf, role, text)
+  vim.schedule(function()
+    local lines = vim.split(text, "\n", { plain = true })
+
+    local header_line = vim.api.nvim_buf_line_count(buf)
+
+    vim.api.nvim_buf_set_lines(buf, -1, -1, false, {
+      role,
+      unpack(lines),
+      "",
+    })
+
+    local hl = role == "You" and "LLMUser" or "LLMChat"
+
+    vim.api.nvim_buf_set_extmark(buf, ns, header_line, 0, {
+      hl_group = hl,
+      end_col = #role,
+    })
+
+    local win = vim.fn.bufwinid(buf)
+    if win ~= -1 then
+      vim.api.nvim_win_set_cursor(win, {
+        vim.api.nvim_buf_line_count(buf),
+        0,
+      })
+    end
+  end)
+end
+
 function M.complete_implementation()
   local selected_lines = M.get_visual_selection()
   local func_data = M.get_func_ast_data(0)
