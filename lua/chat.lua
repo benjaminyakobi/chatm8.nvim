@@ -621,7 +621,6 @@ function M.append_message(buf, role, lines)
 
   local header = build_header(role)
   vim.schedule(function()
-    print(unpack(lines))
     -- local lines = vim.split(text, "\n", { plain = true })
     local header_line = vim.api.nvim_buf_line_count(buf)
 
