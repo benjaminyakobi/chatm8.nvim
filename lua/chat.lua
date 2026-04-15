@@ -483,7 +483,7 @@ function M.open_prompt_window()
   })
 
   -- Set lines into new buffer
-  M.append_message(M.prompt_buf, "You", lines)
+  M.append_message(M.prompt_buf, "You", table.concat(lines, "\n"))
 
   M.set_prompt_window_conf()
 
@@ -539,7 +539,7 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
     },
   })
   if not ok_encode then
-    M.append_message(buf, "Error", { "JSON encode failed: " .. json })
+    M.append_message(buf, "Error", "JSON encode failed: " .. json)
     return
   end
 
@@ -572,7 +572,7 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
     -- ensuring request success
     if res.code ~= 0 then
       cleanup(false)
-      M.append_message(buf, "Error", { "Request failed: " .. (res.stderr or "unknown error") })
+      M.append_message(buf, "Error", "Request failed: " .. (res.stderr or "unknown error"))
       return
     end
 
@@ -580,7 +580,7 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
     local ok_decode, data = pcall(vim.json.decode, res.stdout)
     if not ok_decode then
       cleanup(false)
-      M.append_message(buf, "Error", { "JSON encode failed: " .. json })
+      M.append_message(buf, "Error", "JSON encode failed: " .. json)
       return
     end
 
@@ -591,18 +591,13 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
     end)
     if not ok_extract or not text then
       cleanup(false)
-      M.append_message(buf, "Error", { "Invalid API response structure: " .. err })
+      M.append_message(buf, "Error", "Invalid API response structure: " .. err)
       return
     end
 
-    if prompt_win then
-      text = "\nResponse:\n" .. text
-    end
-    local lines = vim.split(text, "\n")
     vim.schedule(function()
       cleanup(true)
-      vim.api.nvim_buf_set_lines(buf, s_line, e_line, false, lines)
-      -- M.append_message(buf, "Assistant", lines)
+      M.append_message(buf, "Assistant", text)
     end)
   end)
 end
@@ -612,7 +607,7 @@ vim.api.nvim_set_hl(0, "You", { fg = "#89b4fa", bold = true })
 vim.api.nvim_set_hl(0, "Assistant", { fg = "#a6e3a1", bold = true })
 vim.api.nvim_set_hl(0, "Error", { fg = "#d43131", bold = true })
 
-function M.append_message(buf, role, lines)
+function M.append_message(buf, role, text)
   local function build_header(role)
     local timestamp = os.date("%d-%m-%Y %H:%M:%S")
     local header = "❯ " .. role .. " | " .. timestamp
@@ -621,14 +616,15 @@ function M.append_message(buf, role, lines)
 
   local header = build_header(role)
   vim.schedule(function()
-    -- local lines = vim.split(text, "\n", { plain = true })
+    local lines = vim.split(text, "\n", { plain = true })
     local header_line = vim.api.nvim_buf_line_count(buf)
 
-    vim.api.nvim_buf_set_lines(buf, -1, -1, false, {
-      header,
-      unpack(lines),
-      "",
-    })
+    local total_lines = { header }
+    for _, v in ipairs(lines) do
+      table.insert(total_lines, v)
+    end
+    total_lines[#total_lines + 1] = ""
+    vim.api.nvim_buf_set_lines(buf, -1, -1, false, total_lines)
 
     vim.api.nvim_buf_set_extmark(buf, ns, header_line, 0, {
       hl_group = role,
