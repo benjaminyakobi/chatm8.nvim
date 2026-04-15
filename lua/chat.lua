@@ -483,7 +483,8 @@ function M.open_prompt_window()
   })
 
   -- Set lines into new buffer
-  M.append_message(M.prompt_buf, "You", table.concat(lines, "\n"))
+  local selected_text = M.tag_selected_text(table.concat(lines, "\n"))
+  M.append_message(M.prompt_buf, "You", selected_text)
 
   M.set_prompt_window_conf()
 
@@ -655,11 +656,16 @@ function M.append_message(buf, role, text)
   end)
 end
 
+function M.tag_selected_text(text)
+  return "```" .. vim.bo.filetype .. "\n" .. text .. "\n```"
+end
+
 function M.complete_implementation()
   local selected_lines = M.get_visual_selection()
   local func_data = M.get_func_ast_data(0)
   local func_signatures = M.get_func_signatures(func_data, false)
-  local selected_text = table.concat(selected_lines, "\n")
+  local selected_text = M.tag_selected_text(table.concat(selected_lines, "\n"))
+  print(selected_text)
   local prompt = "Implement the following code.\n"
     .. "Respond with code only. Do NOT wrap the output in backticks.\n\n"
     .. "Code:\n"
