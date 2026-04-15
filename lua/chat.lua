@@ -529,7 +529,7 @@ function M.safe_notify(msg, lvl)
   end)
 end
 
-function M.call_api(propmt, buf, s_line, e_line, prompt_win)
+function M.call_api(propmt, buf, s_line, prompt_win)
   -- safe encode
   local ok_encode, json = pcall(vim.json.encode, {
     contents = {
@@ -539,7 +539,11 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
     },
   })
   if not ok_encode then
-    M.append_message(buf, "Error", "JSON encode failed: " .. json)
+    if prompt_win then
+      M.append_message(buf, "Error", "JSON encode failed: " .. json)
+    else
+      M.safe_notify("JSON encode failed: " .. json, vim.log.levels.ERROR)
+    end
     return
   end
 
@@ -572,7 +576,11 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
     -- ensuring request success
     if res.code ~= 0 then
       cleanup(false)
-      M.append_message(buf, "Error", "Request failed: " .. (res.stderr or "unknown error"))
+      if prompt_win then
+        M.append_message(buf, "Error", "Request failed: " .. (res.stderr or "unknown error"))
+      else
+        M.safe_notify("Request failed: " .. (res.stderr or "unknown error"), vim.log.levels.ERROR)
+      end
       return
     end
 
@@ -580,7 +588,11 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
     local ok_decode, data = pcall(vim.json.decode, res.stdout)
     if not ok_decode then
       cleanup(false)
-      M.append_message(buf, "Error", "JSON encode failed: " .. json)
+      if prompt_win then
+        M.append_message(buf, "Error", "JSON encode failed: " .. json)
+      else
+        M.safe_notify("JSON encode failed: " .. json, vim.log.levels.ERROR)
+      end
       return
     end
 
@@ -591,7 +603,11 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
     end)
     if not ok_extract or not text then
       cleanup(false)
-      M.append_message(buf, "Error", "Invalid API response structure: " .. err)
+      if prompt_win then
+        M.append_message(buf, "Error", "Invalid API response structure: " .. err)
+      else
+        M.safe_notify("Invalid API response structure: " .. err, vim.log.levels.ERROR)
+      end
       return
     end
 
@@ -657,14 +673,14 @@ function M.complete_implementation()
     .. "\n\n"
     .. "If something looks incorrect (e.g., duplicate function signatures) or or if the task is unclear, do NOT implement the code.\n"
     .. "Instead, return a regular comment (under the code) explaining what should be changed."
-  M.call_api(prompt, M.main_buf, M.start_line - 1, M.end_line + 1, false)
+  M.call_api(prompt, M.main_buf, M.start_line - 1, false)
 end
 
 function M.send_prompt()
   if M.prompt_win then
     local win_buf_lines = vim.api.nvim_buf_get_lines(M.prompt_buf, 0, -1, false)
     local win_buf_text = table.concat(win_buf_lines, "\n")
-    M.call_api(win_buf_text, M.prompt_buf, #win_buf_lines, #win_buf_lines, true)
+    M.call_api(win_buf_text, M.prompt_buf, #win_buf_lines, true)
   else
     print("chat.nvim: Select lines first")
   end
