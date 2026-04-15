@@ -616,19 +616,19 @@ function M.call_api(propmt, buf, s_line, prompt_win)
   end)
 end
 
-local ns = vim.api.nvim_create_namespace("llm-chat")
+local chat_ns = vim.api.nvim_create_namespace("llm-chat")
 vim.api.nvim_set_hl(0, "You", { fg = "#89b4fa", bold = true })
 vim.api.nvim_set_hl(0, "Assistant", { fg = "#a6e3a1", bold = true })
 vim.api.nvim_set_hl(0, "Error", { fg = "#d43131", bold = true })
 
 function M.append_message(buf, role, text)
-  local function build_header(role)
+  local function build_header()
     local timestamp = os.date("%d-%m-%Y %H:%M:%S")
     local header = "❯ " .. role .. " | " .. timestamp
     return header
   end
 
-  local header = build_header(role)
+  local header = build_header()
   vim.schedule(function()
     local lines = vim.split(text, "\n", { plain = true })
     local header_line = vim.api.nvim_buf_line_count(buf)
@@ -640,7 +640,7 @@ function M.append_message(buf, role, text)
     total_lines[#total_lines + 1] = ""
     vim.api.nvim_buf_set_lines(buf, -1, -1, false, total_lines)
 
-    vim.api.nvim_buf_set_extmark(buf, ns, header_line, 0, {
+    vim.api.nvim_buf_set_extmark(buf, chat_ns, header_line, 0, {
       hl_group = role,
       end_col = #header,
     })
@@ -689,11 +689,11 @@ end
 function M.start_spinner(buf, row)
   local spinner = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
   local spin_index = 1
-  local ns = vim.api.nvim_create_namespace("spinner")
+  local spinner_ns = vim.api.nvim_create_namespace("spinner")
   vim.api.nvim_buf_set_lines(buf, row, row, false, { "" })
   local timer = vim.uv.new_timer()
   if not timer then
-    return nil, ns
+    return nil, spinner_ns
   end
   timer:start(
     0,
@@ -701,7 +701,7 @@ function M.start_spinner(buf, row)
     vim.schedule_wrap(function()
       local frame = spinner[spin_index]
 
-      M.mark_id = vim.api.nvim_buf_set_extmark(buf, ns, row, 0, {
+      M.mark_id = vim.api.nvim_buf_set_extmark(buf, spinner_ns, row, 0, {
         id = M.mark_id, -- reuse same extmark
         virt_text = { { "Thinking " .. frame, "Comment" } },
         virt_text_pos = "eol",
@@ -710,7 +710,7 @@ function M.start_spinner(buf, row)
       spin_index = spin_index % #spinner + 1
     end)
   )
-  return timer, ns
+  return timer, spinner_ns
 end
 
 function M.stop_spinner(buf, timer, ns, mark)
