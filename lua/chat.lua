@@ -595,10 +595,8 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
       return
     end
 
-    vim.schedule(function()
-      cleanup(true)
-      M.append_message(buf, "Assistant", text)
-    end)
+    cleanup(true)
+    M.append_message(buf, "Assistant", text)
   end)
 end
 
