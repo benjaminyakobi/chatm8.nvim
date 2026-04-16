@@ -496,7 +496,9 @@ function M.open_prompt_window()
   end)
 
   -- start insert mode automatically
-  -- vim.cmd("startinsert")
+  local last = vim.api.nvim_buf_line_count(M.prompt_buf)
+  vim.api.nvim_win_set_cursor(M.prompt_win, { last, 0 })
+  vim.cmd("startinsert")
 
   -- TODO: make history read-only
   vim.api.nvim_create_autocmd("InsertEnter", {
@@ -504,7 +506,7 @@ function M.open_prompt_window()
     callback = function()
       local line = vim.api.nvim_win_get_cursor(0)[1]
       local last = vim.api.nvim_buf_line_count(M.prompt_buf)
-      print("history", line, last)
+      -- print("history", line, last)
       if line ~= last then
         vim.cmd("stopinsert")
         vim.api.nvim_input("<Esc>")
