@@ -496,7 +496,22 @@ function M.open_prompt_window()
   end)
 
   -- start insert mode automatically
-  vim.cmd("startinsert")
+  -- vim.cmd("startinsert")
+
+  -- TODO: make history read-only
+  vim.api.nvim_create_autocmd("InsertEnter", {
+    buffer = M.prompt_buf,
+    callback = function()
+      local line = vim.api.nvim_win_get_cursor(0)[1]
+      local last = vim.api.nvim_buf_line_count(M.prompt_buf)
+      print("history", line, last)
+      if line ~= last then
+        vim.cmd("stopinsert")
+        vim.api.nvim_input("<Esc>")
+        M.safe_notify("History is read-only — type a new message below", vim.log.levels.WARN)
+      end
+    end,
+  })
 
   -- disabled key maps
   vim.keymap.set("v", "<Leader>8p", function()
