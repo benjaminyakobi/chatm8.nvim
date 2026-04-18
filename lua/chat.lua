@@ -500,19 +500,6 @@ function M.open_prompt_window()
   vim.api.nvim_win_set_cursor(M.prompt_win, { last, 0 })
   vim.cmd("startinsert")
 
-  vim.api.nvim_create_autocmd("InsertEnter", {
-    buffer = M.prompt_buf,
-    callback = function()
-      local line = vim.api.nvim_win_get_cursor(0)[1]
-      local last_line = vim.api.nvim_buf_line_count(M.prompt_buf)
-      if line ~= last_line then
-        vim.cmd("stopinsert")
-        vim.api.nvim_input("<Esc>")
-        M.safe_notify("History is read-only — type a new message below", vim.log.levels.WARN)
-      end
-    end,
-  })
-
   -- disabled key maps
   vim.keymap.set("v", "<Leader>8p", function()
     M.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
@@ -557,6 +544,7 @@ function M.call_api(propmt, buf, s_line, prompt_win)
   if not ok_encode then
     if prompt_win then
       M.append_message(buf, "Error", "JSON encode failed: " .. json)
+      M.append_message(M.prompt_buf, "You", "")
     else
       M.safe_notify("JSON encode failed: " .. json, vim.log.levels.ERROR)
     end
@@ -594,6 +582,7 @@ function M.call_api(propmt, buf, s_line, prompt_win)
       cleanup(false)
       if prompt_win then
         M.append_message(buf, "Error", "Request failed: " .. (res.stderr or "unknown error"))
+        M.append_message(M.prompt_buf, "You", "")
       else
         M.safe_notify("Request failed: " .. (res.stderr or "unknown error"), vim.log.levels.ERROR)
       end
@@ -606,6 +595,7 @@ function M.call_api(propmt, buf, s_line, prompt_win)
       cleanup(false)
       if prompt_win then
         M.append_message(buf, "Error", "JSON encode failed: " .. json)
+        M.append_message(M.prompt_buf, "You", "")
       else
         M.safe_notify("JSON encode failed: " .. json, vim.log.levels.ERROR)
       end
@@ -621,6 +611,7 @@ function M.call_api(propmt, buf, s_line, prompt_win)
       cleanup(false)
       if prompt_win then
         M.append_message(buf, "Error", "Invalid API response structure: " .. err)
+        M.append_message(M.prompt_buf, "You", "")
       else
         M.safe_notify("Invalid API response structure: " .. err, vim.log.levels.ERROR)
       end
@@ -629,6 +620,7 @@ function M.call_api(propmt, buf, s_line, prompt_win)
 
     cleanup(true)
     M.append_message(buf, "Assistant", text)
+    M.append_message(M.prompt_buf, "You", "")
   end)
 end
 
