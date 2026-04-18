@@ -433,7 +433,7 @@ function M.toggle_persistent_chat_window()
 end
 
 function M.set_prompt_window_conf()
-  if M.prompt_buf == nil then
+  if M.prompt_buf == nil or M.prompt_history_buf == nil then
     return
   end
   -- parent size
@@ -443,26 +443,45 @@ function M.set_prompt_window_conf()
   -- your desired size
   local width = math.min(90, parent_width - 12)
   local height = math.min(60, parent_height - 6)
+  local input_height = 3
+  local chat_height = height - input_height
 
   -- center position
   local col = math.floor((parent_width - width) / 2)
   local row = math.floor((parent_height - height) / 2)
-  local win_conf = {
+
+  local history_win_conf = {
     relative = "win",
     win = M.parent_win,
     row = row,
     col = col,
     width = width,
-    height = height,
+    height = chat_height - 2,
     style = "minimal",
     border = "rounded",
-    title = " Chat Box ",
+    title = " History ",
+    title_pos = "center",
+  }
+
+  local prompt_win_conf = {
+    relative = "win",
+    win = M.parent_win,
+    row = row + chat_height,
+    col = col,
+    width = width,
+    height = input_height,
+    style = "minimal",
+    border = "rounded",
+    title = " Enter Prompt ",
     title_pos = "center",
   }
   if M.prompt_win then
-    vim.api.nvim_win_set_config(M.prompt_win, win_conf)
+    vim.api.nvim_win_set_config(M.prompt_win, prompt_win_conf)
+    vim.api.nvim_win_set_config(M.prompt_history_win, history_win_conf)
   else
-    M.prompt_win = vim.api.nvim_open_win(M.prompt_buf, true, win_conf)
+    M.prompt_history_win = vim.api.nvim_open_win(M.prompt_buf, true, history_win_conf)
+    M.prompt_win = vim.api.nvim_open_win(M.prompt_buf, true, prompt_win_conf)
+    vim.api.nvim_set_option_value("number", true, { win = M.prompt_history_win })
   end
 end
 
@@ -472,23 +491,26 @@ function M.open_prompt_window()
   local lines = M.get_visual_selection()
 
   -- Create new prompt buffer
+  M.prompt_history_buf = vim.api.nvim_create_buf(false, true)
+  vim.bo[M.prompt_history_buf].bufhidden = "wipe"
+  vim.bo[M.prompt_history_buf].filetype = "markdown"
+  vim.bo[M.prompt_history_buf].swapfile = false
+  vim.api.nvim_buf_set_lines(M.prompt_history_buf, 0, 0, false, {
+    "Prompt session started",
+  })
+
   M.prompt_buf = vim.api.nvim_create_buf(false, true)
   vim.bo[M.prompt_buf].buftype = "prompt"
   vim.bo[M.prompt_buf].bufhidden = "wipe"
   vim.bo[M.prompt_buf].filetype = "markdown"
   vim.bo[M.prompt_buf].swapfile = false
   vim.fn.prompt_setprompt(M.prompt_buf, "")
-  vim.api.nvim_buf_set_lines(M.prompt_buf, 0, 0, false, {
-    "Prompt session started",
-  })
 
   -- Set lines into new buffer
   local selected_text = M.tag_selected_text(table.concat(lines, "\n"))
   M.append_message(M.prompt_buf, "You", selected_text)
 
   M.set_prompt_window_conf()
-
-  vim.api.nvim_set_option_value("number", true, { win = M.prompt_win })
 
   -- callback when user presses Enter
   vim.fn.prompt_setcallback(M.prompt_buf, function()
@@ -517,10 +539,13 @@ function M.open_prompt_window()
   vim.api.nvim_create_autocmd("WinClosed", {
     callback = function(args)
       local closed_win = tonumber(args.match)
-      if M.prompt_win and closed_win == M.prompt_win then
+      if M.prompt_win and closed_win == M.prompt_win or M.prompt_history_win and closed_win == M.prompt_history_win then
         M.prompt_win = nil
+        M.prompt_history_win = nil
         vim.api.nvim_buf_delete(M.prompt_buf, { force = false })
+        vim.api.nvim_buf_delete(M.prompt_history_buf, { force = false })
         M.prompt_buf = nil
+        M.prompt_history_buf = nil
       end
     end,
   })
