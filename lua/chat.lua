@@ -712,7 +712,6 @@ function M.complete_implementation()
   local func_data = M.get_func_ast_data(0)
   local func_signatures = M.get_func_signatures(func_data, false)
   local selected_text = M.tag_selected_text(table.concat(selected_lines, "\n"))
-  print(selected_text)
   local prompt = "Implement the following code.\n"
     .. "Respond with code only. Do NOT wrap the output in backticks.\n\n"
     .. "Code:\n"
