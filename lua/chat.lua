@@ -511,13 +511,16 @@ function M.open_prompt_window()
 
   -- Set lines into new buffer
   local selected_text = M.tag_selected_text(table.concat(lines, "\n"))
-  M.append_message(M.prompt_buf, "You", selected_text)
+  M.append_message(M.prompt_buf, "You", selected_text, false)
 
   M.set_prompt_window_conf(#lines)
 
   -- callback when user presses Enter
   vim.fn.prompt_setcallback(M.prompt_buf, function()
+    local prompt_text = table.concat(vim.api.nvim_buf_get_lines(M.prompt_buf, 0, -1, false), "\n")
+    M.append_message(M.prompt_history_buf, "You", prompt_text, true)
     M.send_prompt()
+    vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, {})
   end)
 
   -- start insert mode automatically
@@ -571,8 +574,8 @@ function M.call_api(propmt, buf, s_line, prompt_win)
   })
   if not ok_encode then
     if prompt_win then
-      M.append_message(buf, "Error", "JSON encode failed: " .. json)
-      M.append_message(M.prompt_buf, "You", "")
+      M.append_message(buf, "Error", "JSON encode failed: " .. json, true)
+      M.append_message(M.prompt_buf, "You", "", false)
     else
       M.safe_notify("JSON encode failed: " .. json, vim.log.levels.ERROR)
     end
@@ -609,8 +612,8 @@ function M.call_api(propmt, buf, s_line, prompt_win)
     if res.code ~= 0 then
       cleanup(false)
       if prompt_win then
-        M.append_message(buf, "Error", "Request failed: " .. (res.stderr or "unknown error"))
-        M.append_message(M.prompt_buf, "You", "")
+        M.append_message(buf, "Error", "Request failed: " .. (res.stderr or "unknown error"), true)
+        M.append_message(M.prompt_buf, "You", "", false)
       else
         M.safe_notify("Request failed: " .. (res.stderr or "unknown error"), vim.log.levels.ERROR)
       end
@@ -622,8 +625,8 @@ function M.call_api(propmt, buf, s_line, prompt_win)
     if not ok_decode then
       cleanup(false)
       if prompt_win then
-        M.append_message(buf, "Error", "JSON encode failed: " .. json)
-        M.append_message(M.prompt_buf, "You", "")
+        M.append_message(buf, "Error", "JSON encode failed: " .. json, true)
+        M.append_message(M.prompt_buf, "You", "", false)
       else
         M.safe_notify("JSON encode failed: " .. json, vim.log.levels.ERROR)
       end
@@ -638,8 +641,8 @@ function M.call_api(propmt, buf, s_line, prompt_win)
     if not ok_extract or not text then
       cleanup(false)
       if prompt_win then
-        M.append_message(buf, "Error", "Invalid API response structure: " .. err)
-        M.append_message(M.prompt_buf, "You", "")
+        M.append_message(buf, "Error", "Invalid API response structure: " .. err, true)
+        M.append_message(M.prompt_buf, "You", "", false)
       else
         M.safe_notify("Invalid API response structure: " .. err, vim.log.levels.ERROR)
       end
@@ -647,8 +650,8 @@ function M.call_api(propmt, buf, s_line, prompt_win)
     end
 
     cleanup(true)
-    M.append_message(buf, "Assistant", text)
-    M.append_message(M.prompt_buf, "You", "")
+    M.append_message(buf, "Assistant", text, true)
+    M.append_message(M.prompt_buf, "You", "", false)
   end)
 end
 
@@ -657,29 +660,38 @@ vim.api.nvim_set_hl(0, "You", { fg = "#89b4fa", bold = true })
 vim.api.nvim_set_hl(0, "Assistant", { fg = "#a6e3a1", bold = true })
 vim.api.nvim_set_hl(0, "Error", { fg = "#d43131", bold = true })
 
-function M.append_message(buf, role, text)
+function M.append_message(buf, role, text, set_header)
   local function build_header()
     local timestamp = os.date("%d-%m-%Y %H:%M:%S")
     local header = "❯ " .. role .. " | " .. timestamp
     return header
   end
 
-  local header = build_header()
   vim.schedule(function()
+    local total_lines, header, header_line
     local lines = vim.split(text, "\n", { plain = true })
-    local header_line = vim.api.nvim_buf_line_count(buf)
+    if set_header then
+      header = build_header()
+      header_line = vim.api.nvim_buf_line_count(buf)
+      total_lines = { header }
+    else
+      total_lines = {}
+    end
 
-    local total_lines = { header }
     for _, v in ipairs(lines) do
       table.insert(total_lines, v)
     end
-    total_lines[#total_lines + 1] = ""
-    vim.api.nvim_buf_set_lines(buf, -1, -1, false, total_lines)
 
-    vim.api.nvim_buf_set_extmark(buf, chat_ns, header_line, 0, {
-      hl_group = role,
-      end_col = #header,
-    })
+    if set_header then
+      vim.api.nvim_buf_set_lines(buf, -1, -1, false, total_lines)
+      vim.api.nvim_buf_set_extmark(buf, chat_ns, header_line, 0, {
+        hl_group = role,
+        end_col = #header,
+      })
+    else
+      total_lines[#total_lines + 1] = ""
+      vim.api.nvim_buf_set_lines(buf, 0, -1, false, total_lines)
+    end
 
     local win = vim.fn.bufwinid(buf)
     if win ~= -1 then
@@ -719,9 +731,9 @@ end
 
 function M.send_prompt()
   if M.prompt_win then
-    local win_buf_lines = vim.api.nvim_buf_get_lines(M.prompt_buf, 0, -1, false)
+    local win_buf_lines = vim.api.nvim_buf_get_lines(M.prompt_history_buf, 0, -1, false)
     local win_buf_text = table.concat(win_buf_lines, "\n")
-    M.call_api(win_buf_text, M.prompt_buf, #win_buf_lines, true)
+    M.call_api(win_buf_text, M.prompt_history_buf, #win_buf_lines, true)
   else
     print("chat.nvim: Select lines first")
   end
