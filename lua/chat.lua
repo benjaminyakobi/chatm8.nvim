@@ -432,7 +432,10 @@ function M.toggle_persistent_chat_window()
   M.set_prompt_window_conf()
 end
 
-function M.set_prompt_window_conf()
+function M.set_prompt_window_conf(optional_prompt_win_height)
+  if optional_prompt_win_height == nil then
+    optional_prompt_win_height = 3
+  end
   if M.prompt_buf == nil or M.prompt_history_buf == nil then
     return
   end
@@ -443,7 +446,7 @@ function M.set_prompt_window_conf()
   -- your desired size
   local width = math.min(90, parent_width - 12)
   local height = math.min(60, parent_height - 6)
-  local input_height = 3
+  local input_height = math.min(15, optional_prompt_win_height) + 5
   local chat_height = height - input_height
 
   -- center position
@@ -510,7 +513,7 @@ function M.open_prompt_window()
   local selected_text = M.tag_selected_text(table.concat(lines, "\n"))
   M.append_message(M.prompt_buf, "You", selected_text)
 
-  M.set_prompt_window_conf()
+  M.set_prompt_window_conf(#lines)
 
   -- callback when user presses Enter
   vim.fn.prompt_setcallback(M.prompt_buf, function()
