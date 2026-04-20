@@ -563,7 +563,7 @@ function M.safe_notify(msg, lvl)
   end)
 end
 
-function M.call_api(propmt, buf, s_line, prompt_win)
+function M.call_api(propmt, buf, s_line, e_line, prompt_win)
   -- safe encode
   local ok_encode, json = pcall(vim.json.encode, {
     contents = {
@@ -650,8 +650,15 @@ function M.call_api(propmt, buf, s_line, prompt_win)
     end
 
     cleanup(true)
-    M.append_message(buf, "Assistant", text, true)
-    M.append_message(M.prompt_buf, "You", "", false)
+    if prompt_win then
+      M.append_message(buf, "Assistant", text, true)
+      M.append_message(M.prompt_buf, "You", "", false)
+    else
+      local lines = vim.split(text, "\n")
+      vim.schedule(function()
+        vim.api.nvim_buf_set_lines(buf, s_line, e_line, false, lines)
+      end)
+    end
   end)
 end
 
@@ -725,14 +732,14 @@ function M.complete_implementation()
     .. "\n\n"
     .. "If something looks incorrect (e.g., duplicate function signatures) or or if the task is unclear, do NOT implement the code.\n"
     .. "Instead, return a regular comment (under the code) explaining what should be changed."
-  M.call_api(prompt, M.main_buf, M.start_line - 1, false)
+  M.call_api(prompt, M.main_buf, M.start_line - 1, M.end_line + 1, false)
 end
 
 function M.send_prompt()
   if M.prompt_win then
     local win_buf_lines = vim.api.nvim_buf_get_lines(M.prompt_history_buf, 0, -1, false)
     local win_buf_text = table.concat(win_buf_lines, "\n")
-    M.call_api(win_buf_text, M.prompt_history_buf, #win_buf_lines, true)
+    M.call_api(win_buf_text, M.prompt_history_buf, #win_buf_lines, -1, true)
   else
     print("chat.nvim: Select lines first")
   end
