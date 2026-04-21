@@ -575,7 +575,7 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
   if not ok_encode then
     if prompt_win then
       M.append_message(buf, "Error", "JSON encode failed: " .. json)
-      M.append_prompt_message(M.prompt_buf, "")
+      M.append_prompt_message(M.prompt_buf, nil)
     else
       M.safe_notify("JSON encode failed: " .. json, vim.log.levels.ERROR)
     end
@@ -613,7 +613,7 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
       cleanup(false)
       if prompt_win then
         M.append_message(buf, "Error", "Request failed: " .. (res.stderr or "unknown error"))
-        M.append_prompt_message(M.prompt_buf, "")
+        M.append_prompt_message(M.prompt_buf, nil)
       else
         M.safe_notify("Request failed: " .. (res.stderr or "unknown error"), vim.log.levels.ERROR)
       end
@@ -626,7 +626,7 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
       cleanup(false)
       if prompt_win then
         M.append_message(buf, "Error", "JSON encode failed: " .. json)
-        M.append_prompt_message(M.prompt_buf, "")
+        M.append_prompt_message(M.prompt_buf, nil)
       else
         M.safe_notify("JSON encode failed: " .. json, vim.log.levels.ERROR)
       end
@@ -642,7 +642,7 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
       cleanup(false)
       if prompt_win then
         M.append_message(buf, "Error", "Invalid API response structure: " .. err)
-        M.append_prompt_message(M.prompt_buf, "")
+        M.append_prompt_message(M.prompt_buf, nil)
       else
         M.safe_notify("Invalid API response structure: " .. err, vim.log.levels.ERROR)
       end
@@ -652,7 +652,7 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
     cleanup(true)
     if prompt_win then
       M.append_message(buf, "Assistant", text)
-      M.append_prompt_message(M.prompt_buf, "")
+      M.append_prompt_message(M.prompt_buf, nil)
     else
       local lines = vim.split(text, "\n")
       vim.schedule(function()
@@ -684,6 +684,14 @@ function M.append_message(buf, role, text)
     for _, v in ipairs(lines) do
       table.insert(total_lines, v)
     end
+
+    for i = #total_lines, 1, -1 do
+      if total_lines[i] == "" then
+        table.remove(total_lines, i)
+      else
+        break
+      end
+    end
     total_lines[#total_lines + 1] = ""
 
     vim.api.nvim_buf_set_lines(buf, -1, -1, false, total_lines)
@@ -704,8 +712,11 @@ end
 
 function M.append_prompt_message(buf, text)
   vim.schedule(function()
-    local lines = vim.split(text, "\n", { plain = true })
-    lines[#lines + 1] = ""
+    local lines = {}
+    if text then
+      lines = vim.split(text, "\n", { plain = true })
+      lines[#lines + 1] = ""
+    end
 
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
 
