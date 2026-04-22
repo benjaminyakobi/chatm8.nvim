@@ -506,6 +506,7 @@ function M.open_prompt_window()
   local lines = M.get_visual_selection()
   if is_empty(lines) then
     M.safe_notify("Must select non-empty lines", vim.log.levels.WARN)
+    vim.api.nvim_input("<Esc>") -- exit selection mode for better ux
     return
   end
 
