@@ -446,7 +446,7 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
   -- your desired size
   local width = math.min(90, parent_width - 12)
   local height = math.min(60, parent_height - 6)
-  local input_height = math.min(15, optional_prompt_win_height) + 5
+  local input_height = math.min(15, optional_prompt_win_height)
   local chat_height = height - input_height
 
   -- center position
@@ -575,7 +575,6 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
   if not ok_encode then
     if prompt_win then
       M.append_message(buf, "Error", "JSON encode failed: " .. json)
-      M.append_prompt_message(M.prompt_buf, nil)
     else
       M.safe_notify("JSON encode failed: " .. json, vim.log.levels.ERROR)
     end
@@ -613,7 +612,6 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
       cleanup(false)
       if prompt_win then
         M.append_message(buf, "Error", "Request failed: " .. (res.stderr or "unknown error"))
-        M.append_prompt_message(M.prompt_buf, nil)
       else
         M.safe_notify("Request failed: " .. (res.stderr or "unknown error"), vim.log.levels.ERROR)
       end
@@ -626,7 +624,6 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
       cleanup(false)
       if prompt_win then
         M.append_message(buf, "Error", "JSON encode failed: " .. json)
-        M.append_prompt_message(M.prompt_buf, nil)
       else
         M.safe_notify("JSON encode failed: " .. json, vim.log.levels.ERROR)
       end
@@ -642,7 +639,6 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
       cleanup(false)
       if prompt_win then
         M.append_message(buf, "Error", "Invalid API response structure: " .. err)
-        M.append_prompt_message(M.prompt_buf, nil)
       else
         M.safe_notify("Invalid API response structure: " .. err, vim.log.levels.ERROR)
       end
@@ -652,7 +648,6 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
     cleanup(true)
     if prompt_win then
       M.append_message(buf, "Assistant", text)
-      M.append_prompt_message(M.prompt_buf, nil)
     else
       local lines = vim.split(text, "\n")
       vim.schedule(function()
@@ -716,6 +711,8 @@ function M.append_prompt_message(buf, text)
     if text then
       lines = vim.split(text, "\n", { plain = true })
       lines[#lines + 1] = ""
+    else
+      M.set_prompt_window_conf()
     end
 
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
@@ -759,6 +756,7 @@ function M.send_prompt()
   if M.prompt_win then
     local win_buf_lines = vim.api.nvim_buf_get_lines(M.prompt_history_buf, 0, -1, false)
     local win_buf_text = table.concat(win_buf_lines, "\n")
+    M.append_prompt_message(M.prompt_buf, nil)
     M.call_api(win_buf_text, M.prompt_history_buf, #win_buf_lines, -1, true)
   else
     print("chat.nvim: Select lines first")
