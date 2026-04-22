@@ -489,9 +489,25 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
 end
 
 function M.open_prompt_window()
+  local function is_empty(table)
+    if #table == 0 then
+      return true
+    end
+    for i = 1, #table do
+      if not table[i]:match("^%s*$") then
+        return false
+      end
+    end
+    return true
+  end
+
   M.parent_win = vim.api.nvim_get_current_win()
   -- Get selected lines
   local lines = M.get_visual_selection()
+  if is_empty(lines) then
+    M.safe_notify("Must select non-empty lines", vim.log.levels.WARN)
+    return
+  end
 
   -- Create new prompt buffer
   M.prompt_history_buf = vim.api.nvim_create_buf(false, true)
