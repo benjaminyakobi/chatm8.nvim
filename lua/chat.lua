@@ -446,7 +446,7 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
   -- your desired size
   local width = math.min(90, parent_width - 12)
   local height = math.min(60, parent_height - 6)
-  local input_height = math.min(15, optional_prompt_win_height)
+  local input_height = math.min(15, optional_prompt_win_height) + 3
   local chat_height = height - input_height
 
   -- center position
