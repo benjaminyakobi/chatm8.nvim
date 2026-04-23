@@ -561,6 +561,7 @@ function M.open_prompt_window()
 
   -- detecting window close with `:q` or other autocmd commands
   vim.api.nvim_create_autocmd("WinClosed", {
+    once = true,
     callback = function(args)
       local closed_win = tonumber(args.match)
       if M.prompt_win and closed_win == M.prompt_win or M.prompt_history_win and closed_win == M.prompt_history_win then
