@@ -484,6 +484,7 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
   else
     M.prompt_history_win = vim.api.nvim_open_win(M.prompt_history_buf, true, history_win_conf)
     M.prompt_win = vim.api.nvim_open_win(M.prompt_buf, true, prompt_win_conf)
+    vim.api.nvim_set_option_value("number", true, { win = M.prompt_win })
     vim.api.nvim_set_option_value("number", true, { win = M.prompt_history_win })
   end
 end
