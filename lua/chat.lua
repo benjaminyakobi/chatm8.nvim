@@ -434,7 +434,7 @@ end
 
 function M.set_prompt_window_conf(optional_prompt_win_height)
   if optional_prompt_win_height == nil then
-    optional_prompt_win_height = 3
+    optional_prompt_win_height = 1
   end
   if M.prompt_buf == nil or M.prompt_history_buf == nil then
     return
@@ -478,7 +478,7 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
     title = " Enter Prompt ",
     title_pos = "center",
   }
-  if M.prompt_win then
+  if M.prompt_win and M.prompt_history_win then
     vim.api.nvim_win_set_config(M.prompt_win, prompt_win_conf)
     vim.api.nvim_win_set_config(M.prompt_history_win, history_win_conf)
   else
