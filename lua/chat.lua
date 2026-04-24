@@ -575,6 +575,25 @@ function M.open_prompt_window()
       end
     end,
   })
+
+  local timer
+  vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
+    buffer = M.prompt_buf,
+    callback = function()
+      -- cancel previous timer on every keystroke
+      if timer and not timer:is_closing() then
+        timer:stop()
+        timer:close()
+        timer = nil
+      end
+
+      -- start new delayed resize call
+      timer = vim.defer_fn(function()
+        local text_height = vim.api.nvim_win_text_height(M.prompt_win, {}).all
+        M.set_prompt_window_conf(math.min(15, text_height))
+      end, 50)
+    end,
+  })
 end
 
 function M.safe_notify(msg, lvl)
