@@ -446,7 +446,7 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
   -- your desired size
   local width = math.min(90, parent_width - 12)
   local height = math.min(60, parent_height - 6)
-  local input_height = math.min(15, optional_prompt_win_height) + 3
+  local input_height = math.min(15, optional_prompt_win_height)
   local chat_height = height - input_height
 
   -- center position
@@ -459,7 +459,7 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
     row = row,
     col = col,
     width = width,
-    height = chat_height - 2,
+    height = math.max(1, chat_height - 2),
     style = "minimal",
     border = "rounded",
     title = " History ",
@@ -478,6 +478,7 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
     title = " Enter Prompt ",
     title_pos = "center",
   }
+
   if M.prompt_win and M.prompt_history_win then
     vim.api.nvim_win_set_config(M.prompt_win, prompt_win_conf)
     vim.api.nvim_win_set_config(M.prompt_history_win, history_win_conf)
@@ -531,7 +532,7 @@ function M.open_prompt_window()
   local selected_text = M.tag_selected_text(table.concat(lines, "\n"))
   M.append_prompt_message(M.prompt_buf, selected_text)
 
-  M.set_prompt_window_conf(#lines)
+  M.set_prompt_window_conf(#vim.split(selected_text, "\n", { plain = true }) + 1)
 
   -- callback when user presses Enter
   vim.fn.prompt_setcallback(M.prompt_buf, function()
@@ -564,7 +565,7 @@ function M.open_prompt_window()
     once = true,
     callback = function(args)
       local closed_win = tonumber(args.match)
-      if M.prompt_win and closed_win == M.prompt_win or M.prompt_history_win and closed_win == M.prompt_history_win then
+      if closed_win == M.prompt_win or closed_win == M.prompt_history_win then
         M.prompt_win = nil
         M.prompt_history_win = nil
         vim.api.nvim_buf_delete(M.prompt_buf, { force = false })
