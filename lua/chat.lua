@@ -470,7 +470,7 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
 
   -- your desired size
   local width = math.min(90, parent_width - 12)
-  local height = math.min(60, parent_height - 6)
+  local height = math.min(60, parent_height - 8)
   local input_height = math.min(15, optional_prompt_win_height)
   local chat_height = height - input_height
 
@@ -494,7 +494,7 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
   local prompt_win_conf = {
     relative = "win",
     win = M.parent_win,
-    row = row + chat_height + 1,
+    row = row + chat_height + 2,
     col = col,
     width = width,
     height = input_height,
