@@ -484,7 +484,7 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
     row = row,
     col = col,
     width = width,
-    height = math.max(1, chat_height - 2),
+    height = chat_height,
     style = "minimal",
     border = "rounded",
     title = " History ",
@@ -494,7 +494,7 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
   local prompt_win_conf = {
     relative = "win",
     win = M.parent_win,
-    row = row + chat_height,
+    row = row + chat_height + 1,
     col = col,
     width = width,
     height = input_height,
