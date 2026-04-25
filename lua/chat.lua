@@ -589,12 +589,10 @@ function M.open_prompt_window()
   end, { desc = "Toggle persistent chat window (Disabled)", buf = M.prompt_buf })
 
   -- detecting window close with `:q` or other autocmd commands
+  local group = vim.api.nvim_create_augroup("llm_prompt_close", { clear = true })
   vim.api.nvim_create_autocmd("WinClosed", {
+    group = group,
     once = true,
-    pattern = table.concat({
-      tostring(M.prompt_win),
-      tostring(M.prompt_history_win),
-    }, ","),
     callback = function()
       if M.prompt_win then
         vim.api.nvim_win_close(M.prompt_win, true)
