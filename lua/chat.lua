@@ -1,5 +1,7 @@
 local M = { chat_buf = nil, prompt_buf = nil }
 
+---@return nil
+---@param opts table
 function M.setup(opts)
   M.main_buf = vim.api.nvim_get_current_buf()
   opts = opts or {}
@@ -43,6 +45,8 @@ end
 
 local ts = vim.treesitter
 
+---@return string|nil
+---@param node table
 local function get_text(node)
   if type(node) == "table" then
     node = node[1]
@@ -53,6 +57,9 @@ local function get_text(node)
   return ts.get_node_text(node, 0)
 end
 
+---@return table|nil
+---@param buf integer
+---@param lang string
 local function get_parser_root(buf, lang)
   local parser = ts.get_parser(buf, lang)
   if not parser then
@@ -62,6 +69,8 @@ local function get_parser_root(buf, lang)
   return tree and tree:root()
 end
 
+---@return table
+---@param node table
 local function normalize_node(node)
   if type(node) == "table" then
     return node[1]
@@ -69,6 +78,9 @@ local function normalize_node(node)
   return node
 end
 
+---@return string
+---@param lang string
+---@param item table
 local function build_signature(lang, item)
   if lang == "lua" then
     return string.format("function %s%s", item.name, item.params)
@@ -113,8 +125,11 @@ local function build_signature(lang, item)
     local sig = string.format("function %s%s", item.name, item.params)
     return sig
   end
+  return ""
 end
 
+---@return boolean
+---@param node table
 local function is_function_node(node)
   if not node then
     return false
@@ -127,6 +142,8 @@ local function is_function_node(node)
     or t == "func_literal" -- Go
 end
 
+---@return boolean
+---@param node table
 local function is_function_nested(node)
   local parent = node
 
@@ -140,6 +157,9 @@ local function is_function_nested(node)
   return false
 end
 
+---@return string[]
+---@param func_data table
+---@param nested boolean
 function M.get_func_signatures(func_data, nested)
   local signatures = {}
   for _, item in ipairs(func_data) do
@@ -336,6 +356,8 @@ extractors.javascript = function(match, query)
   }
 end
 
+---@return table
+---@param buf integer
 function M.get_func_ast_data(buf)
   buf = buf or 0
   local lang = vim.bo[buf].filetype
@@ -371,6 +393,7 @@ function M.get_func_ast_data(buf)
   return results
 end
 
+---@return integer
 function M.ensure_persistent_chat_window_setup()
   -- checking if valid buffer alreay exist
   if M.chat_buf and vim.api.nvim_buf_is_valid(M.chat_buf) then
@@ -405,6 +428,7 @@ function M.ensure_persistent_chat_window_setup()
   return M.chat_buf
 end
 
+---@return nil
 function M.toggle_persistent_chat_window()
   M.ensure_persistent_chat_window_setup()
 
@@ -432,6 +456,7 @@ function M.toggle_persistent_chat_window()
   M.set_prompt_window_conf()
 end
 
+---@return nil
 function M.set_prompt_window_conf(optional_prompt_win_height)
   if optional_prompt_win_height == nil then
     optional_prompt_win_height = 1
@@ -490,7 +515,10 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
   end
 end
 
+---@return nil
 function M.open_prompt_window()
+  ---@return boolean
+  ---@param table string[]
   local function is_empty(table)
     if #table == 0 then
       return true
@@ -587,7 +615,7 @@ function M.open_prompt_window()
         timer = nil
       end
 
-      -- start new delayed resize call
+      -- defered resize call
       timer = vim.defer_fn(function()
         local text_height = vim.api.nvim_win_text_height(M.prompt_win, {}).all
         M.set_prompt_window_conf(math.min(15, text_height))
@@ -596,18 +624,27 @@ function M.open_prompt_window()
   })
 end
 
+---@return nil
+---@param msg string
+---@param lvl vim.log.levels
 function M.safe_notify(msg, lvl)
   vim.schedule(function()
     vim.notify(msg, lvl)
   end)
 end
 
-function M.call_api(propmt, buf, s_line, e_line, prompt_win)
+---@return nil
+---@param prompt string
+---@param buf integer
+---@param s_line integer
+---@param e_line integer
+---@param prompt_win boolean
+function M.call_api(prompt, buf, s_line, e_line, prompt_win)
   -- safe encode
   local ok_encode, json = pcall(vim.json.encode, {
     contents = {
       parts = {
-        text = propmt,
+        text = prompt,
       },
     },
   })
@@ -633,6 +670,8 @@ function M.call_api(propmt, buf, s_line, e_line, prompt_win)
     "-d",
     json,
   }, { text = true }, function(res)
+    ---@return nil
+    ---@param ok boolean
     local function cleanup(ok)
       vim.schedule(function()
         M.stop_spinner(buf, timer, ns, M.mark_id)
@@ -701,7 +740,12 @@ vim.api.nvim_set_hl(0, "You", { fg = "#89b4fa", bold = true })
 vim.api.nvim_set_hl(0, "Assistant", { fg = "#a6e3a1", bold = true })
 vim.api.nvim_set_hl(0, "Error", { fg = "#d43131", bold = true })
 
+---@return nil
+---@param buf integer
+---@param role string
+---@param text string
 function M.append_message(buf, role, text)
+  ---@return string
   local function build_header()
     local timestamp = os.date("%d-%m-%Y %H:%M:%S")
     local header = "❯ " .. role .. " | " .. timestamp
@@ -744,6 +788,9 @@ function M.append_message(buf, role, text)
   end)
 end
 
+---@return nil
+---@param buf integer
+---@param text string|nil
 function M.append_prompt_message(buf, text)
   vim.schedule(function()
     local lines = {}
@@ -766,10 +813,13 @@ function M.append_prompt_message(buf, text)
   end)
 end
 
+---@return string
+---@param text string
 function M.tag_selected_text(text)
   return "```" .. vim.bo.filetype .. "\n" .. text .. "\n```"
 end
 
+---@return nil
 function M.complete_implementation()
   local selected_lines = M.get_visual_selection()
   local func_data = M.get_func_ast_data(0)
@@ -791,6 +841,7 @@ function M.complete_implementation()
   M.call_api(prompt, M.main_buf, M.start_line - 1, M.end_line + 1, false)
 end
 
+---@return nil
 function M.send_prompt()
   if M.prompt_win then
     local win_buf_lines = vim.api.nvim_buf_get_lines(M.prompt_history_buf, 0, -1, false)
@@ -798,10 +849,13 @@ function M.send_prompt()
     M.append_prompt_message(M.prompt_buf, nil)
     M.call_api(win_buf_text, M.prompt_history_buf, #win_buf_lines, -1, true)
   else
-    print("chat.nvim: Select lines first")
+    M.safe_notify("chat.nvim: Select lines first", vim.log.levels.INFO)
   end
 end
 
+---@return uv_timer_t|nil, integer
+---@param buf integer
+---@param row integer
 function M.start_spinner(buf, row)
   local spinner = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
   local spin_index = 1
@@ -829,6 +883,11 @@ function M.start_spinner(buf, row)
   return timer, spinner_ns
 end
 
+---@return nil
+---@param buf integer
+---@param timer uv_timer_t|nil
+---@param ns integer
+---@param mark integer|nil
 function M.stop_spinner(buf, timer, ns, mark)
   if timer then
     timer:stop()
@@ -842,6 +901,7 @@ function M.stop_spinner(buf, timer, ns, mark)
   end
 end
 
+---@return string[]
 function M.get_visual_selection()
   -- Get start and end positions
   local _, s_line, s_col, _ = unpack(vim.fn.getpos("v"))
