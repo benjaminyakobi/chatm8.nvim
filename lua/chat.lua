@@ -588,6 +588,14 @@ function M.open_prompt_window()
     M.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
   end, { desc = "Toggle persistent chat window (Disabled)", buf = M.prompt_buf })
 
+  vim.keymap.set({ "n", "v" }, "<C-s>", function()
+    vim.api.nvim_set_current_win(M.prompt_history_win)
+  end, { buf = M.prompt_buf })
+
+  vim.keymap.set({ "n", "v" }, "<C-s>", function()
+    vim.api.nvim_set_current_win(M.prompt_win)
+  end, { buf = M.prompt_history_buf })
+
   -- detecting window close with `:q` or other autocmd commands
   local group = vim.api.nvim_create_augroup("llm_prompt_close", { clear = true })
   vim.api.nvim_create_autocmd("WinClosed", {
