@@ -607,14 +607,11 @@ function M.open_prompt_window()
   local group = vim.api.nvim_create_augroup("llm_prompt_close", { clear = true })
   vim.api.nvim_create_autocmd("WinClosed", {
     group = group,
-    once = true,
-    callback = function()
-      if M.prompt_win then
+    callback = function(args)
+      if M.prompt_win == tonumber(args.match) or M.prompt_history_win == tonumber(args.match) then
         vim.api.nvim_win_close(M.prompt_win, true)
         M.prompt_win = nil
         M.prompt_buf = nil
-      end
-      if M.prompt_history_win then
         vim.api.nvim_win_close(M.prompt_history_win, true)
         M.prompt_history_win = nil
         M.prompt_history_buf = nil
