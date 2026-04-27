@@ -583,18 +583,21 @@ function M.open_prompt_window()
   vim.cmd("startinsert")
 
   -- disabled key maps
-  vim.keymap.set("v", "<Leader>8p", function()
-    M.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
-  end, { desc = "Open prompt window (Disabled)", buf = M.prompt_buf })
+  for _, buf in ipairs({ M.prompt_buf, M.prompt_history_buf }) do
+    vim.keymap.set("v", "<Leader>8p", function()
+      M.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
+    end, { desc = "Open prompt window (Disabled)", buf = buf })
 
-  vim.keymap.set("v", "<Leader>8i", function()
-    M.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
-  end, { desc = "Complete implementation (Disabled)", buf = M.prompt_buf })
+    vim.keymap.set("v", "<Leader>8i", function()
+      M.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
+    end, { desc = "Complete implementation (Disabled)", buf = buf })
 
-  vim.keymap.set("n", "<Leader>8c", function()
-    M.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
-  end, { desc = "Toggle persistent chat window (Disabled)", buf = M.prompt_buf })
+    vim.keymap.set("n", "<Leader>8c", function()
+      M.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
+    end, { desc = "Toggle persistent chat window (Disabled)", buf = buf })
+  end
 
+  -- switcing between prompt & history windows keymaps
   vim.keymap.set({ "n", "v" }, "<C-s>", function()
     vim.api.nvim_set_current_win(M.prompt_history_win)
   end, { buf = M.prompt_buf })
