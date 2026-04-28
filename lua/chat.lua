@@ -423,7 +423,9 @@ function M.ensure_persistent_chat_window_setup()
   end
 
   -- detecting window close with `:q` or other autocmd commands
+  local group = vim.api.nvim_create_augroup("llm_chat_window", { clear = true })
   vim.api.nvim_create_autocmd("WinClosed", {
+    group = group,
     callback = function(args)
       local closed_win = tonumber(args.match)
       if M.chat_win and closed_win == M.chat_win then
@@ -616,7 +618,7 @@ function M.open_prompt_window()
   end, { buf = M.prompt_history_buf })
 
   -- detecting window close with `:q` or other autocmd commands
-  local group = vim.api.nvim_create_augroup("llm_prompt_close", { clear = true })
+  local group = vim.api.nvim_create_augroup("llm_prompt_window", { clear = true })
   vim.api.nvim_create_autocmd("WinClosed", {
     group = group,
     callback = function(args)
@@ -633,6 +635,7 @@ function M.open_prompt_window()
 
   local timer
   vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
+    group = group,
     buffer = M.prompt_buf,
     callback = function()
       -- cancel previous timer on every keystroke
