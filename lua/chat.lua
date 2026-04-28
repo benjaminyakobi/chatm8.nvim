@@ -400,6 +400,21 @@ function M.get_func_ast_data(buf)
   return results
 end
 
+---@return function
+---@param buf integer
+function M.unlock_buf(buf)
+  local prev = vim.bo[buf].modifiable
+  vim.bo[buf].modifiable = true
+  return function()
+    if prev == true then
+      return
+    end
+    if vim.api.nvim_buf_is_valid(buf) then
+      vim.bo[buf].modifiable = prev
+    end
+  end
+end
+
 ---@return integer
 function M.ensure_persistent_chat_window_setup()
   -- checking if valid buffer alreay exist
@@ -483,7 +498,6 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
   end
   -- parent size
   local parent_width = vim.api.nvim_win_get_width(M.parent_win)
-  print(parent_width)
   local parent_height = vim.api.nvim_win_get_height(M.parent_win)
 
   -- your desired size
@@ -566,6 +580,7 @@ function M.open_prompt_window()
   vim.api.nvim_buf_set_lines(M.prompt_history_buf, 0, 0, false, {
     "Prompt session started",
   })
+  vim.bo[M.prompt_history_buf].modifiable = false
 
   M.prompt_buf = vim.api.nvim_create_buf(false, true)
   vim.bo[M.prompt_buf].buftype = "prompt"
@@ -687,6 +702,7 @@ function M.call_api(prompt, buf, s_line, e_line, prompt_win)
     return
   end
 
+  local lock_buf = M.unlock_buf(buf)
   local timer, ns = M.start_spinner(buf, s_line)
   vim.system({
     "curl",
@@ -705,12 +721,15 @@ function M.call_api(prompt, buf, s_line, e_line, prompt_win)
     local function cleanup(ok)
       vim.schedule(function()
         M.stop_spinner(buf, timer, ns, M.mark_id)
+        lock_buf()
         M.start_line = nil
         M.end_line = nil
         vim.api.nvim_input("<Esc>") -- exiting visual mode
         if not ok then
           -- removing spinner row
+          lock_buf = M.unlock_buf(buf)
           vim.api.nvim_buf_set_lines(buf, s_line, s_line + 1, false, {})
+          lock_buf()
         end
       end)
     end
@@ -783,6 +802,7 @@ function M.append_message(buf, role, text)
   end
 
   vim.schedule(function()
+    local lock_buf = M.unlock_buf(buf)
     local total_lines, header, header_line
     local lines = vim.split(text, "\n", { plain = true })
     header = build_header()
@@ -815,6 +835,7 @@ function M.append_message(buf, role, text)
         0,
       })
     end
+    lock_buf()
   end)
 end
 
