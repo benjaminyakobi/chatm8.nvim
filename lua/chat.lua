@@ -427,7 +427,11 @@ function M.ensure_persistent_chat_window_setup()
     callback = function(args)
       local closed_win = tonumber(args.match)
       if M.chat_win and closed_win == M.chat_win then
+        vim.api.nvim_win_close(M.chat_win, true)
         M.chat_win = nil
+        if M.prompt_buf then
+          M.set_prompt_window_conf(#vim.api.nvim_buf_get_lines(M.prompt_buf, 0, -1, false))
+        end
       end
     end,
   })
@@ -443,7 +447,9 @@ function M.toggle_persistent_chat_window()
   if M.chat_win and vim.api.nvim_buf_is_valid(M.chat_buf) then
     vim.api.nvim_win_close(M.chat_win, true)
     M.chat_win = nil
-    M.set_prompt_window_conf()
+    if M.prompt_buf then
+      M.set_prompt_window_conf(#vim.api.nvim_buf_get_lines(M.prompt_buf, 0, -1, false))
+    end
     return
   end
 
@@ -460,7 +466,9 @@ function M.toggle_persistent_chat_window()
   vim.cmd("vsplit") -- or "split"
   M.chat_win = vim.api.nvim_get_current_win()
   vim.api.nvim_win_set_buf(M.chat_win, M.chat_buf)
-  M.set_prompt_window_conf()
+  if M.prompt_buf then
+    M.set_prompt_window_conf(#vim.api.nvim_buf_get_lines(M.prompt_buf, 0, -1, false))
+  end
 end
 
 ---@return nil
@@ -473,6 +481,7 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
   end
   -- parent size
   local parent_width = vim.api.nvim_win_get_width(M.parent_win)
+  print(parent_width)
   local parent_height = vim.api.nvim_win_get_height(M.parent_win)
 
   -- your desired size
