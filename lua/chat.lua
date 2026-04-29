@@ -550,26 +550,26 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
   end
 end
 
----@return nil
-function M.open_prompt_window()
-  ---@return boolean
-  ---@param table string[]
-  local function is_empty(table)
-    if #table == 0 then
-      return true
-    end
-    for i = 1, #table do
-      if not table[i]:match("^%s*$") then
-        return false
-      end
-    end
+---@return boolean
+---@param table string[]
+function M.is_empty(table)
+  if #table == 0 then
     return true
   end
+  for i = 1, #table do
+    if not table[i]:match("^%s*$") then
+      return false
+    end
+  end
+  return true
+end
 
+---@return nil
+function M.open_prompt_window()
   M.parent_win = vim.api.nvim_get_current_win()
   -- Get selected lines
   local lines = M.get_visual_selection()
-  if is_empty(lines) then
+  if M.is_empty(lines) then
     M.safe_notify("Must select non-empty lines", vim.log.levels.WARN)
     vim.api.nvim_input("<Esc>") -- exit selection mode for better ux
     return
@@ -600,7 +600,13 @@ function M.open_prompt_window()
 
   -- callback when user presses Enter
   vim.fn.prompt_setcallback(M.prompt_buf, function()
-    local prompt_text = table.concat(vim.api.nvim_buf_get_lines(M.prompt_buf, 0, -1, false), "\n")
+    local prompt_lines = vim.api.nvim_buf_get_lines(M.prompt_buf, 0, -1, false)
+    if M.is_empty(prompt_lines) then
+      M.safe_notify("Write prompt first", vim.log.levels.WARN)
+      vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, {})
+      return
+    end
+    local prompt_text = table.concat(prompt_lines, "\n")
     M.append_message(M.prompt_history_buf, "You", prompt_text)
     M.send_prompt()
     vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, {})
