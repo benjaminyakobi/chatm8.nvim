@@ -402,9 +402,12 @@ end
 
 ---@return function
 ---@param buf integer
+-- NOTE: RAII (Resource acquisition is initialization) pattern
 function M.unlock_buf(buf)
   local prev = vim.bo[buf].modifiable
   vim.bo[buf].modifiable = true
+
+  -- destructor
   return function()
     if prev == true then
       return
@@ -703,7 +706,8 @@ function M.call_api(prompt, buf, s_line, e_line, prompt_win)
   end
 
   local lock_buf = M.unlock_buf(buf)
-  local timer, ns = M.start_spinner(buf, s_line)
+  -- local timer, ns = M.start_spinner(buf, s_line)
+  local stop_spinner = M.start_spinner(buf, s_line)
   vim.system({
     "curl",
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent",
@@ -720,7 +724,8 @@ function M.call_api(prompt, buf, s_line, e_line, prompt_win)
     ---@param ok boolean
     local function cleanup(ok)
       vim.schedule(function()
-        M.stop_spinner(buf, timer, ns, M.mark_id)
+        -- M.stop_spinner(buf, timer, ns, M.mark_id)
+        stop_spinner()
         lock_buf()
         M.start_line = nil
         M.end_line = nil
@@ -904,7 +909,8 @@ function M.send_prompt()
   end
 end
 
----@return uv_timer_t|nil, integer
+-- -@return uv_timer_t|nil, integer
+---@return function
 ---@param buf integer
 ---@param row integer
 function M.start_spinner(buf, row)
@@ -914,7 +920,8 @@ function M.start_spinner(buf, row)
   vim.api.nvim_buf_set_lines(buf, row, row, false, { "" })
   local timer = vim.uv.new_timer()
   if not timer then
-    return nil, spinner_ns
+    -- return nil, spinner_ns
+    return function() end
   end
   timer:start(
     0,
@@ -931,26 +938,38 @@ function M.start_spinner(buf, row)
       spin_index = spin_index % #spinner + 1
     end)
   )
-  return timer, spinner_ns
-end
+  -- return timer, spinner_ns
+  return function()
+    if timer then
+      timer:stop()
+      timer:close()
+      timer = nil
+    end
 
----@return nil
----@param buf integer
----@param timer uv_timer_t|nil
----@param ns integer
----@param mark integer|nil
-function M.stop_spinner(buf, timer, ns, mark)
-  if timer then
-    timer:stop()
-    timer:close()
-    timer = nil
-  end
-
-  if mark then
-    vim.api.nvim_buf_del_extmark(buf, ns, mark)
-    mark = nil
+    if M.mark_id then
+      vim.api.nvim_buf_del_extmark(buf, spinner_ns, M.mark_id)
+      -- mark = nil
+    end
   end
 end
+
+-- ---@return nil
+-- ---@param buf integer
+-- ---@param timer uv_timer_t|nil
+-- ---@param ns integer
+-- ---@param mark integer|nil
+-- function M.stop_spinner(buf, timer, ns, mark)
+--   if timer then
+--     timer:stop()
+--     timer:close()
+--     timer = nil
+--   end
+--
+--   if mark then
+--     vim.api.nvim_buf_del_extmark(buf, ns, mark)
+--     mark = nil
+--   end
+-- end
 
 ---@return string[]
 function M.get_visual_selection()
