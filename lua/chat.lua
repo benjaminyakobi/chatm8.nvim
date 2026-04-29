@@ -723,17 +723,11 @@ function M.call_api(prompt, buf, s_line, e_line, prompt_win)
     ---@param ok boolean
     local function cleanup(ok)
       vim.schedule(function()
-        stop_spinner()
+        stop_spinner(ok)
         lock_buf()
         M.start_line = nil
         M.end_line = nil
         vim.api.nvim_input("<Esc>") -- exiting visual mode
-        if not ok then
-          -- removing spinner row
-          lock_buf = M.unlock_buf(buf)
-          vim.api.nvim_buf_set_lines(buf, s_line, s_line + 1, false, {})
-          lock_buf()
-        end
       end)
     end
 
@@ -935,7 +929,9 @@ function M.start_spinner(buf, row)
     end)
   )
 
-  return function()
+  ---@return nil
+  ---@param ok boolean
+  return function(ok)
     if timer then
       timer:stop()
       timer:close()
@@ -945,6 +941,11 @@ function M.start_spinner(buf, row)
     if M.mark_id then
       vim.api.nvim_buf_del_extmark(buf, spinner_ns, M.mark_id)
       M.mark_id = nil
+    end
+    if not ok then
+      local lock_buf = M.unlock_buf(buf)
+      vim.api.nvim_buf_set_lines(buf, row, row + 1, false, {})
+      lock_buf()
     end
   end
 end
