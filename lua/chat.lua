@@ -171,10 +171,7 @@ end
 function M.get_func_signatures(func_data, exclude_nested, exclude_anonymous)
   local signatures = {}
   for _, item in ipairs(func_data) do
-    if
-      (item.nested == true and exclude_nested == true)
-      or (item.name == "<anonymous>" and exclude_anonymous == true)
-    then
+    if (item.nested == true and exclude_nested == true) or (item.anonymous and exclude_anonymous == true) then
       -- print(vim.inspect(item))
       -- continue, skip this item
     else
@@ -220,10 +217,11 @@ extractors.lua = function(match, query)
 
   return {
     type = func_type,
-    name = name or "<anonymous>",
+    name = name or "",
     params = params,
     range = range,
     nested = is_nested,
+    anonymous = name == nil or name == "",
   }
 end
 
@@ -263,12 +261,13 @@ extractors.go = function(match, query)
 
   return {
     type = func_type,
-    name = name or "<anonymous>",
+    name = name or "",
     params = params,
     return_type = ret,
     receiver = receiver,
     range = range,
     nested = is_nested,
+    anonymous = name == nil or name == "",
   }
 end
 
@@ -307,12 +306,13 @@ extractors.python = function(match, query)
 
   return {
     type = func_type,
-    name = name or "<anonymous>",
+    name = name or "",
     params = params or "()",
     return_type = return_type,
     receiver = nil, -- TODO: add receiver (class name, etc.)
     range = range,
     nested = is_nested,
+    anonymous = name == nil or name == "",
   }
 end
 
@@ -349,12 +349,13 @@ extractors.javascript = function(match, query)
 
   return {
     type = func_type,
-    name = name or "<anonymous>",
+    name = name or "",
     params = params or "()",
     return_type = nil,
     receiver = nil, -- TODO: add receiver (class name, etc.)
     range = range,
     nested = is_nested,
+    anonymous = name == nil or name == "",
   }
 end
 
