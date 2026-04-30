@@ -171,14 +171,13 @@ end
 function M.get_func_signatures(func_data, exclude_nested, exclude_anonymous)
   local signatures = {}
   for _, item in ipairs(func_data) do
-    -- print(vim.inspect(item))
     if
       (item.nested == true and exclude_nested == true)
       or (item.name == "<anonymous>" and exclude_anonymous == true)
     then
+      -- print(vim.inspect(item))
       -- continue, skip this item
     else
-      -- print(vim.inspect(item))
       table.insert(signatures, item.signature)
     end
   end
@@ -191,7 +190,7 @@ local extractors = {}
 
 -- NOTE: Lua extractor
 extractors.lua = function(match, query)
-  local name, params, function_node
+  local name, params, function_node, func_type
 
   for i, cap in ipairs(query.captures) do
     local node = match[i]
@@ -216,9 +215,11 @@ extractors.lua = function(match, query)
   if function_node then
     local start_row, start_col, end_row, end_col = function_node:range()
     range = { start_row, start_col, end_row, end_col }
+    func_type = function_node:type()
   end
 
   return {
+    type = func_type,
     name = name or "<anonymous>",
     params = params,
     range = range,
@@ -228,7 +229,7 @@ end
 
 -- NOTE: Go extractor
 extractors.go = function(match, query)
-  local name, params, ret, receiver, function_node
+  local name, params, ret, receiver, function_node, func_type
 
   for i, cap in ipairs(query.captures) do
     local node = match[i]
@@ -257,9 +258,11 @@ extractors.go = function(match, query)
   if function_node then
     local start_row, start_col, end_row, end_col = function_node:range()
     range = { start_row, start_col, end_row, end_col }
+    func_type = function_node:type()
   end
 
   return {
+    type = func_type,
     name = name or "<anonymous>",
     params = params,
     return_type = ret,
@@ -271,8 +274,7 @@ end
 
 -- NOTE: python extractor
 extractors.python = function(match, query)
-  local name, params, function_node, return_type
-  local kind = "function"
+  local name, params, function_node, return_type, func_type
 
   for i, cap in ipairs(query.captures) do
     local node = match[i]
@@ -295,24 +297,20 @@ extractors.python = function(match, query)
     return nil
   end
 
-  -- Detect lambda
-  if function_node:type() == "lambda" then
-    kind = "anonymous"
-  end
-
   -- Range
   local range
   if function_node then
     local start_row, start_col, end_row, end_col = function_node:range()
     range = { start_row, start_col, end_row, end_col }
+    func_type = function_node:type()
   end
 
   return {
+    type = func_type,
     name = name or "<anonymous>",
     params = params or "()",
     return_type = return_type,
     receiver = nil, -- TODO: add receiver (class name, etc.)
-    kind = kind,
     range = range,
     nested = is_nested,
   }
@@ -320,8 +318,7 @@ end
 
 -- NOTE: JavaScript extractor
 extractors.javascript = function(match, query)
-  local name, params, function_node
-  local kind = "function"
+  local name, params, function_node, func_type
 
   for i, cap in ipairs(query.captures) do
     local node = match[i]
@@ -342,30 +339,20 @@ extractors.javascript = function(match, query)
     return nil
   end
 
-  local node_type = function_node:type()
-
-  -- Detect function kind
-  if node_type == "arrow_function" then
-    kind = "anonymous"
-  elseif node_type == "method_definition" then
-    kind = "method"
-  elseif node_type == "function_expression" and not name then
-    kind = "anonymous"
-  end
-
   -- Range
   local range
   if function_node then
     local start_row, start_col, end_row, end_col = function_node:range()
     range = { start_row, start_col, end_row, end_col }
+    func_type = function_node:type()
   end
 
   return {
+    type = func_type,
     name = name or "<anonymous>",
     params = params or "()",
     return_type = nil,
     receiver = nil, -- TODO: add receiver (class name, etc.)
-    kind = kind,
     range = range,
     nested = is_nested,
   }
