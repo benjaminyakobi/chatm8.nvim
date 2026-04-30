@@ -1,4 +1,4 @@
-local M = { chat_buf = nil, prompt_buf = nil }
+local M = { chat_buf = nil, prompt_buf = nil, prompt_thinking = false }
 
 ---@return nil
 ---@param opts table
@@ -606,6 +606,12 @@ function M.open_prompt_window()
       vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, {})
       return
     end
+    if M.prompt_thinking then
+      M.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
+      local line_count = vim.api.nvim_buf_line_count(M.prompt_buf)
+      vim.api.nvim_buf_set_lines(M.prompt_buf, line_count - 1, line_count, false, {})
+      return
+    end
     local prompt_text = table.concat(prompt_lines, "\n")
     M.append_message(M.prompt_history_buf, "You", prompt_text)
     M.send_prompt()
@@ -875,6 +881,11 @@ end
 
 ---@return nil
 function M.complete_implementation()
+  if M.prompt_thinking then
+    M.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
+    return
+  end
+  vim.api.nvim_input("<Esc>") -- exit selection mode for better ux
   local selected_lines = M.get_visual_selection()
   local func_data = M.get_func_ast_data(0)
   local func_signatures = M.get_func_signatures(func_data, false)
@@ -911,6 +922,7 @@ end
 ---@param buf integer
 ---@param row integer
 function M.start_spinner(buf, row)
+  M.prompt_thinking = true
   local spinner = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
   local spin_index = 1
   local spinner_ns = vim.api.nvim_create_namespace("spinner")
@@ -953,6 +965,7 @@ function M.start_spinner(buf, row)
       vim.api.nvim_buf_set_lines(buf, row, row + 1, false, {})
       lock_buf()
     end
+    M.prompt_thinking = false
   end
 end
 
