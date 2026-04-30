@@ -564,6 +564,12 @@ function M.is_empty(table)
   return true
 end
 
+function M.scroll_to_bottom(win, buf)
+  local line = vim.api.nvim_buf_line_count(buf)
+  local last = vim.api.nvim_buf_get_lines(buf, line - 1, line, false)[1] or ""
+  vim.api.nvim_win_set_cursor(win, { line, #last })
+end
+
 ---@return nil
 function M.open_prompt_window()
   M.parent_win = vim.api.nvim_get_current_win()
@@ -610,6 +616,7 @@ function M.open_prompt_window()
       M.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
       local line_count = vim.api.nvim_buf_line_count(M.prompt_buf)
       vim.api.nvim_buf_set_lines(M.prompt_buf, line_count - 1, line_count, false, {})
+      M.scroll_to_bottom(M.prompt_win, M.prompt_buf)
       return
     end
     local prompt_text = table.concat(prompt_lines, "\n")
