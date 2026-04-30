@@ -903,7 +903,7 @@ function M.complete_implementation()
   vim.api.nvim_input("<Esc>") -- exit selection mode for better ux
   local selected_lines = M.get_visual_selection()
   local func_data = M.get_func_ast_data(0)
-  local func_signatures = M.get_func_signatures(func_data, false, true)
+  local func_signatures = M.get_func_signatures(func_data, true, true)
   -- print(vim.inspect(func_signatures))
   local selected_text = M.tag_selected_text(table.concat(selected_lines, "\n"))
   local prompt = "Implement the following code.\n"
