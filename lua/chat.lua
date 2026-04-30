@@ -166,11 +166,19 @@ end
 
 ---@return string[]
 ---@param func_data table
----@param nested boolean
-function M.get_func_signatures(func_data, nested)
+---@param exclude_nested boolean
+---@param exclude_anonymous boolean
+function M.get_func_signatures(func_data, exclude_nested, exclude_anonymous)
   local signatures = {}
   for _, item in ipairs(func_data) do
-    if item.nested == nested then
+    -- print(vim.inspect(item))
+    if
+      (item.nested == true and exclude_nested == true)
+      or (item.name == "<anonymous>" and exclude_anonymous == true)
+    then
+      -- continue, skip this item
+    else
+      -- print(vim.inspect(item))
       table.insert(signatures, item.signature)
     end
   end
@@ -895,7 +903,8 @@ function M.complete_implementation()
   vim.api.nvim_input("<Esc>") -- exit selection mode for better ux
   local selected_lines = M.get_visual_selection()
   local func_data = M.get_func_ast_data(0)
-  local func_signatures = M.get_func_signatures(func_data, false)
+  local func_signatures = M.get_func_signatures(func_data, false, true)
+  -- print(vim.inspect(func_signatures))
   local selected_text = M.tag_selected_text(table.concat(selected_lines, "\n"))
   local prompt = "Implement the following code.\n"
     .. "Respond with code only. Do NOT wrap the output in backticks.\n\n"
