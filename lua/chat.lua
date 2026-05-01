@@ -849,7 +849,7 @@ function M.append_message(buf, role, text)
     local win = vim.fn.bufwinid(buf)
     if win ~= -1 then
       vim.api.nvim_win_set_cursor(win, {
-        vim.api.nvim_buf_line_count(buf),
+        header_line + 1,
         0,
       })
     end
