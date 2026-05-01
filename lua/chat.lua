@@ -153,7 +153,8 @@ local function is_function_node(node)
 
   return t == "function_declaration"
     or t == "function_definition" -- Lua
-    or t == "method_decleration" -- Go
+    or t == "method_decleration" -- Go - declEration (known typo related to parsers)
+    or t == "method_declaration" -- Go - declAration (known typo related to parsers)
     or t == "func_literal" -- Go
 end
 
