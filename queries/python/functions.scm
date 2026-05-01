@@ -1,10 +1,4 @@
-;; Function definitions with optional return type
-(function_definition
-  name: (identifier) @name
-  parameters: (parameters) @params
-  return_type: (type)? @return) @func
-
-;; Methods inside classes (same node type, but still useful to capture)
+;; Functions & Methods inside classes (same node type)
 (function_definition
   name: (identifier) @name
   parameters: (parameters) @params
