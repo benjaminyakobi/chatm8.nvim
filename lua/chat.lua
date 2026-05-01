@@ -98,6 +98,8 @@ local function build_signature(lang, item)
 
     if item.receiver then
       sig = string.format("func %s %s%s", item.receiver, item.name, item.params)
+    elseif item.anonymous then
+      sig = string.format("func%s", item.params)
     else
       sig = string.format("func %s%s", item.name, item.params)
     end
@@ -110,15 +112,15 @@ local function build_signature(lang, item)
   end
 
   if lang == "python" then
-    local sig = string.format("def %s%s", item.name, item.params)
+    local sig
     if item.receiver then
-      sig = string.format("def %s %s%s", item.receiver, item.name, item.params)
+      sig = string.format("%s.%s%s", item.receiver, item.name, item.params)
+    elseif item.anonymous then
+      sig = string.format("lambda %s", item.params)
+    elseif item.type == "assignment" then
+      sig = string.format("def %s(%s)", item.name, item.params)
     else
       sig = string.format("def %s%s", item.name, item.params)
-    end
-
-    if item.receiver then
-      sig = item.receiver .. "." .. sig
     end
 
     if item.return_type then
@@ -129,9 +131,15 @@ local function build_signature(lang, item)
   end
 
   if lang == "javascript" then
-    local sig = string.format("function %s%s", item.name, item.params)
+    local sig
+    if item.anonymous then
+      sig = string.format("function%s%s", item.name, item.params)
+    else
+      sig = string.format("function %s%s", item.name, item.params)
+    end
     return sig
   end
+
   return ""
 end
 
@@ -172,7 +180,7 @@ function M.get_func_signatures(func_data, exclude_nested, exclude_anonymous)
   local signatures = {}
   for _, item in ipairs(func_data) do
     if (item.nested == true and exclude_nested == true) or (item.anonymous and exclude_anonymous == true) then
-      -- print(vim.inspect(item))
+      print(vim.inspect(item))
       -- continue, skip this item
     else
       table.insert(signatures, item.signature)
@@ -182,6 +190,9 @@ function M.get_func_signatures(func_data, exclude_nested, exclude_anonymous)
 end
 
 -- ---------- ast data extractors ----------
+
+-- FIX: anonymous function names (python should be lambda: ...)
+-- FIX: duplicate function signatures in the final table
 
 local extractors = {}
 
@@ -892,7 +903,7 @@ function M.complete_implementation()
   local selected_lines = M.get_visual_selection()
   local func_data = M.get_func_ast_data(0)
   local func_signatures = M.get_func_signatures(func_data, true, true)
-  -- print(vim.inspect(func_signatures))
+  print(vim.inspect(func_signatures))
   local selected_text = M.tag_selected_text(table.concat(selected_lines, "\n"))
   local prompt = "Implement the following code.\n"
     .. "Respond with code only. Do NOT wrap the output in backticks.\n\n"
