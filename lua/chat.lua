@@ -180,7 +180,6 @@ function M.get_func_signatures(func_data, exclude_nested, exclude_anonymous)
   local signatures = {}
   for _, item in ipairs(func_data) do
     if (item.nested == true and exclude_nested == true) or (item.anonymous and exclude_anonymous == true) then
-      print(vim.inspect(item))
       -- continue, skip this item
     else
       table.insert(signatures, item.signature)
@@ -190,9 +189,6 @@ function M.get_func_signatures(func_data, exclude_nested, exclude_anonymous)
 end
 
 -- ---------- ast data extractors ----------
-
--- FIX: anonymous function names (python should be lambda: ...)
--- FIX: duplicate function signatures in the final table
 
 local extractors = {}
 
@@ -307,7 +303,6 @@ extractors.python = function(match, query)
     return nil
   end
 
-  -- Range
   local range
   if function_node then
     local start_row, start_col, end_row, end_col = function_node:range()
@@ -350,7 +345,6 @@ extractors.javascript = function(match, query)
     return nil
   end
 
-  -- Range
   local range
   if function_node then
     local start_row, start_col, end_row, end_col = function_node:range()
@@ -490,7 +484,7 @@ function M.toggle_persistent_chat_window()
   end, { desc = "Complete implementation (Disabled)", buf = M.chat_buf })
 
   -- open new split
-  vim.cmd("vsplit") -- or "split"
+  vim.cmd("vsplit") -- or "split" for horizontal split window
   M.chat_win = vim.api.nvim_get_current_win()
   vim.api.nvim_win_set_buf(M.chat_win, M.chat_buf)
   if M.prompt_buf then
@@ -903,7 +897,6 @@ function M.complete_implementation()
   local selected_lines = M.get_visual_selection()
   local func_data = M.get_func_ast_data(0)
   local func_signatures = M.get_func_signatures(func_data, true, true)
-  print(vim.inspect(func_signatures))
   local selected_text = M.tag_selected_text(table.concat(selected_lines, "\n"))
   local prompt = "Implement the following code.\n"
     .. "Respond with code only. Do NOT wrap the output in backticks.\n\n"
