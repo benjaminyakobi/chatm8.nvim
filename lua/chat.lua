@@ -549,6 +549,11 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
     M.prompt_win = vim.api.nvim_open_win(M.prompt_buf, true, prompt_win_conf)
     vim.api.nvim_set_option_value("number", true, { win = M.prompt_win })
     vim.api.nvim_set_option_value("number", true, { win = M.prompt_history_win })
+    vim.api.nvim_set_hl(0, "PromptTitle", { fg = "#00ffcc", bold = true })
+    vim.api.nvim_set_hl(0, "PromptBorder", { fg = "#ff8800" })
+    vim.api.nvim_set_option_value("winhl", "FloatBorder:PromptBorder,FloatTitle:PromptTitle", {
+      win = M.prompt_win,
+    })
   end
 end
 
