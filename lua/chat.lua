@@ -550,9 +550,48 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
     vim.api.nvim_set_option_value("number", true, { win = M.prompt_win })
     vim.api.nvim_set_option_value("number", true, { win = M.prompt_history_win })
     vim.api.nvim_set_hl(0, "PromptTitle", { fg = "#00ffcc", bold = true })
-    vim.api.nvim_set_hl(0, "PromptBorder", { fg = "#ff8800" })
-    vim.api.nvim_set_option_value("winhl", "FloatBorder:PromptBorder,FloatTitle:PromptTitle", {
-      win = M.prompt_win,
+    vim.api.nvim_set_hl(0, "DimPromptTitle", { fg = "#00ffcc" })
+    -- vim.api.nvim_set_hl(0, "PromptBorder", { fg = "#ff8800" })
+    -- vim.api.nvim_set_option_value("winhl", "FloatBorder:PromptBorder,FloatTitle:PromptTitle", {
+    --   win = M.prompt_win,
+    -- })
+
+    -- TODO: make it work
+
+    local function set_border(win, border_hl, title_hl)
+      if not vim.api.nvim_win_is_valid(win) then
+        return
+      end
+
+      vim.api.nvim_set_option_value("winhl", "FloatTitle:" .. title_hl .. ",FloatBorder:" .. border_hl, { win = win })
+    end
+    vim.api.nvim_set_hl(0, "ChatBorderActive", { fg = "#ff8800" }) -- bright
+    vim.api.nvim_set_hl(0, "ChatBorderInactive", { fg = "#3b4261" }) -- dim
+
+    vim.api.nvim_set_hl(0, "PromptBorderActive", { fg = "#ff8800" })
+    vim.api.nvim_set_hl(0, "PromptBorderInactive", { fg = "#3b4261" })
+
+    set_border(M.prompt_win, "PromptBorderActive", "PromptTitle")
+    vim.api.nvim_create_autocmd("WinEnter", {
+      callback = function()
+        local win = vim.api.nvim_get_current_win()
+        if win == M.prompt_history_win then
+          set_border(M.prompt_history_win, "ChatBorderActive", "PromptTitle")
+        elseif win == M.prompt_win then
+          set_border(M.prompt_win, "PromptBorderActive", "PromptTitle")
+        end
+      end,
+    })
+
+    vim.api.nvim_create_autocmd("WinLeave", {
+      callback = function()
+        local win = vim.api.nvim_get_current_win()
+        if win == M.prompt_history_win then
+          set_border(M.prompt_history_win, "ChatBorderInactive", "DimPromptTitle")
+        elseif win == M.prompt_win then
+          set_border(M.prompt_win, "PromptBorderInactive", "DimPromptTitle")
+        end
+      end,
     })
   end
 end
