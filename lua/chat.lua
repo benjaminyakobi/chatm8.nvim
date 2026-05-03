@@ -493,6 +493,14 @@ function M.toggle_persistent_chat_window()
   end
 end
 
+function M.set_border(win, border_hl, title_hl)
+  if not vim.api.nvim_win_is_valid(win) then
+    return
+  end
+
+  vim.api.nvim_set_option_value("winhl", "FloatTitle:" .. title_hl .. ",FloatBorder:" .. border_hl, { win = win })
+end
+
 ---@return nil
 function M.set_prompt_window_conf(optional_prompt_win_height)
   if optional_prompt_win_height == nil then
@@ -551,29 +559,16 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
     vim.api.nvim_set_option_value("number", true, { win = M.prompt_history_win })
 
     -- setting hightlights
-    vim.api.nvim_set_hl(0, "PromptTitle", { fg = "#00ffcc", bold = true })
-    vim.api.nvim_set_hl(0, "DimPromptTitle", { fg = "#00ffcc" })
-    -- vim.api.nvim_set_hl(0, "PromptBorder", { fg = "#ff8800" })
-    -- vim.api.nvim_set_option_value("winhl", "FloatBorder:PromptBorder,FloatTitle:PromptTitle", {
-    --   win = M.prompt_win,
-    -- })
+    vim.api.nvim_set_hl(0, "PromptTitleActive", { fg = "#00ffcc", bold = true })
+    vim.api.nvim_set_hl(0, "PromptTitleInactive", { fg = "#00ffcc" })
 
-    -- TODO: make it work
-
-    local function set_border(win, border_hl, title_hl)
-      if not vim.api.nvim_win_is_valid(win) then
-        return
-      end
-
-      vim.api.nvim_set_option_value("winhl", "FloatTitle:" .. title_hl .. ",FloatBorder:" .. border_hl, { win = win })
-    end
     vim.api.nvim_set_hl(0, "ChatBorderActive", { fg = "#ff8800" }) -- bright
     vim.api.nvim_set_hl(0, "ChatBorderInactive", { fg = "#3b4261" }) -- dim
 
     vim.api.nvim_set_hl(0, "PromptBorderActive", { fg = "#ff8800" })
     vim.api.nvim_set_hl(0, "PromptBorderInactive", { fg = "#3b4261" })
 
-    set_border(M.prompt_win, "PromptBorderActive", "PromptTitle")
+    M.set_border(M.prompt_win, "PromptBorderActive", "PromptTitleActive")
 
     local group = vim.api.nvim_create_augroup("llm_prompt_window_enter", { clear = true })
     vim.api.nvim_create_autocmd("WinEnter", {
@@ -581,9 +576,9 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
       callback = function()
         local win = vim.api.nvim_get_current_win()
         if win == M.prompt_history_win then
-          set_border(M.prompt_history_win, "ChatBorderActive", "PromptTitle")
+          M.set_border(M.prompt_history_win, "ChatBorderActive", "PromptTitleActive")
         elseif win == M.prompt_win then
-          set_border(M.prompt_win, "PromptBorderActive", "PromptTitle")
+          M.set_border(M.prompt_win, "PromptBorderActive", "PromptTitleActive")
         end
       end,
     })
@@ -593,9 +588,9 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
       callback = function()
         local win = vim.api.nvim_get_current_win()
         if win == M.prompt_history_win then
-          set_border(M.prompt_history_win, "ChatBorderInactive", "DimPromptTitle")
+          M.set_border(M.prompt_history_win, "ChatBorderInactive", "PromptTitleInactive")
         elseif win == M.prompt_win then
-          set_border(M.prompt_win, "PromptBorderInactive", "DimPromptTitle")
+          M.set_border(M.prompt_win, "PromptBorderInactive", "PromptTitleInactive")
         end
       end,
     })
