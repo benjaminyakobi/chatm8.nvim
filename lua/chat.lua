@@ -549,6 +549,8 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
     M.prompt_win = vim.api.nvim_open_win(M.prompt_buf, true, prompt_win_conf)
     vim.api.nvim_set_option_value("number", true, { win = M.prompt_win })
     vim.api.nvim_set_option_value("number", true, { win = M.prompt_history_win })
+
+    -- setting hightlights
     vim.api.nvim_set_hl(0, "PromptTitle", { fg = "#00ffcc", bold = true })
     vim.api.nvim_set_hl(0, "DimPromptTitle", { fg = "#00ffcc" })
     -- vim.api.nvim_set_hl(0, "PromptBorder", { fg = "#ff8800" })
@@ -572,7 +574,10 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
     vim.api.nvim_set_hl(0, "PromptBorderInactive", { fg = "#3b4261" })
 
     set_border(M.prompt_win, "PromptBorderActive", "PromptTitle")
+
+    local group = vim.api.nvim_create_augroup("llm_prompt_window_enter", { clear = true })
     vim.api.nvim_create_autocmd("WinEnter", {
+      group = group,
       callback = function()
         local win = vim.api.nvim_get_current_win()
         if win == M.prompt_history_win then
@@ -584,6 +589,7 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
     })
 
     vim.api.nvim_create_autocmd("WinLeave", {
+      group = group,
       callback = function()
         local win = vim.api.nvim_get_current_win()
         if win == M.prompt_history_win then
