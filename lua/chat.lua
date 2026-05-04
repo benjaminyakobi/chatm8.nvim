@@ -46,6 +46,11 @@ function M.setup(opts)
   vim.keymap.set("n", "<Leader>8c", function()
     M.toggle_persistent_chat_window()
   end, { desc = "Toggle persistent chat window" })
+
+  M.chat_ns = vim.api.nvim_create_namespace("llm-chat")
+  vim.api.nvim_set_hl(0, "You", { fg = "#89b4fa", bold = true })
+  vim.api.nvim_set_hl(0, "Assistant", { fg = "#a6e3a1", bold = true })
+  vim.api.nvim_set_hl(0, "Error", { fg = "#d43131", bold = true })
 end
 
 -- ---------- ast data extractor helpers ----------
@@ -847,11 +852,6 @@ function M.call_api(prompt, buf, s_line, e_line, prompt_win)
   end)
 end
 
-local chat_ns = vim.api.nvim_create_namespace("llm-chat")
-vim.api.nvim_set_hl(0, "You", { fg = "#89b4fa", bold = true })
-vim.api.nvim_set_hl(0, "Assistant", { fg = "#a6e3a1", bold = true })
-vim.api.nvim_set_hl(0, "Error", { fg = "#d43131", bold = true })
-
 ---@return nil
 ---@param buf integer
 ---@param role string
@@ -886,7 +886,7 @@ function M.append_message(buf, role, text)
     total_lines[#total_lines + 1] = ""
 
     vim.api.nvim_buf_set_lines(buf, -1, -1, false, total_lines)
-    vim.api.nvim_buf_set_extmark(buf, chat_ns, header_line, 0, {
+    vim.api.nvim_buf_set_extmark(buf, M.chat_ns, header_line, 0, {
       hl_group = role,
       end_col = #header,
     })
@@ -979,7 +979,6 @@ function M.start_spinner(buf, row)
   M.prompt_thinking = true
   local spinner = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
   local spin_index = 1
-  local spinner_ns = vim.api.nvim_create_namespace("spinner")
   vim.api.nvim_buf_set_lines(buf, row, row, false, { "" })
   local timer = vim.uv.new_timer()
   if not timer then
@@ -991,7 +990,7 @@ function M.start_spinner(buf, row)
     vim.schedule_wrap(function()
       local frame = spinner[spin_index]
 
-      M.mark_id = vim.api.nvim_buf_set_extmark(buf, spinner_ns, row, 0, {
+      M.mark_id = vim.api.nvim_buf_set_extmark(buf, M.chat_ns, row, 0, {
         id = M.mark_id, -- reuse same extmark
         virt_text = { { "Thinking " .. frame, "Comment" } },
         virt_text_pos = "eol",
@@ -1011,7 +1010,7 @@ function M.start_spinner(buf, row)
     end
 
     if M.mark_id then
-      vim.api.nvim_buf_del_extmark(buf, spinner_ns, M.mark_id)
+      vim.api.nvim_buf_del_extmark(buf, M.chat_ns, M.mark_id)
       M.mark_id = nil
     end
     if not ok then
