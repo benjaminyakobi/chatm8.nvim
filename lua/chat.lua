@@ -1,4 +1,10 @@
-local M = { chat_buf = nil, prompt_buf = nil, prompt_thinking = false }
+local M = {
+  chat_buf = nil,
+  prompt_buf = nil,
+  prompt_thinking = false,
+  extractors = {},
+  chat_ns = vim.api.nvim_create_namespace("llm-chat"),
+}
 
 ---@return nil
 ---@param opts table
@@ -47,13 +53,24 @@ function M.setup(opts)
     M.toggle_persistent_chat_window()
   end, { desc = "Toggle persistent chat window" })
 
-  M.chat_ns = vim.api.nvim_create_namespace("llm-chat")
+  -- setting global hightlights
   vim.api.nvim_set_hl(0, "You", { fg = "#89b4fa", bold = true })
   vim.api.nvim_set_hl(0, "Assistant", { fg = "#a6e3a1", bold = true })
   vim.api.nvim_set_hl(0, "Error", { fg = "#d43131", bold = true })
+
+  vim.api.nvim_set_hl(0, "PromptTitleActive", { fg = "#00ffcc", bold = true })
+  vim.api.nvim_set_hl(0, "PromptTitleInactive", { fg = "#00ffcc" })
+
+  vim.api.nvim_set_hl(0, "ChatBorderActive", { fg = "#ff8800" }) -- bright
+  vim.api.nvim_set_hl(0, "ChatBorderInactive", { fg = "#3b4261" }) -- dim
+
+  vim.api.nvim_set_hl(0, "PromptBorderActive", { fg = "#ff8800" })
+  vim.api.nvim_set_hl(0, "PromptBorderInactive", { fg = "#3b4261" })
 end
 
+-- ------------------------------------------------
 -- ---------- ast data extractor helpers ----------
+-- ------------------------------------------------
 
 local ts = vim.treesitter
 
@@ -194,12 +211,49 @@ function M.get_func_signatures(func_data, exclude_nested, exclude_anonymous)
   return signatures
 end
 
--- ---------- ast data extractors ----------
+---@return table
+---@param buf integer
+function M.get_func_ast_data(buf)
+  buf = buf or 0
+  local lang = vim.bo[buf].filetype
 
-local extractors = {}
+  local root = get_parser_root(buf, lang)
+  if not root then
+    return {}
+  end
+
+  local query = ts.query.get(lang, "functions")
+  if not query then
+    M.safe_notify("No query for " .. lang, vim.log.levels.WARN)
+    return {}
+  end
+
+  local extractor = M.extractors[lang]
+  if not extractor then
+    M.safe_notify("No extractor for " .. lang, vim.log.levels.WARN)
+    return {}
+  end
+
+  local results = {}
+
+  for _, match in query:iter_matches(root, buf) do
+    local item = extractor(match, query)
+    if item then
+      item.lang = lang
+      item.signature = build_signature(lang, item)
+      table.insert(results, item)
+    end
+  end
+
+  return results
+end
+
+-- -----------------------------------------
+-- ---------- ast data extractors ----------
+-- -----------------------------------------
 
 -- NOTE: Lua extractor
-extractors.lua = function(match, query)
+M.extractors.lua = function(match, query)
   local name, params, function_node, func_type
 
   for i, cap in ipairs(query.captures) do
@@ -239,7 +293,7 @@ extractors.lua = function(match, query)
 end
 
 -- NOTE: Go extractor
-extractors.go = function(match, query)
+M.extractors.go = function(match, query)
   local name, params, ret, receiver, function_node, func_type
 
   for i, cap in ipairs(query.captures) do
@@ -285,7 +339,7 @@ extractors.go = function(match, query)
 end
 
 -- NOTE: python extractor
-extractors.python = function(match, query)
+M.extractors.python = function(match, query)
   local name, params, function_node, return_type, func_type
 
   for i, cap in ipairs(query.captures) do
@@ -329,7 +383,7 @@ extractors.python = function(match, query)
 end
 
 -- NOTE: JavaScript extractor
-extractors.javascript = function(match, query)
+M.extractors.javascript = function(match, query)
   local name, params, function_node, func_type
 
   for i, cap in ipairs(query.captures) do
@@ -370,42 +424,9 @@ extractors.javascript = function(match, query)
   }
 end
 
----@return table
----@param buf integer
-function M.get_func_ast_data(buf)
-  buf = buf or 0
-  local lang = vim.bo[buf].filetype
-
-  local root = get_parser_root(buf, lang)
-  if not root then
-    return {}
-  end
-
-  local query = ts.query.get(lang, "functions")
-  if not query then
-    M.safe_notify("No query for " .. lang, vim.log.levels.WARN)
-    return {}
-  end
-
-  local extractor = extractors[lang]
-  if not extractor then
-    M.safe_notify("No extractor for " .. lang, vim.log.levels.WARN)
-    return {}
-  end
-
-  local results = {}
-
-  for _, match in query:iter_matches(root, buf) do
-    local item = extractor(match, query)
-    if item then
-      item.lang = lang
-      item.signature = build_signature(lang, item)
-      table.insert(results, item)
-    end
-  end
-
-  return results
-end
+-- ---------------------------------------------
+-- ------------- core buffer logic -------------
+-- ---------------------------------------------
 
 ---@return function
 ---@param buf integer
@@ -562,16 +583,6 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
     M.prompt_win = vim.api.nvim_open_win(M.prompt_buf, true, prompt_win_conf)
     vim.api.nvim_set_option_value("number", true, { win = M.prompt_win })
     vim.api.nvim_set_option_value("number", true, { win = M.prompt_history_win })
-
-    -- setting hightlights
-    vim.api.nvim_set_hl(0, "PromptTitleActive", { fg = "#00ffcc", bold = true })
-    vim.api.nvim_set_hl(0, "PromptTitleInactive", { fg = "#00ffcc" })
-
-    vim.api.nvim_set_hl(0, "ChatBorderActive", { fg = "#ff8800" }) -- bright
-    vim.api.nvim_set_hl(0, "ChatBorderInactive", { fg = "#3b4261" }) -- dim
-
-    vim.api.nvim_set_hl(0, "PromptBorderActive", { fg = "#ff8800" })
-    vim.api.nvim_set_hl(0, "PromptBorderInactive", { fg = "#3b4261" })
 
     M.set_border(M.prompt_win, "PromptBorderActive", "PromptTitleActive")
 
