@@ -15,7 +15,13 @@ local M = {
 function M.setup(opts)
   M.main_buf = vim.api.nvim_get_current_buf()
   opts = opts or {}
-  M.api_key = opts.api_key or ""
+  M.api_key = opts.api_key
+
+  if not M.api_key then
+    M.safe_notify("chat.nvim: Missing API key. Please set `api_key` in your setup configuration.", vim.log.levels.ERROR)
+    M.api_key = ""
+  end
+
   local help = [[
 <Leader>8p: Prompt Interface
   1. [Visual Mode] Select text (either code snippets or natural language 
