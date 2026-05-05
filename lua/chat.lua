@@ -256,6 +256,9 @@ end
 -- ---------- ast data extractors ----------
 -- -----------------------------------------
 
+---@return table|nil
+---@param match table
+---@param query table
 -- NOTE: Lua extractor
 M.extractors.lua = function(match, query)
   local name, params, function_node, func_type
@@ -296,6 +299,9 @@ M.extractors.lua = function(match, query)
   }
 end
 
+---@return table|nil
+---@param match table
+---@param query table
 -- NOTE: Go extractor
 M.extractors.go = function(match, query)
   local name, params, ret, receiver, function_node, func_type
@@ -342,6 +348,9 @@ M.extractors.go = function(match, query)
   }
 end
 
+---@return table|nil
+---@param match table
+---@param query table
 -- NOTE: python extractor
 M.extractors.python = function(match, query)
   local name, params, function_node, return_type, func_type
@@ -386,6 +395,9 @@ M.extractors.python = function(match, query)
   }
 end
 
+---@return table|nil
+---@param match table
+---@param query table
 -- NOTE: JavaScript extractor
 M.extractors.javascript = function(match, query)
   local name, params, function_node, func_type
@@ -523,6 +535,10 @@ function M.toggle_persistent_chat_window()
   end
 end
 
+---@return nil
+---@param win integer
+---@param border_hl string
+---@param title_hl string
 function M.set_border(win, border_hl, title_hl)
   if not vim.api.nvim_win_is_valid(win) then
     return
@@ -532,6 +548,7 @@ function M.set_border(win, border_hl, title_hl)
 end
 
 ---@return nil
+---@param optional_prompt_win_height integer|nil
 function M.set_prompt_window_conf(optional_prompt_win_height)
   -- if these two buffer not exist - do not configure windows
   if M.prompt_buf == nil or M.prompt_history_buf == nil then
@@ -1066,4 +1083,5 @@ function M.get_visual_selection()
   -- This return the selection of the whole line (not the cursor position)
   return vim.api.nvim_buf_get_lines(0, s_line - 1, e_line, false)
 end
+
 return M
