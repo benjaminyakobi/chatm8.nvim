@@ -4,6 +4,10 @@ local M = {
   prompt_thinking = false,
   extractors = {},
   chat_ns = vim.api.nvim_create_namespace("llm-chat"),
+  groups = {
+    prompt_session = vim.api.nvim_create_augroup("llm_prompt_session", { clear = true }),
+    chat_session = vim.api.nvim_create_augroup("llm_chat_session", { clear = true }),
+  },
 }
 
 ---@return nil
@@ -469,9 +473,9 @@ function M.ensure_persistent_chat_window_setup()
   end
 
   -- detecting window close with `:q` or other autocmd commands
-  local group = vim.api.nvim_create_augroup("llm_chat_window", { clear = true })
   vim.api.nvim_create_autocmd("WinClosed", {
-    group = group,
+    group = M.groups.chat_session,
+    buffer = M.chat_buf,
     callback = function(args)
       local closed_win = tonumber(args.match)
       if M.chat_win and closed_win == M.chat_win then
@@ -622,50 +626,53 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
     end, { buf = M.prompt_history_buf })
 
     -- set auto commands
-    local group = vim.api.nvim_create_augroup("llm_set_prompt_window_conf", { clear = true })
-    vim.api.nvim_create_autocmd("WinEnter", {
-      group = group,
-      callback = function()
-        local win = vim.api.nvim_get_current_win()
-        if win == M.prompt_history_win then
-          M.set_border(M.prompt_history_win, "ChatBorderActive", "PromptTitleActive")
-        elseif win == M.prompt_win then
-          M.set_border(M.prompt_win, "PromptBorderActive", "PromptTitleActive")
-        end
-      end,
-    })
+    for _, buf in ipairs({ M.prompt_buf, M.prompt_history_buf }) do
+      vim.api.nvim_create_autocmd("WinEnter", {
+        group = M.groups.prompt_session,
+        buffer = buf,
+        callback = function()
+          local win = vim.api.nvim_get_current_win()
+          if win == M.prompt_history_win then
+            M.set_border(M.prompt_history_win, "ChatBorderActive", "PromptTitleActive")
+          elseif win == M.prompt_win then
+            M.set_border(M.prompt_win, "PromptBorderActive", "PromptTitleActive")
+          end
+        end,
+      })
 
-    vim.api.nvim_create_autocmd("WinLeave", {
-      group = group,
-      callback = function()
-        local win = vim.api.nvim_get_current_win()
-        if win == M.prompt_history_win then
-          M.set_border(M.prompt_history_win, "ChatBorderInactive", "PromptTitleInactive")
-        elseif win == M.prompt_win then
-          M.set_border(M.prompt_win, "PromptBorderInactive", "PromptTitleInactive")
-        end
-      end,
-    })
+      vim.api.nvim_create_autocmd("WinLeave", {
+        group = M.groups.prompt_session,
+        buffer = buf,
+        callback = function()
+          local win = vim.api.nvim_get_current_win()
+          if win == M.prompt_history_win then
+            M.set_border(M.prompt_history_win, "ChatBorderInactive", "PromptTitleInactive")
+          elseif win == M.prompt_win then
+            M.set_border(M.prompt_win, "PromptBorderInactive", "PromptTitleInactive")
+          end
+        end,
+      })
 
-    -- detecting window close with `:q` or other autocmd commands
-    vim.api.nvim_create_autocmd("WinClosed", {
-      group = group,
-      callback = function(args)
-        if M.prompt_win == tonumber(args.match) or M.prompt_history_win == tonumber(args.match) then
-          vim.api.nvim_win_close(M.prompt_win, true)
-          M.prompt_win = nil
-          M.prompt_buf = nil
-          vim.api.nvim_win_close(M.prompt_history_win, true)
-          M.prompt_history_win = nil
-          M.prompt_history_buf = nil
-        end
-      end,
-    })
-
+      -- detecting window close with `:q` or other autocmd commands
+      vim.api.nvim_create_autocmd("WinClosed", {
+        group = M.groups.prompt_session,
+        buffer = buf,
+        callback = function(args)
+          if M.prompt_win == tonumber(args.match) or M.prompt_history_win == tonumber(args.match) then
+            vim.api.nvim_win_close(M.prompt_win, true)
+            M.prompt_win = nil
+            M.prompt_buf = nil
+            vim.api.nvim_win_close(M.prompt_history_win, true)
+            M.prompt_history_win = nil
+            M.prompt_history_buf = nil
+          end
+        end,
+      })
+    end
     -- detecting text changes to resize prompt window when needed
     local timer
     vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
-      group = group,
+      group = M.groups.prompt_session,
       buffer = M.prompt_buf,
       callback = function()
         -- cancel previous timer on every keystroke
