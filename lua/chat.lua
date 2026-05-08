@@ -18,7 +18,10 @@ function M.setup(opts)
   M.api_key = opts.api_key
 
   if not M.api_key then
-    M.safe_notify("chat.nvim: Missing API key. Please set `api_key` in your setup configuration.", vim.log.levels.ERROR)
+    M.safe_notify(
+      "chat.nvim: Missing API key. Please set `api_key` in your setup configuration.\nExample:\nrequire('chat').setup({ api_key = 'your_key' })",
+      vim.log.levels.ERROR
+    )
     M.api_key = ""
   end
 
