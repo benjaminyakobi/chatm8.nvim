@@ -623,7 +623,6 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
     vim.api.nvim_win_set_config(M.prompt_history_win, history_win_conf)
     return -- should not continue if the windows already exist
   else -- open new windows and continue configuring them
-    print("=======", M.prompt_buf, M.prompt_history_buf)
     M.prompt_history_win = vim.api.nvim_open_win(M.prompt_history_buf, true, history_win_conf)
     M.prompt_win = vim.api.nvim_open_win(M.prompt_buf, true, prompt_win_conf)
 
@@ -760,7 +759,6 @@ function M.open_prompt_window()
     return
   end
 
-  print(M.prompt_buf, M.prompt_history_buf)
   if M.prompt_buf and M.prompt_history_buf then
     M.set_prompt_window_conf()
     return
@@ -782,8 +780,6 @@ function M.open_prompt_window()
   vim.bo[M.prompt_buf].filetype = "markdown"
   vim.bo[M.prompt_buf].swapfile = false
   vim.fn.prompt_setprompt(M.prompt_buf, "")
-
-  print(M.prompt_buf, M.prompt_history_buf)
 
   -- Set lines into new buffer
   local selected_text = M.tag_selected_text(table.concat(lines, "\n"))
