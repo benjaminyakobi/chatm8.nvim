@@ -485,9 +485,9 @@ function M.ensure_persistent_chat_window_setup()
   vim.api.nvim_set_option_value("filetype", "chat", { buf = M.chat_buf })
 
   -- set first line
-  if vim.api.nvim_buf_line_count(M.chat_buf) == 1 then
-    vim.api.nvim_buf_set_lines(M.chat_buf, 0, -1, false, { "Chat session started" })
-  end
+  -- if vim.api.nvim_buf_line_count(M.chat_buf) == 1 then
+  --   vim.api.nvim_buf_set_lines(M.chat_buf, 0, -1, false, { "Chat session started" })
+  -- end
 
   -- detecting window close with `:q` or other autocmd commands
   -- vim.api.nvim_create_autocmd("WinClosed", {
@@ -767,12 +767,12 @@ function M.open_prompt_window()
   -- M.toggle_persistent_chat_window()
   -- M.parent_win = vim.api.nvim_get_current_win()
   -- Get selected lines
-  local lines = M.get_visual_selection()
-  if M.is_empty(lines) then
-    M.safe_notify("Must select non-empty lines", vim.log.levels.WARN)
-    vim.api.nvim_input("<Esc>") -- exit selection mode for better ux
-    return
-  end
+  -- local lines = M.get_visual_selection()
+  -- if M.is_empty(lines) then
+  --   M.safe_notify("Must select non-empty lines", vim.log.levels.WARN)
+  --   vim.api.nvim_input("<Esc>") -- exit selection mode for better ux
+  --   return
+  -- end
 
   if M.prompt_buf and M.prompt_history_buf then
     M.set_prompt_window_conf()
@@ -797,10 +797,11 @@ function M.open_prompt_window()
   vim.fn.prompt_setprompt(M.prompt_buf, "")
 
   -- Set lines into new buffer
-  local selected_text = M.tag_selected_text(table.concat(lines, "\n"))
-  M.append_prompt_message(M.prompt_buf, selected_text)
-
-  M.set_prompt_window_conf(#vim.split(selected_text, "\n", { plain = true }) + 1)
+  -- local selected_text = M.tag_selected_text(table.concat(lines, "\n"))
+  -- M.append_prompt_message(M.prompt_buf, selected_text)
+  --
+  -- M.set_prompt_window_conf(#vim.split(selected_text, "\n", { plain = true }) + 1)
+  M.set_prompt_window_conf()
 
   -- callback when user presses Enter
   vim.fn.prompt_setcallback(M.prompt_buf, function()
