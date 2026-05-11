@@ -58,9 +58,9 @@ function M.setup(opts)
     M.complete_implementation()
   end, { desc = "Complete implementation" })
 
-  vim.keymap.set("v", "<Leader>8p", function()
-    M.open_prompt_window()
-  end, { desc = "Open prompt window" })
+  -- vim.keymap.set("v", "<Leader>8p", function()
+  --   M.open_prompt_window()
+  -- end, { desc = "Open prompt window" })
 
   vim.keymap.set("n", "<Leader>8c", function()
     M.toggle_persistent_chat_window()
@@ -519,7 +519,7 @@ function M.toggle_persistent_chat_window()
   -- if already open -> close
   -- print(M.prompt_win, M.prompt_history_win, M.chat_win, M.prompt_buf, M.prompt_history_buf, M.chat_buf)
   if M.chat_win then
-    print("closing chat")
+    -- print("closing chat")
     vim.api.nvim_win_close(M.chat_win, true)
     M.chat_win = nil
     -- if M.prompt_buf then
@@ -529,9 +529,9 @@ function M.toggle_persistent_chat_window()
   end
 
   -- disabled key maps
-  vim.keymap.set("v", "<Leader>8p", function()
-    M.safe_notify("Disabled on chat window", vim.log.levels.INFO)
-  end, { desc = "Open prompt window (Disabled)", buf = M.chat_buf })
+  -- vim.keymap.set("v", "<Leader>8p", function()
+  --   M.safe_notify("Disabled on chat window", vim.log.levels.INFO)
+  -- end, { desc = "Open prompt window (Disabled)", buf = M.chat_buf })
 
   vim.keymap.set("v", "<Leader>8i", function()
     M.safe_notify("Disabled on chat window", vim.log.levels.INFO)
@@ -632,18 +632,18 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
 
     -- custom key maps - disabling key maps
     for _, buf in ipairs({ M.prompt_buf, M.prompt_history_buf }) do
-      vim.keymap.set("v", "<Leader>8p", function()
-        M.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
-      end, { desc = "Open prompt window (Disabled)", buf = buf })
+      -- vim.keymap.set("v", "<Leader>8p", function()
+      --   M.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
+      -- end, { desc = "Open prompt window (Disabled)", buf = buf })
 
       vim.keymap.set("v", "<Leader>8i", function()
         M.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
       end, { desc = "Complete implementation (Disabled)", buf = buf })
 
-      vim.keymap.set("n", "<Leader>8c", function()
-        M.toggle_persistent_chat_window()
-      end, { desc = "Toggle persistent chat window" })
-
+      -- vim.keymap.set("n", "<Leader>8c", function()
+      --   M.toggle_persistent_chat_window()
+      -- end, { desc = "Toggle persistent chat window" })
+      --
       -- vim.keymap.set("n", "<Leader>8c", function()
       --   M.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
       -- end, { desc = "Toggle persistent chat window (Disabled)", buf = buf })
