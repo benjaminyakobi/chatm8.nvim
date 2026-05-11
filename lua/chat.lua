@@ -517,15 +517,9 @@ function M.toggle_persistent_chat_window()
   M.ensure_persistent_chat_window_setup()
 
   -- if already open -> close
-  if M.prompt_win and vim.api.nvim_buf_is_valid(M.prompt_buf) then
-    vim.api.nvim_win_close(M.prompt_win, true)
-    M.prompt_win = nil
-  end
-  if M.prompt_history_win and vim.api.nvim_buf_is_valid(M.prompt_history_buf) then
-    vim.api.nvim_win_close(M.prompt_history_win, true)
-    M.prompt_history_win = nil
-  end
-  if M.chat_win and vim.api.nvim_buf_is_valid(M.chat_buf) then
+  -- print(M.prompt_win, M.prompt_history_win, M.chat_win, M.prompt_buf, M.prompt_history_buf, M.chat_buf)
+  if M.chat_win then
+    print("closing chat")
     vim.api.nvim_win_close(M.chat_win, true)
     M.chat_win = nil
     -- if M.prompt_buf then
