@@ -646,6 +646,10 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
         M.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
       end, { desc = "Complete implementation (Disabled)", buf = buf })
 
+      vim.keymap.set("n", "<Leader>8c", function()
+        M.toggle_persistent_chat_window()
+      end, { desc = "Toggle persistent chat window" })
+
       -- vim.keymap.set("n", "<Leader>8c", function()
       --   M.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
       -- end, { desc = "Toggle persistent chat window (Disabled)", buf = buf })
@@ -704,6 +708,27 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
       --   end,
       -- })
     end
+
+    vim.api.nvim_create_autocmd("WinClosed", {
+      group = M.groups.prompt_session,
+      callback = function(args)
+        if
+          M.chat_win == tonumber(args.match)
+          or M.prompt_win == tonumber(args.match)
+          or M.prompt_history_win == tonumber(args.match)
+        then
+          vim.api.nvim_win_close(M.prompt_win, true)
+          M.prompt_win = nil
+          -- M.prompt_buf = nil
+          vim.api.nvim_win_close(M.prompt_history_win, true)
+          M.prompt_history_win = nil
+          -- M.prompt_history_buf = nil
+          vim.api.nvim_win_close(M.chat_win, true)
+          M.chat_win = nil
+        end
+      end,
+    })
+
     -- detecting text changes to resize prompt window when needed
     local timer
     vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
