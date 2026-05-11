@@ -573,10 +573,10 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
   local parent_height = vim.api.nvim_win_get_height(M.chat_win)
 
   -- your desired size
-  local width = math.min(90, parent_width - 12)
-  local height = math.min(60, parent_height - 8)
+  local width = math.min(90, parent_width - 2)
+  local height = math.min(60, parent_height)
   local input_height = math.min(15, optional_prompt_win_height)
-  local chat_height = height - input_height
+  local chat_height = height - input_height - 4
 
   -- center position
   local col = math.floor((parent_width - width) / 2)
