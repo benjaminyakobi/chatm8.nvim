@@ -1,13 +1,10 @@
 local M = {
+  parent_win = vim.api.nvim_get_current_win(),
   chat_buf = nil,
   prompt_buf = nil,
   prompt_thinking = false,
   extractors = {},
   chat_ns = vim.api.nvim_create_namespace("llm-chat"),
-  groups = {
-    prompt_session = vim.api.nvim_create_augroup("llm_prompt_session", { clear = true }),
-    chat_session = vim.api.nvim_create_augroup("llm_chat_session", { clear = true }),
-  },
 }
 
 ---@return nil
@@ -569,6 +566,10 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
   end
 
   -- parent size
+  if not M.chat_win then
+    return
+  end
+  print(M.chat_win)
   local parent_width = vim.api.nvim_win_get_width(M.chat_win)
   local parent_height = vim.api.nvim_win_get_height(M.chat_win)
 
@@ -654,10 +655,13 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
       vim.api.nvim_set_current_win(M.prompt_win)
     end, { buf = M.prompt_history_buf })
 
+    local prompt_session_group = vim.api.nvim_create_augroup("llm_prompt_session", { clear = true })
+    local chat_session_group = vim.api.nvim_create_augroup("llm_chat_session", { clear = true })
+
     -- set auto commands
     for _, buf in ipairs({ M.prompt_buf, M.prompt_history_buf }) do
       vim.api.nvim_create_autocmd("WinEnter", {
-        group = M.groups.prompt_session,
+        group = prompt_session_group,
         buffer = buf,
         callback = function()
           local win = vim.api.nvim_get_current_win()
@@ -670,7 +674,7 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
       })
 
       vim.api.nvim_create_autocmd("WinLeave", {
-        group = M.groups.prompt_session,
+        group = prompt_session_group,
         buffer = buf,
         callback = function()
           local win = vim.api.nvim_get_current_win()
@@ -700,13 +704,14 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
     end
 
     vim.api.nvim_create_autocmd("WinClosed", {
-      group = M.groups.prompt_session,
+      group = chat_session_group,
       callback = function(args)
         if
           M.chat_win == tonumber(args.match)
           or M.prompt_win == tonumber(args.match)
           or M.prompt_history_win == tonumber(args.match)
         then
+          print("winclose")
           vim.api.nvim_win_close(M.prompt_win, true)
           M.prompt_win = nil
           -- M.prompt_buf = nil
@@ -719,10 +724,27 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
       end,
     })
 
+    vim.api.nvim_create_autocmd({ "VimResized", "WinResized" }, {
+      group = chat_session_group,
+      callback = function(args)
+        -- vim.schedule(function()
+        --   M.resize_chat()
+        -- end)
+        if
+          M.parent_win == tonumber(args.match)
+          or M.chat_win == tonumber(args.match)
+          or M.prompt_win == tonumber(args.match)
+          or M.prompt_history_win == tonumber(args.match)
+        then
+          M.set_prompt_window_conf()
+        end
+      end,
+    })
+
     -- detecting text changes to resize prompt window when needed
     local timer
     vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
-      group = M.groups.prompt_session,
+      group = prompt_session_group,
       buffer = M.prompt_buf,
       callback = function()
         -- cancel previous timer on every keystroke
