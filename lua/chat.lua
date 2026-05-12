@@ -11,6 +11,23 @@ local M = {
 ---@param opts table
 function M.setup(opts)
   M.main_buf = vim.api.nvim_get_current_buf()
+
+  local chat_setup_group = vim.api.nvim_create_augroup("llm_chat_setup", { clear = true })
+  vim.api.nvim_create_autocmd("WinClosed", {
+    group = chat_setup_group,
+    callback = function(args)
+      local closed_win = tonumber(args.match)
+
+      -- main window closed
+      if closed_win ~= M.parent_win then
+        return
+      end
+
+      vim.schedule(function()
+        vim.cmd("qa")
+      end)
+    end,
+  })
   opts = opts or {}
   M.api_key = opts.api_key
 
