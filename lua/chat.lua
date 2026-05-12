@@ -581,12 +581,13 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
   if optional_prompt_win_height == nil then
     optional_prompt_win_height = 1
   end
+  -- print(optional_prompt_win_height)
 
   -- parent size
   if not M.chat_win then
     return
   end
-  print(M.chat_win)
+  -- print(M.chat_win)
   local parent_width = vim.api.nvim_win_get_width(M.chat_win)
   local parent_height = vim.api.nvim_win_get_height(M.chat_win)
 
@@ -728,7 +729,7 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
           or M.prompt_win == tonumber(args.match)
           or M.prompt_history_win == tonumber(args.match)
         then
-          print("winclose")
+          -- print("winclose")
           vim.api.nvim_win_close(M.prompt_win, true)
           M.prompt_win = nil
           -- M.prompt_buf = nil
@@ -748,18 +749,22 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
         --   M.resize_chat()
         -- end)
         if
-          M.parent_win == tonumber(args.match)
-          or M.chat_win == tonumber(args.match)
-          or M.prompt_win == tonumber(args.match)
-          or M.prompt_history_win == tonumber(args.match)
+          M.parent_win == tonumber(args.match) or M.chat_win == tonumber(args.match)
+          -- or M.prompt_win == tonumber(args.match)
+          -- or M.prompt_history_win == tonumber(args.match)
         then
-          M.set_prompt_window_conf()
+          local text_height
+          if M.prompt_win and vim.api.nvim_win_is_valid(M.prompt_win) then
+            text_height = vim.api.nvim_win_text_height(M.prompt_win, {}).all
+          end
+          M.set_prompt_window_conf(text_height)
         end
       end,
     })
 
     -- detecting text changes to resize prompt window when needed
     local timer
+    -- print(M.prompt_buf)
     vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
       group = prompt_session_group,
       buffer = M.prompt_buf,
