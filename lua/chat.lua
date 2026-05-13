@@ -1,7 +1,5 @@
 local M = {
   parent_win = vim.api.nvim_get_current_win(),
-  chat_buf = nil,
-  prompt_buf = nil,
   prompt_thinking = false,
   extractors = {},
   chat_ns = vim.api.nvim_create_namespace("llm-chat"),
@@ -477,30 +475,8 @@ function M.unlock_buf(buf)
   end
 end
 
----@return integer
-function M.ensure_persistent_chat_window_setup()
-  -- checking if valid buffer alreay exist
-  if M.chat_buf and vim.api.nvim_buf_is_valid(M.chat_buf) then
-    return M.chat_buf
-  end
-
-  -- create new scracth buffer
-  M.chat_buf = vim.api.nvim_create_buf(false, true)
-
-  -- set buffer options
-  vim.api.nvim_set_option_value("buftype", "nofile", { buf = M.chat_buf })
-  vim.api.nvim_set_option_value("bufhidden", "hide", { buf = M.chat_buf })
-  vim.api.nvim_set_option_value("swapfile", false, { buf = M.chat_buf })
-  vim.api.nvim_set_option_value("buflisted", true, { buf = M.chat_buf })
-  vim.api.nvim_set_option_value("filetype", "chat", { buf = M.chat_buf })
-
-  return M.chat_buf
-end
-
 ---@return nil
 function M.toggle_persistent_chat_window()
-  M.ensure_persistent_chat_window_setup()
-
   -- if already open -> close
   if M.chat_win then
     vim.api.nvim_win_close(M.chat_win, true)
@@ -508,14 +484,9 @@ function M.toggle_persistent_chat_window()
     return
   end
 
-  vim.keymap.set("v", "<Leader>8i", function()
-    M.safe_notify("Disabled on chat window", vim.log.levels.INFO)
-  end, { desc = "Complete implementation (Disabled)", buf = M.chat_buf })
-
   -- open new split
   vim.cmd("vsplit") -- or "split" for horizontal split window
   M.chat_win = vim.api.nvim_get_current_win()
-  vim.api.nvim_win_set_buf(M.chat_win, M.chat_buf)
   M.open_prompt_window()
 end
 
