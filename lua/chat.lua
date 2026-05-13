@@ -68,10 +68,6 @@ function M.setup(opts)
     M.complete_implementation()
   end, { desc = "Complete implementation" })
 
-  -- vim.keymap.set("v", "<Leader>8p", function()
-  --   M.open_prompt_window()
-  -- end, { desc = "Open prompt window" })
-
   vim.keymap.set("n", "<Leader>8c", function()
     M.toggle_persistent_chat_window()
   end, { desc = "Toggle persistent chat window" })
@@ -498,27 +494,6 @@ function M.ensure_persistent_chat_window_setup()
   vim.api.nvim_set_option_value("buflisted", true, { buf = M.chat_buf })
   vim.api.nvim_set_option_value("filetype", "chat", { buf = M.chat_buf })
 
-  -- set first line
-  -- if vim.api.nvim_buf_line_count(M.chat_buf) == 1 then
-  --   vim.api.nvim_buf_set_lines(M.chat_buf, 0, -1, false, { "Chat session started" })
-  -- end
-
-  -- detecting window close with `:q` or other autocmd commands
-  -- vim.api.nvim_create_autocmd("WinClosed", {
-  --   group = M.groups.chat_session,
-  --   buffer = M.chat_buf,
-  --   callback = function(args)
-  --     local closed_win = tonumber(args.match)
-  --     if M.chat_win and closed_win == M.chat_win then
-  --       vim.api.nvim_win_close(M.chat_win, true)
-  --       M.chat_win = nil
-  --       if M.prompt_buf then
-  --         M.set_prompt_window_conf(#vim.api.nvim_buf_get_lines(M.prompt_buf, 0, -1, false))
-  --       end
-  --     end
-  --   end,
-  -- })
-
   return M.chat_buf
 end
 
@@ -527,21 +502,11 @@ function M.toggle_persistent_chat_window()
   M.ensure_persistent_chat_window_setup()
 
   -- if already open -> close
-  -- print(M.prompt_win, M.prompt_history_win, M.chat_win, M.prompt_buf, M.prompt_history_buf, M.chat_buf)
   if M.chat_win then
-    -- print("closing chat")
     vim.api.nvim_win_close(M.chat_win, true)
     M.chat_win = nil
-    -- if M.prompt_buf then
-    --   M.set_prompt_window_conf(#vim.api.nvim_buf_get_lines(M.prompt_buf, 0, -1, false))
-    -- end
     return
   end
-
-  -- disabled key maps
-  -- vim.keymap.set("v", "<Leader>8p", function()
-  --   M.safe_notify("Disabled on chat window", vim.log.levels.INFO)
-  -- end, { desc = "Open prompt window (Disabled)", buf = M.chat_buf })
 
   vim.keymap.set("v", "<Leader>8i", function()
     M.safe_notify("Disabled on chat window", vim.log.levels.INFO)
@@ -551,9 +516,6 @@ function M.toggle_persistent_chat_window()
   vim.cmd("vsplit") -- or "split" for horizontal split window
   M.chat_win = vim.api.nvim_get_current_win()
   vim.api.nvim_win_set_buf(M.chat_win, M.chat_buf)
-  -- if M.prompt_buf then
-  --   M.set_prompt_window_conf(#vim.api.nvim_buf_get_lines(M.prompt_buf, 0, -1, false))
-  -- end
   M.open_prompt_window()
 end
 
@@ -581,7 +543,6 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
   if optional_prompt_win_height == nil then
     optional_prompt_win_height = 1
   end
-  -- print(optional_prompt_win_height)
 
   -- parent size
   if not M.chat_win then
@@ -647,21 +608,9 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
 
     -- custom key maps - disabling key maps
     for _, buf in ipairs({ M.prompt_buf, M.prompt_history_buf }) do
-      -- vim.keymap.set("v", "<Leader>8p", function()
-      --   M.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
-      -- end, { desc = "Open prompt window (Disabled)", buf = buf })
-
       vim.keymap.set("v", "<Leader>8i", function()
         M.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
       end, { desc = "Complete implementation (Disabled)", buf = buf })
-
-      -- vim.keymap.set("n", "<Leader>8c", function()
-      --   M.toggle_persistent_chat_window()
-      -- end, { desc = "Toggle persistent chat window" })
-      --
-      -- vim.keymap.set("n", "<Leader>8c", function()
-      --   M.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
-      -- end, { desc = "Toggle persistent chat window (Disabled)", buf = buf })
     end
 
     -- custom key maps - switcing between prompt & history windows keymaps
@@ -703,22 +652,6 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
           end
         end,
       })
-
-      -- detecting window close with `:q` or other autocmd commands
-      -- vim.api.nvim_create_autocmd("WinClosed", {
-      --   group = M.groups.prompt_session,
-      --   buffer = buf,
-      --   callback = function(args)
-      --     if M.prompt_win == tonumber(args.match) or M.prompt_history_win == tonumber(args.match) then
-      --       vim.api.nvim_win_close(M.prompt_win, true)
-      --       -- M.prompt_win = nil
-      --       -- M.prompt_buf = nil
-      --       vim.api.nvim_win_close(M.prompt_history_win, true)
-      --       -- M.prompt_history_win = nil
-      --       -- M.prompt_history_buf = nil
-      --     end
-      --   end,
-      -- })
     end
 
     vim.api.nvim_create_autocmd("WinClosed", {
@@ -729,13 +662,10 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
           or M.prompt_win == tonumber(args.match)
           or M.prompt_history_win == tonumber(args.match)
         then
-          -- print("winclose")
           vim.api.nvim_win_close(M.prompt_win, true)
           M.prompt_win = nil
-          -- M.prompt_buf = nil
           vim.api.nvim_win_close(M.prompt_history_win, true)
           M.prompt_history_win = nil
-          -- M.prompt_history_buf = nil
           vim.api.nvim_win_close(M.chat_win, true)
           M.chat_win = nil
         end
@@ -745,14 +675,7 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
     vim.api.nvim_create_autocmd({ "VimResized", "WinResized" }, {
       group = chat_session_group,
       callback = function(args)
-        -- vim.schedule(function()
-        --   M.resize_chat()
-        -- end)
-        if
-          M.parent_win == tonumber(args.match) or M.chat_win == tonumber(args.match)
-          -- or M.prompt_win == tonumber(args.match)
-          -- or M.prompt_history_win == tonumber(args.match)
-        then
+        if M.parent_win == tonumber(args.match) or M.chat_win == tonumber(args.match) then
           local text_height
           if M.prompt_win and vim.api.nvim_win_is_valid(M.prompt_win) then
             text_height = vim.api.nvim_win_text_height(M.prompt_win, {}).all
@@ -764,7 +687,6 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
 
     -- detecting text changes to resize prompt window when needed
     local timer
-    -- print(M.prompt_buf)
     vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
       group = prompt_session_group,
       buffer = M.prompt_buf,
@@ -808,16 +730,6 @@ end
 
 ---@return nil
 function M.open_prompt_window()
-  -- M.toggle_persistent_chat_window()
-  -- M.parent_win = vim.api.nvim_get_current_win()
-  -- Get selected lines
-  -- local lines = M.get_visual_selection()
-  -- if M.is_empty(lines) then
-  --   M.safe_notify("Must select non-empty lines", vim.log.levels.WARN)
-  --   vim.api.nvim_input("<Esc>") -- exit selection mode for better ux
-  --   return
-  -- end
-
   if M.prompt_buf and M.prompt_history_buf then
     M.set_prompt_window_conf()
     return
@@ -825,7 +737,6 @@ function M.open_prompt_window()
 
   -- Create new prompt buffer
   M.prompt_history_buf = vim.api.nvim_create_buf(false, true)
-  -- vim.bo[M.prompt_history_buf].bufhidden = "wipe"
   vim.bo[M.prompt_history_buf].filetype = "markdown"
   vim.bo[M.prompt_history_buf].swapfile = false
   vim.api.nvim_buf_set_lines(M.prompt_history_buf, 0, 0, false, {
@@ -835,16 +746,10 @@ function M.open_prompt_window()
 
   M.prompt_buf = vim.api.nvim_create_buf(false, true)
   vim.bo[M.prompt_buf].buftype = "prompt"
-  -- vim.bo[M.prompt_buf].bufhidden = "wipe"
   vim.bo[M.prompt_buf].filetype = "markdown"
   vim.bo[M.prompt_buf].swapfile = false
   vim.fn.prompt_setprompt(M.prompt_buf, "")
 
-  -- Set lines into new buffer
-  -- local selected_text = M.tag_selected_text(table.concat(lines, "\n"))
-  -- M.append_prompt_message(M.prompt_buf, selected_text)
-  --
-  -- M.set_prompt_window_conf(#vim.split(selected_text, "\n", { plain = true }) + 1)
   M.set_prompt_window_conf()
 
   -- callback when user presses Enter
