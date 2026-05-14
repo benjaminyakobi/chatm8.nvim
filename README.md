@@ -9,7 +9,14 @@ Basic setup (currently `gemini` only):
   {
     'benjaminyakobi/chat.nvim',
     config = function()
-      require('chat').setup({ api_key = 'gemini-api-key' })
+      require('chat').setup {
+        provider = 'gemini',
+        providers = {
+          gemini = {
+            api_key = '<GEMINI_API_KEY>',
+          },
+        },
+      }
     end,
   },
 ```
@@ -18,8 +25,17 @@ Local dev setup:
 ```lua
   {
     'benjaminyakobi/chat.nvim',
+    dir = '<CLONE_BASE_DIR>/chat.nvim/',
     config = function()
-      require('chat').setup({ dev = true, api_key = 'gemini-api-key' })
+      require('chat').setup {
+        dev = true,
+        provider = 'gemini',
+        providers = {
+          gemini = {
+            api_key = '<GEMINI_API_KEY>',
+          },
+        },
+      }
     end,
   },
 ```
