@@ -27,7 +27,16 @@ function M.setup(opts)
     end,
   })
   opts = opts or {}
-  M.api_key = opts.api_key
+
+  -- Importing providers and setting up a provider
+  local providers = {
+    gemini = require("chat.providers.gemini"),
+  }
+  M.provider = providers[opts.provider]
+  M.provider.chat()
+
+  -- Collecting api_key from the config
+  M.api_key = opts.providers[opts.provider].api_key
 
   if not M.api_key then
     M.safe_notify(
@@ -760,6 +769,7 @@ end
 ---@param s_line integer
 ---@param e_line integer
 ---@param prompt_win boolean
+-- FIX: this function should be a provider...
 function M.call_api(prompt, buf, s_line, e_line, prompt_win)
   -- safe encode
   local ok_encode, json = pcall(vim.json.encode, {
