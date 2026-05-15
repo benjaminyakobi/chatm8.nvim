@@ -29,8 +29,7 @@ function M.setup(opts)
   opts = opts or {}
 
   -- Importing providers and setting up a provider
-  M.providers_module = require("chat.providers")
-  M.providers_module.setup(opts)
+  require("chat.providers").setup(opts)
   local providers = {
     gemini = require("chat.providers.gemini"),
   }
@@ -758,25 +757,7 @@ end
 ---@param s_line integer
 ---@param e_line integer
 ---@param prompt_win boolean
--- FIX: this function should be a provider...
 function M.call_api(prompt, buf, s_line, e_line, prompt_win)
-  -- -- safe encode
-  -- local ok_encode, json = pcall(vim.json.encode, {
-  --   contents = {
-  --     parts = {
-  --       text = prompt,
-  --     },
-  --   },
-  -- })
-  -- if not ok_encode then
-  --   if prompt_win then
-  --     M.append_message(buf, "Error", "JSON encode failed: " .. json)
-  --   else
-  --     M.safe_notify("JSON encode failed: " .. json, vim.log.levels.ERROR)
-  --   end
-  --   return
-  -- end
-
   local lock_buf = M.unlock_buf(buf)
   local stop_spinner = M.start_spinner(buf, s_line)
 
