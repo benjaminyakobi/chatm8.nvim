@@ -35,19 +35,6 @@ function M.setup(opts)
     gemini = require("chat.providers.gemini"),
   }
   M.provider = providers[opts.provider]
-  print(M.providers_module.api_key)
-  -- M.provider.chat()
-
-  -- -- Collecting api_key from the config
-  -- M.api_key = opts.providers[opts.provider].api_key
-  --
-  -- if not M.api_key then
-  --   M.safe_notify(
-  --     "chat.nvim: Missing API key. Please set `api_key` in your setup configuration.\nExample:\nrequire('chat').setup({ api_key = 'your_key' })",
-  --     vim.log.levels.ERROR
-  --   )
-  --   M.api_key = ""
-  -- end
 
   local help = [[
 <Leader>8i: Inline Implementation
@@ -531,7 +518,6 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
   if not M.chat_win then
     return
   end
-  -- print(M.chat_win)
   local parent_width = vim.api.nvim_win_get_width(M.chat_win)
   local parent_height = vim.api.nvim_win_get_height(M.chat_win)
 
@@ -796,7 +782,6 @@ function M.call_api(prompt, buf, s_line, e_line, prompt_win)
 
   M.provider.answer(prompt, function(result)
     vim.schedule(function()
-      print(result)
       if result.error then
         stop_spinner(false)
         lock_buf()
@@ -821,80 +806,6 @@ function M.call_api(prompt, buf, s_line, e_line, prompt_win)
     end)
   end)
 end
-
--- vim.system({
---   "curl",
---   "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent",
---   "-H",
---   "Content-Type: application/json",
---   "-H",
---   "x-goog-api-key: " .. M.api_key,
---   "-X",
---   "POST",
---   "-d",
---   json,
--- }, { text = true }, function(res)
---   ---@return nil
---   ---@param ok boolean
---   local function cleanup(ok)
---     vim.schedule(function()
---       stop_spinner(ok)
---       lock_buf()
---       M.start_line = nil
---       M.end_line = nil
---       vim.api.nvim_input("<Esc>") -- exiting visual mode
---     end)
---   end
---
---   -- ensuring request success
---   if res.code ~= 0 then
---     cleanup(false)
---     if prompt_win then
---       M.append_message(buf, "Error", "Request failed: " .. (res.stderr or "unknown error"))
---     else
---       M.safe_notify("Request failed: " .. (res.stderr or "unknown error"), vim.log.levels.ERROR)
---     end
---     return
---   end
---
---   -- safe decode
---   local ok_decode, data = pcall(vim.json.decode, res.stdout)
---   if not ok_decode then
---     cleanup(false)
---     if prompt_win then
---       M.append_message(buf, "Error", "JSON encode failed: " .. json)
---     else
---       M.safe_notify("JSON encode failed: " .. json, vim.log.levels.ERROR)
---     end
---     return
---   end
---
---   -- safe extract
---   local text
---   local ok_extract, err = pcall(function()
---     text = data.candidates[1].content.parts[1].text
---   end)
---   if not ok_extract or not text then
---     cleanup(false)
---     if prompt_win then
---       M.append_message(buf, "Error", "Invalid API response structure: " .. err)
---     else
---       M.safe_notify("Invalid API response structure: " .. err, vim.log.levels.ERROR)
---     end
---     return
---   end
---
---   cleanup(true)
---   if prompt_win then
---     M.append_message(buf, "Assistant", text)
---   else
---     local lines = vim.split(text, "\n")
---     vim.schedule(function()
---       vim.api.nvim_buf_set_lines(buf, s_line, e_line, false, lines)
---     end)
---   end
--- end)
--- end
 
 ---@return nil
 ---@param buf integer
