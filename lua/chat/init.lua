@@ -29,11 +29,14 @@ function M.setup(opts)
   opts = opts or {}
 
   -- Importing providers and setting up a provider
-  require("chat.providers").setup(opts)
-  local providers = {
-    gemini = require("chat.providers.gemini"),
-  }
-  M.provider = providers[opts.provider]
+  -- require("chat.providers").setup(opts)
+  -- local providers = {
+  --   gemini = require("chat.providers.gemini"),
+  -- }
+  -- M.provider = providers[opts.provider]
+  M.providers = require("chat.providers")
+  M.providers.setup(opts)
+  M.provider_name = opts.provider
 
   local help = [[
 <Leader>8i: Inline Implementation
@@ -760,8 +763,8 @@ end
 function M.call_api(prompt, buf, s_line, e_line, prompt_win)
   local lock_buf = M.unlock_buf(buf)
   local stop_spinner = M.start_spinner(buf, s_line)
-
-  M.provider.answer(prompt, function(result)
+  local provider = M.providers.get(M.provider_name)
+  provider.answer(prompt, function(result)
     vim.schedule(function()
       if result.error then
         stop_spinner(false)

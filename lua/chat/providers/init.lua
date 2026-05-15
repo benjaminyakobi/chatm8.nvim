@@ -4,7 +4,7 @@ local M = {}
 ---@param opts table
 function M.setup(opts)
   -- Collecting api_key from the config
-  M.api_key = opts.providers[opts.provider].api_key
+  M.api_key = opts.providers and opts.providers[opts.provider] and opts.providers[opts.provider].api_key
 
   if not M.api_key then
     M.safe_notify(
@@ -13,6 +13,16 @@ function M.setup(opts)
     )
     M.api_key = ""
   end
+end
+
+function M.get(name)
+  local ok, provider = pcall(require, "chat.providers." .. name)
+
+  if not ok then
+    error("chat.nvim: invalid provider: .. ", name)
+  end
+
+  return provider
 end
 
 return M
