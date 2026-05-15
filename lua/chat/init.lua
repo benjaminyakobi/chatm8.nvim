@@ -792,13 +792,13 @@ function M.call_api(prompt, buf, s_line, e_line, prompt_win)
   -- end
 
   local lock_buf = M.unlock_buf(buf)
-  -- local stop_spinner = M.start_spinner(buf, s_line)
+  local stop_spinner = M.start_spinner(buf, s_line)
 
   M.provider.answer(prompt, function(result)
     vim.schedule(function()
       print(result)
       if result.error then
-        -- stop_spinner(false)
+        stop_spinner(false)
         lock_buf()
 
         if prompt_win then
@@ -810,7 +810,7 @@ function M.call_api(prompt, buf, s_line, e_line, prompt_win)
         return
       end
 
-      -- stop_spinner(true)
+      stop_spinner(true)
       lock_buf()
 
       if prompt_win then
