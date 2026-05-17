@@ -1,12 +1,12 @@
-local M = {
-  extractors = {},
-}
+local M = {}
 
 -- ------------------------------------------------
 -- ---------- ast data extractor helpers ----------
 -- ------------------------------------------------
 
 local ts = vim.treesitter
+local extractors = {}
+local utils = require("chat.utils")
 
 ---@return string|nil
 ---@param node table
@@ -158,13 +158,13 @@ function M.get_func_ast_data(buf)
 
   local query = ts.query.get(lang, "functions")
   if not query then
-    M.safe_notify("No query for " .. lang, vim.log.levels.WARN)
+    utils.safe_notify("No query for " .. lang, vim.log.levels.WARN)
     return {}
   end
 
-  local extractor = M.extractors[lang]
+  local extractor = extractors[lang]
   if not extractor then
-    M.safe_notify("No extractor for " .. lang, vim.log.levels.WARN)
+    utils.safe_notify("No extractor for " .. lang, vim.log.levels.WARN)
     return {}
   end
 
@@ -190,7 +190,7 @@ end
 ---@param match table
 ---@param query table
 -- NOTE: Lua extractor
-M.extractors.lua = function(match, query)
+extractors.lua = function(match, query)
   local name, params, function_node, func_type
 
   for i, cap in ipairs(query.captures) do
@@ -233,7 +233,7 @@ end
 ---@param match table
 ---@param query table
 -- NOTE: Go extractor
-M.extractors.go = function(match, query)
+extractors.go = function(match, query)
   local name, params, ret, receiver, function_node, func_type
 
   for i, cap in ipairs(query.captures) do
@@ -282,7 +282,7 @@ end
 ---@param match table
 ---@param query table
 -- NOTE: python extractor
-M.extractors.python = function(match, query)
+extractors.python = function(match, query)
   local name, params, function_node, return_type, func_type
 
   for i, cap in ipairs(query.captures) do
@@ -329,7 +329,7 @@ end
 ---@param match table
 ---@param query table
 -- NOTE: JavaScript extractor
-M.extractors.javascript = function(match, query)
+extractors.javascript = function(match, query)
   local name, params, function_node, func_type
 
   for i, cap in ipairs(query.captures) do
