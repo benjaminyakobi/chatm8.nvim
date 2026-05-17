@@ -29,11 +29,6 @@ function M.setup(opts)
   opts = opts or {}
 
   -- Importing providers and setting up a provider
-  -- require("chat.providers").setup(opts)
-  -- local providers = {
-  --   gemini = require("chat.providers.gemini"),
-  -- }
-  -- M.provider = providers[opts.provider]
   M.providers = require("chat.providers")
   M.providers.setup(opts)
   M.provider_name = opts.provider
