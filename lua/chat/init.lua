@@ -20,6 +20,9 @@ function M.setup(opts)
   -- Importing treesitter extractors
   M.ts_extractors = require("chat.treesitter")
 
+  -- Importing utils
+  M.utils = require("chat.utils")
+
   local help = [[
 <Leader>8i: Inline Implementation
   1. [Visual Mode] Select text (either code snippets or natural language instructions).
@@ -212,7 +215,7 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
     -- custom key maps - disabling key maps
     for _, buf in ipairs({ M.prompt_buf, M.prompt_history_buf }) do
       vim.keymap.set("v", "<Leader>8i", function()
-        M.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
+        M.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
       end, { desc = "Complete implementation (Disabled)", buf = buf })
     end
 
@@ -359,12 +362,12 @@ function M.open_prompt_window()
   vim.fn.prompt_setcallback(M.prompt_buf, function()
     local prompt_lines = vim.api.nvim_buf_get_lines(M.prompt_buf, 0, -1, false)
     if M.is_empty(prompt_lines) then
-      M.safe_notify("Write prompt first", vim.log.levels.WARN)
+      M.utils.safe_notify("Write prompt first", vim.log.levels.WARN)
       vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, {})
       return
     end
     if M.prompt_thinking then
-      M.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
+      M.utils.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
       local line_count = vim.api.nvim_buf_line_count(M.prompt_buf)
       vim.api.nvim_buf_set_lines(M.prompt_buf, line_count - 1, line_count, false, {})
       M.scroll_to_bottom(M.prompt_win, M.prompt_buf)
@@ -374,15 +377,6 @@ function M.open_prompt_window()
     M.append_message(M.prompt_history_buf, "You", prompt_text)
     M.send_prompt()
     vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, {})
-  end)
-end
-
----@return nil
----@param msg string
----@param lvl vim.log.levels
-function M.safe_notify(msg, lvl)
-  vim.schedule(function()
-    vim.notify(msg, lvl)
   end)
 end
 
@@ -405,7 +399,7 @@ function M.call_api(prompt, buf, s_line, e_line, prompt_win)
         if prompt_win then
           M.append_message(buf, "Error", result.error)
         else
-          M.safe_notify(result.error, vim.log.levels.ERROR)
+          M.utils.safe_notify(result.error, vim.log.levels.ERROR)
         end
 
         return
@@ -507,14 +501,13 @@ end
 ---@return nil
 function M.complete_implementation()
   if M.prompt_thinking then
-    M.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
+    M.utils.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
     return
   end
   vim.api.nvim_input("<Esc>") -- exit selection mode for better ux
   local selected_lines = M.get_visual_selection()
   local func_data = M.ts_extractors.get_func_ast_data(0)
   local func_signatures = M.ts_extractors.get_func_signatures(func_data, true, true)
-  print(vim.inspect(func_signatures))
   local selected_text = M.tag_selected_text(table.concat(selected_lines, "\n"))
   local prompt = "Implement the following code.\n"
     .. "Respond with code only. Do NOT wrap the output in backticks.\n\n"
@@ -540,7 +533,7 @@ function M.send_prompt()
     M.append_prompt_message(M.prompt_buf, nil)
     M.call_api(win_buf_text, M.prompt_history_buf, #win_buf_lines, -1, true)
   else
-    M.safe_notify("chat.nvim: Select lines first", vim.log.levels.INFO)
+    M.utils.safe_notify("chat.nvim: Select lines first", vim.log.levels.INFO)
   end
 end
 
