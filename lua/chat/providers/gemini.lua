@@ -18,7 +18,7 @@ function M.answer(prompt, callback)
   local ok_encode, json = pcall(vim.json.encode, body)
   if not ok_encode then
     callback({
-      error = "JSON encode failed: " .. json,
+      error = "chat.nvim: JSON encode failed: " .. json,
     })
     return
   end
@@ -37,7 +37,7 @@ function M.answer(prompt, callback)
   }, { text = true }, function(res)
     if res.code ~= 0 then
       callback({
-        error = "Request failed: " .. (res.stderr or "unknown error"),
+        error = "chat.nvim: Request failed: " .. (res.stderr or "unknown error"),
       })
       return
     end
@@ -46,7 +46,7 @@ function M.answer(prompt, callback)
 
     if not ok_decode then
       callback({
-        error = "JSON decode failed",
+        error = "chat.nvim: JSON decode failed",
       })
       return
     end
@@ -57,7 +57,7 @@ function M.answer(prompt, callback)
 
     if not ok_extract then
       callback({
-        error = "Invalid response structure",
+        error = "chat.nvim: Invalid response structure",
       })
       return
     end
