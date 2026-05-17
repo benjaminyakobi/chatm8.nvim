@@ -4,14 +4,42 @@ local M = {}
 ---@param opts table
 function M.setup(opts)
   -- Collecting api_key from the config
-  M.api_key = opts.providers and opts.providers[opts.provider] and opts.providers[opts.provider].api_key
+  local provider = opts.providers and opts.providers[opts.provider]
+
+  if not provider then
+    error(
+      "chat.nvim: invalid provider `"
+        .. tostring(opts.provider)
+        .. "`.\n\n"
+        .. "Example:\n"
+        .. "require('chat').setup({\n"
+        .. "  provider = 'gemini',\n"
+        .. "  providers = {\n"
+        .. "    gemini = {\n"
+        .. "      api_key = 'your_api_key',\n"
+        .. "    },\n"
+        .. "  },\n"
+        .. "})"
+    )
+  end
+
+  M.api_key = provider.api_key
 
   if not M.api_key then
-    M.safe_notify(
-      "chat.nvim: Missing API key. Please set `api_key` in your setup configuration.\nExample:\nrequire('chat').setup({ api_key = 'your_key' })",
-      vim.log.levels.ERROR
+    error(
+      "chat.nvim: missing api_key for provider `"
+        .. tostring(opts.provider)
+        .. "`.\n\n"
+        .. "Example:\n"
+        .. "require('chat').setup({\n"
+        .. "  provider = 'gemini',\n"
+        .. "  providers = {\n"
+        .. "    gemini = {\n"
+        .. "      api_key = 'your_api_key',\n"
+        .. "    },\n"
+        .. "  },\n"
+        .. "})"
     )
-    M.api_key = ""
   end
 end
 
