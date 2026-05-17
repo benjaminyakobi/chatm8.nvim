@@ -2,6 +2,10 @@ local M = {
   extractors = {},
 }
 
+-- ------------------------------------------------
+-- ---------- ast data extractor helpers ----------
+-- ------------------------------------------------
+
 local ts = vim.treesitter
 
 ---@return string|nil
