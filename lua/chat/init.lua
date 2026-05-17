@@ -11,21 +11,6 @@ function M.setup(opts)
   M.main_buf = vim.api.nvim_get_current_buf()
 
   local chat_setup_group = vim.api.nvim_create_augroup("llm_chat_setup", { clear = true })
-  vim.api.nvim_create_autocmd("WinClosed", {
-    group = chat_setup_group,
-    callback = function(args)
-      local closed_win = tonumber(args.match)
-
-      -- main window closed
-      if closed_win ~= M.parent_win then
-        return
-      end
-
-      vim.schedule(function()
-        vim.cmd("qa")
-      end)
-    end,
-  })
   opts = opts or {}
 
   -- Importing providers and setting up a provider
@@ -50,6 +35,24 @@ function M.setup(opts)
     2.2. [Navigation] Press <C-s> in Normal or Visual mode to switch between the
          history window and the prompt window.]]
 
+  -- setting global autocmds
+  vim.api.nvim_create_autocmd("WinClosed", {
+    group = chat_setup_group,
+    callback = function(args)
+      local closed_win = tonumber(args.match)
+
+      -- main window closed
+      if closed_win ~= M.parent_win then
+        return
+      end
+
+      vim.schedule(function()
+        vim.cmd("qa")
+      end)
+    end,
+  })
+
+  -- setting global keymaps
   vim.keymap.set("n", "<Leader>8?", function()
     if opts.dev then
       print("chat.nvim: local setup\n" .. help)
