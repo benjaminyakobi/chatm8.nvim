@@ -1,7 +1,6 @@
 local M = {
   parent_win = vim.api.nvim_get_current_win(),
   prompt_thinking = false,
-  -- extractors = {},
   chat_ns = vim.api.nvim_create_namespace("llm-chat"),
 }
 
