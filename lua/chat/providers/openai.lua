@@ -1,4 +1,4 @@
--- NOTE: openai provider file NOT TESTED YET!
+-- NOTE: openai provider
 local M = {}
 
 local providers = require("chat.providers")
@@ -8,7 +8,7 @@ local providers = require("chat.providers")
 ---@param callback function
 function M.answer(prompt, callback)
   local body = {
-    model = "gpt-5-mini", -- FIX: should come from the configuration setup
+    model = providers.openai_model,
 
     messages = {
       {
