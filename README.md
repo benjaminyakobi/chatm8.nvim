@@ -4,7 +4,7 @@ NeoVim AI Chat Plugin
 ## Installation
 Using [lazy.nvim](https://github.com/folke/lazy.nvim)
 
-Basic setup (currently `gemini` only):
+Basic setup (currently `openai` & `gemini` only):
 ```lua
   {
     'benjaminyakobi/chat.nvim',
@@ -15,6 +15,11 @@ Basic setup (currently `gemini` only):
           gemini = {
             api_key = '<GEMINI_API_KEY>',
           },
+          openai = {
+            api_key = '<OPENAI_API_KEY>',
+            model = 'CHOOSE_MODEL'
+          },
+
         },
       }
     end,
@@ -33,6 +38,10 @@ Local dev setup:
         providers = {
           gemini = {
             api_key = '<GEMINI_API_KEY>',
+          },
+          openai = {
+            api_key = '<OPENAI_API_KEY>',
+            model = 'CHOOSE_MODEL'
           },
         },
       }
