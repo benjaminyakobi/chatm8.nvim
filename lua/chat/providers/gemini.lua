@@ -1,7 +1,7 @@
 -- NOTE: gemini provider file
 local M = {}
 
-local config = require("chat.providers")
+local providers = require("chat.providers")
 
 ---@return nil
 ---@param prompt string
@@ -29,7 +29,7 @@ function M.answer(prompt, callback)
     "-H",
     "Content-Type: application/json",
     "-H",
-    "x-goog-api-key: " .. config.api_key,
+    "x-goog-api-key: " .. providers.api_key,
     "-X",
     "POST",
     "-d",
