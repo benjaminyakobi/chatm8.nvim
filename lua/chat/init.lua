@@ -51,9 +51,7 @@ function M.setup(opts)
         return
       end
 
-      vim.schedule(function()
-        vim.cmd("qa")
-      end)
+      vim.cmd("qa")
     end,
   })
 
@@ -429,67 +427,63 @@ function M.append_message(buf, role, text)
     return header
   end
 
-  vim.schedule(function()
-    local lock_buf = M.unlock_buf(buf)
-    local total_lines, header, header_line
-    local lines = vim.split(text, "\n", { plain = true })
-    header = build_header()
-    header_line = vim.api.nvim_buf_line_count(buf)
-    total_lines = { header }
+  local lock_buf = M.unlock_buf(buf)
+  local total_lines, header, header_line
+  local lines = vim.split(text, "\n", { plain = true })
+  header = build_header()
+  header_line = vim.api.nvim_buf_line_count(buf)
+  total_lines = { header }
 
-    for _, v in ipairs(lines) do
-      table.insert(total_lines, v)
+  for _, v in ipairs(lines) do
+    table.insert(total_lines, v)
+  end
+
+  for i = #total_lines, 1, -1 do
+    if total_lines[i] == "" then
+      table.remove(total_lines, i)
+    else
+      break
     end
+  end
+  total_lines[#total_lines + 1] = ""
 
-    for i = #total_lines, 1, -1 do
-      if total_lines[i] == "" then
-        table.remove(total_lines, i)
-      else
-        break
-      end
-    end
-    total_lines[#total_lines + 1] = ""
+  vim.api.nvim_buf_set_lines(buf, -1, -1, false, total_lines)
+  vim.api.nvim_buf_set_extmark(buf, M.chat_ns, header_line, 0, {
+    hl_group = role,
+    end_col = #header,
+  })
 
-    vim.api.nvim_buf_set_lines(buf, -1, -1, false, total_lines)
-    vim.api.nvim_buf_set_extmark(buf, M.chat_ns, header_line, 0, {
-      hl_group = role,
-      end_col = #header,
+  local win = vim.fn.bufwinid(buf)
+  if win ~= -1 then
+    vim.api.nvim_win_set_cursor(win, {
+      header_line + 1,
+      0,
     })
-
-    local win = vim.fn.bufwinid(buf)
-    if win ~= -1 then
-      vim.api.nvim_win_set_cursor(win, {
-        header_line + 1,
-        0,
-      })
-    end
-    lock_buf()
-  end)
+  end
+  lock_buf()
 end
 
 ---@return nil
 ---@param buf integer
 ---@param text string|nil
 function M.append_prompt_message(buf, text)
-  vim.schedule(function()
-    local lines = {}
-    if text then
-      lines = vim.split(text, "\n", { plain = true })
-      lines[#lines + 1] = ""
-    else
-      M.set_prompt_window_conf()
-    end
+  local lines = {}
+  if text then
+    lines = vim.split(text, "\n", { plain = true })
+    lines[#lines + 1] = ""
+  else
+    M.set_prompt_window_conf()
+  end
 
-    vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
 
-    local win = vim.fn.bufwinid(buf)
-    if win ~= -1 then
-      vim.api.nvim_win_set_cursor(win, {
-        vim.api.nvim_buf_line_count(buf),
-        0,
-      })
-    end
-  end)
+  local win = vim.fn.bufwinid(buf)
+  if win ~= -1 then
+    vim.api.nvim_win_set_cursor(win, {
+      vim.api.nvim_buf_line_count(buf),
+      0,
+    })
+  end
 end
 
 ---@return string
