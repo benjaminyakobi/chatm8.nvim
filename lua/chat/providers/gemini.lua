@@ -9,8 +9,12 @@ local providers = require("chat.providers")
 function M.answer(prompt, callback)
   local body = {
     contents = {
-      parts = {
-        text = prompt,
+      {
+        parts = {
+          {
+            text = prompt,
+          },
+        },
       },
     },
   }
