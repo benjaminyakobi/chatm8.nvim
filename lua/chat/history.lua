@@ -12,7 +12,10 @@ function M.clear()
 end
 
 function M.add(role, message)
-  -- TODO: impelment
+  table.insert(history, {
+    role = role,
+    message = message,
+  })
 end
 
 return M
