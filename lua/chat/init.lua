@@ -18,7 +18,7 @@ function M.setup(opts)
   M.provider_name = opts.provider
 
   -- Importing treesitter extractors
-  M.ts_extractors = require("chat.treesitter")
+  M.treesitter = require("chat.treesitter")
 
   -- Importing utils
   M.utils = require("chat.utils")
@@ -500,8 +500,8 @@ function M.complete_implementation()
   end
   vim.api.nvim_input("<Esc>") -- exit selection mode for better ux
   local selected_lines = M.get_visual_selection()
-  local func_data = M.ts_extractors.get_func_ast_data(0)
-  local func_signatures = M.ts_extractors.get_func_signatures(func_data, true, true)
+  local func_data = M.treesitter.get_func_ast_data(0)
+  local func_signatures = M.treesitter.get_func_signatures(func_data, true, true)
   local selected_text = M.tag_selected_text(table.concat(selected_lines, "\n"))
   local prompt = "Implement the following code.\n"
     .. "Respond with code only. Do NOT wrap the output in backticks.\n\n"
