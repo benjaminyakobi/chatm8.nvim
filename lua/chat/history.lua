@@ -3,18 +3,23 @@ local M = {}
 
 local history = {}
 
+---@return table
 function M.get()
   return vim.deepcopy(history)
 end
 
+---@return nil
 function M.clear()
   history = {}
 end
 
-function M.add(role, message)
+---@return nil
+---@param role string
+---@param text string
+function M.add(role, text)
   table.insert(history, {
     role = role,
-    message = message,
+    message = text,
   })
 end
 
