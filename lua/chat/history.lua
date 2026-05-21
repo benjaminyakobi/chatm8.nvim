@@ -13,14 +13,21 @@ function M.clear()
   history = {}
 end
 
+---@return table
+---@param role string
+---@param text string
+function M.pack(role, text)
+  return {
+    role = role,
+    text = text,
+  }
+end
+
 ---@return nil
 ---@param role string
 ---@param text string
 function M.add(role, text)
-  table.insert(history, {
-    role = role,
-    message = text,
-  })
+  table.insert(history, M.pack(role, text))
 end
 
 return M
