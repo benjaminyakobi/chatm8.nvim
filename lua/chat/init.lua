@@ -12,16 +12,15 @@ function M.setup(opts)
   local chat_setup_group = vim.api.nvim_create_augroup("llm_chat_setup", { clear = true })
   opts = opts or {}
 
-  -- Importing providers and setting up a provider
+  -- Importing modules
+  M.treesitter = require("chat.treesitter")
+  M.utils = require("chat.utils")
+  M.history = require("chat.history")
   M.providers = require("chat.providers")
+
+  -- setting up a provider
   M.providers.setup(opts)
   M.provider_name = opts.provider
-
-  -- Importing treesitter extractors
-  M.treesitter = require("chat.treesitter")
-
-  -- Importing utils
-  M.utils = require("chat.utils")
 
   local help = [[
 <Leader>8i: Inline Implementation
@@ -379,7 +378,7 @@ function M.open_prompt_window()
 end
 
 ---@return nil
----@param prompt string
+---@param prompt table
 ---@param buf integer
 ---@param s_line integer
 ---@param e_line integer
@@ -425,6 +424,10 @@ function M.append_message(buf, role, text)
     local timestamp = os.date("%d-%m-%Y %H:%M:%S")
     local header = "❯ " .. role .. " | " .. timestamp
     return header
+  end
+
+  if role == "You" or role == "Assistant" then
+    M.history.add(role, text)
   end
 
   local lock_buf = M.unlock_buf(buf)
@@ -516,16 +519,16 @@ function M.complete_implementation()
     .. "\n\n"
     .. "If something looks incorrect (e.g., duplicate function signatures) or or if the task is unclear, do NOT implement the code.\n"
     .. "Instead, return a regular comment (under the code) explaining what should be changed."
-  M.call_api(prompt, M.main_buf, M.start_line - 1, M.end_line + 1, false)
+  M.call_api({ M.history.pack("You", prompt) }, M.main_buf, M.start_line - 1, M.end_line + 1, false)
 end
 
 ---@return nil
 function M.send_prompt()
   if M.prompt_win then
     local win_buf_lines = vim.api.nvim_buf_get_lines(M.prompt_history_buf, 0, -1, false)
-    local win_buf_text = table.concat(win_buf_lines, "\n")
+    -- local win_buf_text = table.concat(win_buf_lines, "\n")
     M.append_prompt_message(M.prompt_buf, nil)
-    M.call_api(win_buf_text, M.prompt_history_buf, #win_buf_lines, -1, true)
+    M.call_api(M.history.get(), M.prompt_history_buf, #win_buf_lines, -1, true)
   else
     M.utils.safe_notify("chat.nvim: Select lines first", vim.log.levels.INFO)
   end
