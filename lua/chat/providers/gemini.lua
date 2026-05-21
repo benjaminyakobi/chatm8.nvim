@@ -3,20 +3,38 @@ local M = {}
 
 local providers = require("chat.providers")
 
+---@return table
+---@param prompt table
+local function normalize_prompt(prompt)
+  -- NOTE: Gemini valid roles: SYSTEM, SYSTEM_1, USER, ASSISTANT,
+  --                            DEVELOPER, CONTEXT, USER_CONTEXT
+  local contents = {}
+
+  for _, msg in ipairs(prompt) do
+    local role = msg.role
+    if role == "Assistant" then
+      role = "model"
+    elseif role == "You" then
+      role = "user"
+    end
+
+    table.insert(contents, {
+      role = role,
+      parts = {
+        text = msg.text,
+      },
+    })
+  end
+
+  return contents
+end
+
 ---@return nil
----@param prompt string
+---@param prompt table
 ---@param callback function
 function M.answer(prompt, callback)
   local body = {
-    contents = {
-      {
-        parts = {
-          {
-            text = prompt,
-          },
-        },
-      },
-    },
+    contents = normalize_prompt(prompt),
   }
 
   local ok_encode, json = pcall(vim.json.encode, body)
