@@ -7,6 +7,13 @@ local providers = require("chat.providers")
 ---@param prompt table
 local function normalize_prompt(prompt)
   -- NOTE: OpenAI valid roles: SYSTEM, DEVELOPER, USER, ASSISTANT
+  -- Exmaple:
+  --   messages = {
+  --     { role = "system", content = "You are a helpful coding assistant" },
+  --     { role = "user", content = "Write quicksort in Python" },
+  --     { role = "assistant", content = "..." },
+  --     { role = "user", content = "Now convert to Go" },
+  --     }
   local contents = {}
 
   for _, msg in ipairs(prompt) do
