@@ -6,8 +6,7 @@ local providers = require("chat.providers")
 ---@return table
 ---@param prompt table
 local function normalize_prompt(prompt)
-  -- NOTE: Gemini valid roles: SYSTEM, SYSTEM_1, USER, ASSISTANT,
-  --                            DEVELOPER, CONTEXT, USER_CONTEXT
+  -- NOTE: Gemini valid roles: SYSTEM, DEVELOPER, USER, ASSISTANT
   local contents = {}
 
   for _, msg in ipairs(prompt) do
