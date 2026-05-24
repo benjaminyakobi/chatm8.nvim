@@ -28,6 +28,10 @@ end
 ---@param text string
 function M.add(role, text)
   table.insert(history, M.pack(role, text))
+
+  while #history > 50 do
+    table.remove(history, 1)
+  end
 end
 
 return M
