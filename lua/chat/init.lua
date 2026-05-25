@@ -473,12 +473,26 @@ function M.append_message(buf, role, text)
     local provider = M.providers.get(M.provider_name)
     local history_prompt = M.history.pack(
       "System",
-      [[ Summarize this conversation. Keep:
-            - user goals
-            - code context
-            - decisions already made
+      [[
+Summarize this conversation for future context.
 
-            Be concise.
+Keep only information that will help continue the conversation:
+- the user’s current goal or task
+- relevant code context (files, functions, architecture, APIs)
+- important technical decisions already made
+- constraints or requirements
+- unresolved bugs or open questions
+- assumptions established during the conversation
+
+Do not include:
+- greetings
+- repeated explanations
+- irrelevant details
+- conversational filler
+
+Be concise and precise.
+
+Write the summary as clear bullet points that another engineer can immediately continue from.
         ]]
     )
     local old_history = M.history.get()
