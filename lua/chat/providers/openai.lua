@@ -101,7 +101,6 @@ end
 ---@param prompt_history table
 ---@param callback function
 function M.summarize_conversation(prompt_history, callback)
-  -- TODO: call api to summarize conversation
   local body = {
     model = providers.openai_model,
     messages = normalize_prompt(prompt_history),
