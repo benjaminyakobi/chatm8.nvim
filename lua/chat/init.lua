@@ -405,7 +405,6 @@ function M.call_api(prompt, buf, s_line, e_line, prompt_win)
       stop_spinner(true)
       lock_buf()
 
-      print(result.content)
       if prompt_win then
         M.append_message(buf, "Assistant", result.content)
       else
@@ -427,32 +426,11 @@ function M.append_message(buf, role, text)
     return header
   end
 
+  local should_summarize = false
   if role == "You" or role == "Assistant" then
-    local should_summarize = M.history.add(role, text)
-    if should_summarize then
-      -- NOTE: summarizing the conversation when hitting history limit
-      local provider = M.providers.get(M.provider_name)
-      M.history.add(
-        "System",
-        [[ Summarize this conversation. Keep:
-            - user goals
-            - code context
-            - decisions already made
-
-            Be concise.
-        ]]
-      )
-      provider.summarize_conversation(M.history.get(), function(result)
-        vim.schedule(function()
-          if result.error then
-            M.utils.safe_notify(result.error, vim.log.levels.ERROR)
-          else
-            M.history.clear()
-            M.history.add("System", result.content)
-          end
-        end)
-      end)
-    end
+    -- NOTE: if should_summarize == true - the summarize call is after call
+    -- is after the prompt history window update (bottom of this func)!
+    should_summarize = M.history.add(role, text)
   end
 
   local lock_buf = M.unlock_buf(buf)
@@ -489,6 +467,33 @@ function M.append_message(buf, role, text)
     })
   end
   lock_buf()
+
+  if should_summarize == true then
+    -- NOTE: summarizing the conversation when hitting history limit
+    local provider = M.providers.get(M.provider_name)
+    local history_prompt = M.history.pack(
+      "System",
+      [[ Summarize this conversation. Keep:
+            - user goals
+            - code context
+            - decisions already made
+
+            Be concise.
+        ]]
+    )
+    local old_history = M.history.get()
+    table.insert(old_history, history_prompt)
+    provider.summarize_conversation(old_history, function(result)
+      vim.schedule(function()
+        if result.error then
+          M.utils.safe_notify(result.error, vim.log.levels.ERROR)
+        else
+          M.history.clear()
+          M.history.add("System", result.content)
+        end
+      end)
+    end)
+  end
 end
 
 ---@return nil
