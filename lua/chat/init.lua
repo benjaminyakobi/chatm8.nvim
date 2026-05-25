@@ -405,6 +405,7 @@ function M.call_api(prompt, buf, s_line, e_line, prompt_win)
       stop_spinner(true)
       lock_buf()
 
+      print(result.content)
       if prompt_win then
         M.append_message(buf, "Assistant", result.content)
       else
@@ -427,7 +428,31 @@ function M.append_message(buf, role, text)
   end
 
   if role == "You" or role == "Assistant" then
-    M.history.add(role, text)
+    local should_summarize = M.history.add(role, text)
+    if should_summarize then
+      -- NOTE: summarizing the conversation when hitting history limit
+      local provider = M.providers.get(M.provider_name)
+      M.history.add(
+        "System",
+        [[ Summarize this conversation. Keep:
+            - user goals
+            - code context
+            - decisions already made
+
+            Be concise.
+        ]]
+      )
+      provider.summarize_conversation(M.history.get(), function(result)
+        vim.schedule(function()
+          if result.error then
+            M.utils.safe_notify(result.error, vim.log.levels.ERROR)
+          else
+            M.history.clear()
+            M.history.add("System", result.content)
+          end
+        end)
+      end)
+    end
   end
 
   local lock_buf = M.unlock_buf(buf)
