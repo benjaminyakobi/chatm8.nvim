@@ -97,6 +97,9 @@ function M.answer(prompt, callback)
   end)
 end
 
+---@return nil
+---@param prompt_history table
+---@param callback function
 function M.summarize_conversation(prompt_history, callback)
   -- TODO: call api to summarize conversation
   local body = {
