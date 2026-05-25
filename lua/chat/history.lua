@@ -23,15 +23,16 @@ function M.pack(role, text)
   }
 end
 
----@return nil
+---@return boolean
 ---@param role string
 ---@param text string
 function M.add(role, text)
   table.insert(history, M.pack(role, text))
 
-  while #history > 50 do
-    table.remove(history, 1)
-  end
+  return #history > 3
+  -- while #history > 50 do
+  --   table.remove(history, 1)
+  -- end
 end
 
 return M
