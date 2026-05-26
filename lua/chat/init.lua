@@ -468,7 +468,7 @@ function M.append_message(buf, role, text)
   end
   lock_buf()
 
-  if should_summarize == true then
+  if should_summarize == true and role == "Assistant" then
     -- NOTE: summarizing the conversation when hitting history limit
     local provider = M.providers.get(M.provider_name)
     local history_prompt = M.history.pack(
@@ -497,10 +497,10 @@ Write the summary as clear bullet points that another engineer can immediately c
     )
     local old_history = M.history.get()
     table.insert(old_history, history_prompt)
-    provider.summarize_conversation(old_history, function(result)
+    provider.answer(old_history, function(result)
       vim.schedule(function()
         if result.error then
-          M.utils.safe_notify(result.error, vim.log.levels.ERROR)
+          M.utils.safe_notify("chat.nvim: Failed to summarize history, " .. result.error, vim.log.levels.ERROR)
         else
           M.history.clear()
           M.history.add("System", result.content)
