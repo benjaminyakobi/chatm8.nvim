@@ -76,10 +76,7 @@ end
 function M.add(role, text)
   table.insert(history, M.pack(role, text))
 
-  return #history > 3 -- TODO: should be updated to 50
-  -- while #history > 50 do
-  --   table.remove(history, 1)
-  -- end
+  return #history > 50 -- NOTE: should summarize every 50 messages
 end
 
 history = init_history()
