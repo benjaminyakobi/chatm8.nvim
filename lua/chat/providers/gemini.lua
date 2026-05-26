@@ -9,7 +9,12 @@ local function normalize_prompt(prompt)
   -- NOTE: Gemini valid roles: SYSTEM, DEVELOPER, USER, ASSISTANT
   -- Exmaple:
   --   contents = {
-  --     { role = "system", content = "You are a helpful coding assistant" },
+  --     {
+  --       role = "system",
+  --       parts = {
+  --         { text = "You are a helpful coding assistant" },
+  --       },
+  --     },
   --     {
   --       role = "user",
   --       parts = {
