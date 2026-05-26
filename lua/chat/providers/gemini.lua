@@ -36,6 +36,8 @@ local function normalize_prompt(prompt)
       role = "model"
     elseif role == "You" then
       role = "user"
+    elseif role == "Systen" then
+      role = "system"
     end
 
     table.insert(contents, {
