@@ -343,7 +343,7 @@ function M.open_prompt_window()
   vim.bo[M.prompt_history_buf].filetype = "markdown"
   vim.bo[M.prompt_history_buf].swapfile = false
   vim.api.nvim_buf_set_lines(M.prompt_history_buf, 0, 0, false, {
-    "Prompt session started",
+    "Prompt session started (not saved on quit neovim)",
   })
   vim.bo[M.prompt_history_buf].modifiable = false
 
