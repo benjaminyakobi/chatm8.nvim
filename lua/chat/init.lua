@@ -349,6 +349,17 @@ function M.open_prompt_window()
     hl_group = "ChatUI",
     end_col = #session_title,
   })
+
+  local session_provider = "Provider: " .. M.provider_name
+  if M.provider_name == "openai" then
+    session_provider = session_provider .. " " .. M.providers.openai_model
+  end
+  vim.api.nvim_buf_set_lines(M.prompt_history_buf, 2, 2, false, { session_provider })
+  vim.api.nvim_buf_set_lines(M.prompt_history_buf, 3, 3, false, { "" })
+  vim.api.nvim_buf_set_extmark(M.prompt_history_buf, M.chat_ns, 2, 0, {
+    hl_group = "ChatUI",
+    end_col = #session_provider,
+  })
   vim.bo[M.prompt_history_buf].modifiable = false
 
   M.prompt_buf = vim.api.nvim_create_buf(false, true)
