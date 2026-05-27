@@ -72,6 +72,7 @@ function M.setup(opts)
   end, { desc = "Toggle persistent chat window" })
 
   -- setting global hightlights
+  vim.api.nvim_set_hl(0, "ChatUI", { fg = "#ffd57a", bold = true })
   vim.api.nvim_set_hl(0, "You", { fg = "#89b4fa", bold = true })
   vim.api.nvim_set_hl(0, "Assistant", { fg = "#a6e3a1", bold = true })
   vim.api.nvim_set_hl(0, "Error", { fg = "#d43131", bold = true })
@@ -79,10 +80,10 @@ function M.setup(opts)
   vim.api.nvim_set_hl(0, "PromptTitleActive", { fg = "#00ffcc", bold = true })
   vim.api.nvim_set_hl(0, "PromptTitleInactive", { fg = "#00ffcc" })
 
-  vim.api.nvim_set_hl(0, "ChatBorderActive", { fg = "#ff8800" }) -- bright
+  vim.api.nvim_set_hl(0, "ChatBorderActive", { fg = "#ffd57a" }) -- bright
   vim.api.nvim_set_hl(0, "ChatBorderInactive", { fg = "#3b4261" }) -- dim
 
-  vim.api.nvim_set_hl(0, "PromptBorderActive", { fg = "#ff8800" })
+  vim.api.nvim_set_hl(0, "PromptBorderActive", { fg = "#ffd57a" })
   vim.api.nvim_set_hl(0, "PromptBorderInactive", { fg = "#3b4261" })
 end
 
@@ -342,8 +343,11 @@ function M.open_prompt_window()
   M.prompt_history_buf = vim.api.nvim_create_buf(false, true)
   vim.bo[M.prompt_history_buf].filetype = "markdown"
   vim.bo[M.prompt_history_buf].swapfile = false
-  vim.api.nvim_buf_set_lines(M.prompt_history_buf, 0, 0, false, {
-    "Prompt session started (not saved on quit neovim)",
+  local session_title = "Ephermal prompt session started"
+  vim.api.nvim_buf_set_lines(M.prompt_history_buf, 0, 0, false, { session_title })
+  vim.api.nvim_buf_set_extmark(M.prompt_history_buf, M.chat_ns, 0, 0, {
+    hl_group = "ChatUI",
+    end_col = #session_title,
   })
   vim.bo[M.prompt_history_buf].modifiable = false
 
