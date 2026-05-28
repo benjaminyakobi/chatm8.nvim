@@ -421,7 +421,7 @@ function M.call_api(prompt, buf, s_line, e_line, prompt_win)
       lock_buf()
 
       if prompt_win then
-        M.append_message(buf, "Assistant", result.content)
+        M.append_message(buf, "Assistant", result.content, result.usage)
       else
         vim.api.nvim_buf_set_lines(buf, s_line, e_line, false, vim.split(result.content, "\n"))
       end
@@ -433,7 +433,7 @@ end
 ---@param buf integer
 ---@param role string
 ---@param text string
-function M.append_message(buf, role, text)
+function M.append_message(buf, role, text, usage)
   ---@return string
   local function build_header()
     local timestamp = os.date("%d-%m-%Y %H:%M:%S")
@@ -449,11 +449,13 @@ function M.append_message(buf, role, text)
   end
 
   local lock_buf = M.unlock_buf(buf)
-  local total_lines, header, header_line
   local lines = vim.split(text, "\n", { plain = true })
-  header = build_header()
-  header_line = vim.api.nvim_buf_line_count(buf)
-  total_lines = { header }
+  local header = build_header()
+  local header_line = vim.api.nvim_buf_line_count(buf)
+  local total_lines = { header }
+  if usage then
+    total_lines = { header, usage }
+  end
 
   for _, v in ipairs(lines) do
     table.insert(total_lines, v)
@@ -473,6 +475,12 @@ function M.append_message(buf, role, text)
     hl_group = role,
     end_col = #header,
   })
+  if usage then
+    vim.api.nvim_buf_set_extmark(buf, M.chat_ns, header_line + 1, 0, {
+      hl_group = role,
+      end_col = #usage,
+    })
+  end
 
   local win = vim.fn.bufwinid(buf)
   if win ~= -1 then
