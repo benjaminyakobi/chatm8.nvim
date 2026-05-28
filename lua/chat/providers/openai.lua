@@ -95,9 +95,12 @@ function M.answer(prompt, callback)
       return
     end
 
+    local prompt_count = tostring((usage and usage.prompt_tokens) or 0)
+    local completion_count = tostring((usage and usage.completion_tokens) or 0)
+
     callback({
       content = text,
-      usage = "Prompt Tokens: " .. usage.prompt_tokens .. " | Completion Tokens: " .. usage.completion_tokens,
+      usage = "Prompt Tokens: " .. prompt_count .. " | Completion Tokens: " .. completion_count,
     })
   end)
 end

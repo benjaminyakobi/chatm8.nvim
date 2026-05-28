@@ -115,12 +115,13 @@ function M.answer(prompt, callback)
       return
     end
 
+    local prompt_count = tostring((usage and usage.promptTokenCount) or 0)
+    local completion_count =
+      tostring(((usage and usage.candidatesTokenCount) or 0) + ((usage and usage.thoughtsTokenCount) or 0))
+
     callback({
       content = text,
-      usage = "Prompt Tokens: "
-        .. usage.promptTokenCount
-        .. " | Completion Tokens: "
-        .. usage.candidatesTokenCount + usage.thoughtsTokenCount,
+      usage = "Prompt Tokens: " .. prompt_count .. " | Completion Tokens: " .. completion_count,
     })
   end)
 end
