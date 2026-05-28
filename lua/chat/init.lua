@@ -586,7 +586,7 @@ function M.complete_implementation()
     .. "\n\n"
     .. "If something looks incorrect (e.g., duplicate function signatures) or or if the task is unclear, do NOT implement the code.\n"
     .. "Instead, return a regular comment (under the code) explaining what should be changed."
-  M.call_api({ M.history.pack("You", prompt) }, M.main_buf, M.start_line - 1, M.end_line + 1, false)
+  M.call_api({ M.history.pack("You", prompt) }, vim.api.nvim_get_current_buf(), M.start_line - 1, M.end_line + 1, false)
 end
 
 ---@return nil
