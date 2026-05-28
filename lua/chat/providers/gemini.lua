@@ -104,7 +104,11 @@ function M.answer(prompt, callback)
       return data.candidates[1].content.parts[1].text
     end)
 
-    if not ok_extract then
+    local ok_usage, usage = pcall(function()
+      return data.usageMetadata
+    end)
+
+    if not ok_extract or not ok_usage then
       callback({
         error = "Invalid response structure",
       })
@@ -113,6 +117,10 @@ function M.answer(prompt, callback)
 
     callback({
       content = text,
+      usage = "Prompt Tokens: "
+        .. usage.promptTokenCount
+        .. " | Completion Tokens: "
+        .. usage.candidatesTokenCount + usage.thoughtsTokenCount,
     })
   end)
 end
