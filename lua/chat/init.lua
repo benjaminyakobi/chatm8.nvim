@@ -575,17 +575,23 @@ function M.complete_implementation()
   local selected_text = M.tag_selected_text(table.concat(selected_lines, "\n"))
   local prompt = "Implement the following code.\n"
     .. "Respond with code only. Do NOT wrap the output in backticks.\n\n"
-    .. "Code:\n"
+    .. "IMPORTANT (read carefully):\n"
+    .. "- The list under 'Available function signatures' is provided strictly as reference (parameter names, types, and return shapes).\n"
+    .. "- DO NOT implement, re-declare, or modify any function signatures that appear in that list. Do not output new top-level function definitions that match those signatures.\n"
+    .. "- If the selected text includes a function signature with an empty body or placeholder, implement only the function body (the code inside the existing signature). Keep the original signature exactly as it appears in the file.\n"
+    .. "- If the selected text already contains a full implementation for a function, do NOT change or re-declare that function.\n"
+    .. "- Do not add imports, new public functions, or change the public API unless the selection clearly requires it and the change is unambiguous.\n\n"
+    .. "If the task is unclear, signatures are inconsistent (e.g. duplicates with different shapes), or you cannot safely implement the requested code, do NOT implement anything. Instead return a single regular comment (in the target language) explaining what must be changed or why the task is ambiguous.\n\n"
+    .. "Code (implement only what's needed inside the selection):\n"
     .. selected_text
     .. "\n\n"
     .. "Language: "
     .. vim.bo.filetype
     .. "\n\n"
-    .. "Available function signatures:\n"
+    .. "Available function signatures (reference only — do NOT implement or re-declare):\n"
     .. table.concat(func_signatures, "\n")
     .. "\n\n"
-    .. "If something looks incorrect (e.g., duplicate function signatures) or or if the task is unclear, do NOT implement the code.\n"
-    .. "Instead, return a regular comment (under the code) explaining what should be changed."
+    .. "Keep existing coding style and formatting. Output only code or a single clarifying comment if you cannot proceed."
   M.call_api({ M.history.pack("You", prompt) }, vim.api.nvim_get_current_buf(), M.start_line - 1, M.end_line + 1, false)
 end
 
