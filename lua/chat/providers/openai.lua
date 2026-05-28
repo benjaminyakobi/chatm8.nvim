@@ -84,7 +84,11 @@ function M.answer(prompt, callback)
       return data.choices[1].message.content
     end)
 
-    if not ok_extract then
+    local ok_usage, usage = pcall(function()
+      return data.usage
+    end)
+
+    if not ok_extract or not ok_usage then
       callback({
         error = "Invalid response structure",
       })
@@ -93,6 +97,7 @@ function M.answer(prompt, callback)
 
     callback({
       content = text,
+      usage = "Prompt Tokens: " .. usage.prompt_tokens .. " | Completion Tokens: " .. usage.completion_tokens,
     })
   end)
 end
