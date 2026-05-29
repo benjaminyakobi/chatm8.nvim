@@ -424,6 +424,7 @@ function M.call_api(prompt, buf, s_line, e_line, prompt_win)
         M.append_message(buf, "Assistant", result.content, result.usage)
       else
         vim.api.nvim_buf_set_lines(buf, s_line, e_line, false, vim.split(result.content, "\n"))
+        M.utils.safe_notify("chat.nvim: " .. result.usage, vim.log.levels.INFO)
       end
     end)
   end)
