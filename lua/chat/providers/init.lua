@@ -1,15 +1,15 @@
 local M = {}
 
 ---@return nil
----@param opts table
-function M.setup(opts)
-  -- Collecting api_key from the config
-  local provider = opts.providers and opts.providers[opts.provider]
+---@param opts_providers table
+---@param provider_name string
+function M.setup(opts_providers, provider_name)
+  local provider = opts_providers and opts_providers[provider_name]
 
   if not provider then
     error(
       "chat.nvim: invalid provider `"
-        .. tostring(opts.provider)
+        .. tostring(provider_name)
         .. "`.\n\n"
         .. "Example:\n"
         .. "require('chat').setup({\n"
@@ -28,7 +28,7 @@ function M.setup(opts)
   if not M.api_key then
     error(
       "chat.nvim: missing api_key for provider `"
-        .. tostring(opts.provider)
+        .. tostring(provider_name)
         .. "`.\n\n"
         .. "Example:\n"
         .. "require('chat').setup({\n"
@@ -43,10 +43,10 @@ function M.setup(opts)
   end
 
   M.model = provider.model or ""
-  if opts.provider == "openai" and not provider.model then
+  if provider_name == "openai" and not M.model then
     error(
       "chat.nvim: missing model for openai provider `"
-        .. tostring(opts.provider)
+        .. tostring(provider_name)
         .. "`.\n\n"
         .. "Example:\n"
         .. "require('chat').setup({\n"

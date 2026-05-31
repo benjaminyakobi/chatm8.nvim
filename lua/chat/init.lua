@@ -19,11 +19,12 @@ function M.setup(opts)
   M.providers = require("chat.providers")
 
   -- setting up a provider
-  M.providers.setup(opts)
+  -- local provider = opts.providers and opts.providers[opts.provider]
   M.provider_name = opts.provider
+  M.opts_providers = opts.providers
 
   M.available_providers = {}
-  for key, _ in pairs(opts.providers) do
+  for key, _ in pairs(M.opts_providers) do
     table.insert(M.available_providers, key)
   end
   table.sort(M.available_providers)
@@ -38,7 +39,7 @@ function M.setup(opts)
     vim.ui.select(M.available_providers, { prompt = "Select chat provider:" }, function(choice)
       if choice then
         local lock_buf = M.unlock_buf(M.prompt_history_buf)
-        M.set_provider(choice)
+        M.set_provider(M.opts_providers, choice)
         lock_buf()
       end
     end)
@@ -116,11 +117,12 @@ end
 -- ---------------------------------------------
 
 ---@return nil
----@param provider string
-function M.set_provider(provider)
-  M.utils.safe_notify("chat.nvim: current provider: " .. provider, vim.log.levels.INFO)
+---@param opts_providers table
+---@param provider_name string
+function M.set_provider(opts_providers, provider_name)
+  M.providers.setup(opts_providers, provider_name)
 
-  M.provider_name = provider
+  M.provider_name = provider_name
   local session_provider = "Provider: " .. M.provider_name
   if M.provider_name == "openai" then
     session_provider = session_provider .. " " .. M.providers.model
@@ -131,6 +133,7 @@ function M.set_provider(provider)
     hl_group = "ChatUI",
     end_col = #session_provider,
   })
+  M.utils.safe_notify("chat.nvim: current provider: " .. M.provider_name, vim.log.levels.INFO)
 end
 
 ---@return function
@@ -392,7 +395,7 @@ function M.open_prompt_window()
     end_col = #session_title,
   })
 
-  M.set_provider(M.provider_name)
+  M.set_provider(M.opts_providers, M.provider_name)
 
   -- local session_provider = "Provider: " .. M.provider_name
   -- if M.provider_name == "openai" then
