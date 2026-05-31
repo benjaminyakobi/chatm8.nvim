@@ -22,6 +22,26 @@ function M.setup(opts)
   M.providers.setup(opts)
   M.provider_name = opts.provider
 
+  M.available_providers = {}
+  for key, _ in pairs(opts.providers) do
+    table.insert(M.available_providers, key)
+  end
+  table.sort(M.available_providers)
+
+  vim.keymap.set("n", "<leader>8p", function()
+    require("chat").select_provider()
+  end, {
+    desc = "Select chat provider",
+  })
+
+  function M.select_provider()
+    vim.ui.select(M.available_providers, { prompt = "Select chat provider:" }, function(choice)
+      if choice then
+        M.set_provider(choice)
+      end
+    end)
+  end
+
   local help = [[
 <Leader>8i: Inline Implementation
   1. [Visual Mode] Select text (either code snippets or natural language instructions).
@@ -90,6 +110,13 @@ end
 -- ---------------------------------------------
 -- ------------- core buffer logic -------------
 -- ---------------------------------------------
+
+---@return nil
+---@param provider string
+function M.set_provider(provider)
+  M.utils.safe_notify("chat.nvim: current provider: " .. provider, vim.log.levels.INFO)
+  -- TODO: implement set_provider
+end
 
 ---@return function
 ---@param buf integer
