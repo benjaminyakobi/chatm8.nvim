@@ -42,7 +42,7 @@ function M.setup(opts)
     )
   end
 
-  M.openai_model = provider.model
+  M.model = provider.model or ""
   if opts.provider == "openai" and not provider.model then
     error(
       "chat.nvim: missing model for openai provider `"

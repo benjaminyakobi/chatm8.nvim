@@ -40,7 +40,7 @@ end
 ---@param callback function
 function M.answer(prompt, callback)
   local body = {
-    model = providers.openai_model,
+    model = providers.model,
     messages = normalize_prompt(prompt),
   }
 

@@ -123,7 +123,7 @@ function M.set_provider(provider)
   M.provider_name = provider
   local session_provider = "Provider: " .. M.provider_name
   if M.provider_name == "openai" then
-    session_provider = session_provider .. " " .. M.providers.openai_model
+    session_provider = session_provider .. " " .. M.providers.model
   end
   vim.api.nvim_buf_set_lines(M.prompt_history_buf, 2, 3, false, { session_provider })
   vim.api.nvim_buf_set_lines(M.prompt_history_buf, 3, 4, false, { "" })
