@@ -37,10 +37,14 @@ function M.setup(opts)
   function M.select_provider()
     vim.ui.select(M.available_providers, { prompt = "Select chat provider:" }, function(choice)
       if choice then
+        local lock_buf = M.unlock_buf(M.prompt_history_buf)
         M.set_provider(choice)
+        lock_buf()
       end
     end)
   end
+
+  M.open_prompt_window()
 
   local help = [[
 <Leader>8i: Inline Implementation
@@ -115,7 +119,18 @@ end
 ---@param provider string
 function M.set_provider(provider)
   M.utils.safe_notify("chat.nvim: current provider: " .. provider, vim.log.levels.INFO)
-  -- TODO: implement set_provider
+
+  M.provider_name = provider
+  local session_provider = "Provider: " .. M.provider_name
+  if M.provider_name == "openai" then
+    session_provider = session_provider .. " " .. M.providers.openai_model
+  end
+  vim.api.nvim_buf_set_lines(M.prompt_history_buf, 2, 3, false, { session_provider })
+  vim.api.nvim_buf_set_lines(M.prompt_history_buf, 3, 4, false, { "" })
+  vim.api.nvim_buf_set_extmark(M.prompt_history_buf, M.chat_ns, 2, 0, {
+    hl_group = "ChatUI",
+    end_col = #session_provider,
+  })
 end
 
 ---@return function
@@ -377,16 +392,18 @@ function M.open_prompt_window()
     end_col = #session_title,
   })
 
-  local session_provider = "Provider: " .. M.provider_name
-  if M.provider_name == "openai" then
-    session_provider = session_provider .. " " .. M.providers.openai_model
-  end
-  vim.api.nvim_buf_set_lines(M.prompt_history_buf, 2, 2, false, { session_provider })
-  vim.api.nvim_buf_set_lines(M.prompt_history_buf, 3, 3, false, { "" })
-  vim.api.nvim_buf_set_extmark(M.prompt_history_buf, M.chat_ns, 2, 0, {
-    hl_group = "ChatUI",
-    end_col = #session_provider,
-  })
+  M.set_provider(M.provider_name)
+
+  -- local session_provider = "Provider: " .. M.provider_name
+  -- if M.provider_name == "openai" then
+  --   session_provider = session_provider .. " " .. M.providers.openai_model
+  -- end
+  -- vim.api.nvim_buf_set_lines(M.prompt_history_buf, 2, 2, false, { session_provider })
+  -- vim.api.nvim_buf_set_lines(M.prompt_history_buf, 3, 3, false, { "" })
+  -- vim.api.nvim_buf_set_extmark(M.prompt_history_buf, M.chat_ns, 2, 0, {
+  --   hl_group = "ChatUI",
+  --   end_col = #session_provider,
+  -- })
   vim.bo[M.prompt_history_buf].modifiable = false
 
   M.prompt_buf = vim.api.nvim_create_buf(false, true)
