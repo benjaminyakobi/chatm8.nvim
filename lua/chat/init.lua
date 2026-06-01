@@ -20,30 +20,35 @@ function M.setup(opts)
 
   -- setting up a provider
   -- local provider = opts.providers and opts.providers[opts.provider]
-  M.provider_name = opts.provider
+  -- M.provider_name = opts.provider
   M.opts_providers = opts.providers
 
   M.providers.setup(opts.providers, opts.provider) -- TODO: ORGANIZE THIS LINE!
-  M.available_providers_map = {}
-  M.available_providers = {}
+  M.provider_name = M.providers.current
 
-  for provider_name, provider in pairs(opts.providers) do
-    local provider_models = provider.models
-    M.available_providers_map[provider_name] = {}
-    if not provider_models then
-      table.insert(M.available_providers_map[provider_name], provider_name)
-      table.insert(M.available_providers, provider_name)
-    else
-      for _, model in ipairs(provider_models) do
-        table.insert(M.available_providers_map[provider_name], provider_name .. " " .. model)
-        table.insert(M.available_providers, provider_name .. " " .. model)
-      end
-    end
-  end
+  -- print(vim.inspect(M.providers.list))
+  -- FIX: THIS MESS SHOULD BE MOVED TO providers.lua
+  --
+  -- M.available_providers_map = {}
+  -- M.available_providers = {}
+  --
+  -- for provider_name, provider in pairs(opts.providers) do
+  --   local provider_models = provider.models
+  --   M.available_providers_map[provider_name] = {}
+  --   if not provider_models then
+  --     table.insert(M.available_providers_map[provider_name], provider_name)
+  --     table.insert(M.available_providers, provider_name)
+  --   else
+  --     for _, model in ipairs(provider_models) do
+  --       table.insert(M.available_providers_map[provider_name], provider_name .. " " .. model)
+  --       table.insert(M.available_providers, provider_name .. " " .. model)
+  --     end
+  --   end
+  -- end
 
   -- print(vim.inspect(M.available_providers))
   -- M.provider_name = M.available_providers[1]
-  table.sort(M.available_providers)
+  -- table.sort(M.available_providers)
 
   vim.keymap.set("n", "<leader>8p", function()
     require("chat").select_provider()
@@ -52,7 +57,7 @@ function M.setup(opts)
   })
 
   function M.select_provider()
-    vim.ui.select(M.available_providers, { prompt = "Select chat provider:" }, function(choice)
+    vim.ui.select(M.providers.list, { prompt = "Select chat provider:" }, function(choice)
       if choice then
         local lock_buf = M.unlock_buf(M.prompt_history_buf)
         M.set_provider(M.opts_providers, choice)
@@ -140,8 +145,11 @@ function M.set_provider(opts_providers, provider_name)
   -- M.providers.setup(opts_providers, provider_name) -- TODO: ORGANIZE THIS LINE!
 
   M.provider_name = provider_name
+  -- M.providers.current = provider_name
+  M.providers.set(provider_name)
   -- print(vim.inspect(M.available_providers), M.provider_name)
-  local session_provider = "Provider: " .. M.available_providers_map[M.provider_name][1]
+  local session_provider = "Provider: " .. M.providers.current
+  -- local session_provider = "Provider: " .. M.available_providers_map[M.provider_name][1]
   -- if M.provider_name == "openai" then
   --   session_provider = session_provider .. " " .. M.providers.model
   -- end
@@ -151,7 +159,7 @@ function M.set_provider(opts_providers, provider_name)
     hl_group = "ChatUI",
     end_col = #session_provider,
   })
-  M.utils.safe_notify("chat.nvim: current provider: " .. M.provider_name, vim.log.levels.INFO)
+  M.utils.safe_notify("chat.nvim: current provider: " .. M.providers.current, vim.log.levels.INFO)
 end
 
 ---@return function
@@ -466,7 +474,7 @@ end
 function M.call_api(prompt, buf, s_line, e_line, prompt_win)
   local lock_buf = M.unlock_buf(buf)
   local stop_spinner = M.start_spinner(buf, s_line)
-  local provider = M.providers.get(M.provider_name)
+  local provider = M.providers.get(M.providers.current)
   provider.answer(prompt, function(result)
     vim.schedule(function()
       if result.error then
@@ -559,7 +567,7 @@ function M.append_message(buf, role, text, usage)
 
   if should_summarize == true and role == "Assistant" then
     -- NOTE: summarizing the conversation when hitting history limit
-    local provider = M.providers.get(M.provider_name)
+    local provider = M.providers.get(M.providers.current)
     local history_prompt = M.history.pack(
       "System",
       [[
