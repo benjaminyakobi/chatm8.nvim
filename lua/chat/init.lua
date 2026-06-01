@@ -23,10 +23,26 @@ function M.setup(opts)
   M.provider_name = opts.provider
   M.opts_providers = opts.providers
 
+  M.providers.setup(opts.providers, opts.provider) -- TODO: ORGANIZE THIS LINE!
+  M.available_providers_map = {}
   M.available_providers = {}
-  for key, _ in pairs(M.opts_providers) do
-    table.insert(M.available_providers, key)
+
+  for provider_name, provider in pairs(opts.providers) do
+    local provider_models = provider.models
+    M.available_providers_map[provider_name] = {}
+    if not provider_models then
+      table.insert(M.available_providers_map[provider_name], provider_name)
+      table.insert(M.available_providers, provider_name)
+    else
+      for _, model in ipairs(provider_models) do
+        table.insert(M.available_providers_map[provider_name], provider_name .. " " .. model)
+        table.insert(M.available_providers, provider_name .. " " .. model)
+      end
+    end
   end
+
+  -- print(vim.inspect(M.available_providers))
+  -- M.provider_name = M.available_providers[1]
   table.sort(M.available_providers)
 
   vim.keymap.set("n", "<leader>8p", function()
@@ -119,14 +135,16 @@ end
 ---@return nil
 ---@param opts_providers table
 ---@param provider_name string
+-- TODO: ORGANIZE THIS MESS
 function M.set_provider(opts_providers, provider_name)
-  M.providers.setup(opts_providers, provider_name)
+  -- M.providers.setup(opts_providers, provider_name) -- TODO: ORGANIZE THIS LINE!
 
   M.provider_name = provider_name
-  local session_provider = "Provider: " .. M.provider_name
-  if M.provider_name == "openai" then
-    session_provider = session_provider .. " " .. M.providers.model
-  end
+  -- print(vim.inspect(M.available_providers), M.provider_name)
+  local session_provider = "Provider: " .. M.available_providers_map[M.provider_name][1]
+  -- if M.provider_name == "openai" then
+  --   session_provider = session_provider .. " " .. M.providers.model
+  -- end
   vim.api.nvim_buf_set_lines(M.prompt_history_buf, 2, 3, false, { session_provider })
   vim.api.nvim_buf_set_lines(M.prompt_history_buf, 3, 4, false, { "" })
   vim.api.nvim_buf_set_extmark(M.prompt_history_buf, M.chat_ns, 2, 0, {
