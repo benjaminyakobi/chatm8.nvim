@@ -110,12 +110,10 @@ end
 
 ---@return nil
 ---@param provider_name string
--- TODO: ORGANIZE THIS MESS
 function M.set_provider(provider_name)
   M.providers.set(provider_name)
   local session_provider = "Provider: " .. M.providers.current
-  vim.api.nvim_buf_set_lines(M.prompt_history_buf, 2, 3, false, { session_provider })
-  vim.api.nvim_buf_set_lines(M.prompt_history_buf, 3, 4, false, { "" })
+  vim.api.nvim_buf_set_lines(M.prompt_history_buf, 2, 4, false, { session_provider, "" })
   vim.api.nvim_buf_set_extmark(M.prompt_history_buf, M.chat_ns, 2, 0, {
     hl_group = "ChatUI",
     end_col = #session_provider,
@@ -382,7 +380,6 @@ function M.open_prompt_window()
     end_col = #session_title,
   })
 
-  print(M.providers.current)
   M.set_provider(M.providers.current)
 
   vim.bo[M.prompt_history_buf].modifiable = false
