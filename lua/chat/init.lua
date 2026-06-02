@@ -19,16 +19,8 @@ function M.setup(opts)
   M.providers = require("chat.providers")
 
   -- setting up a provider
-  M.opts_providers = opts.providers
-
-  M.providers.setup(opts.providers, opts.provider) -- TODO: ORGANIZE THIS LINE!
+  M.providers.setup(opts.providers, opts.provider)
   M.provider_name = M.providers.current
-
-  vim.keymap.set("n", "<leader>8p", function()
-    M.select_provider()
-  end, {
-    desc = "Select chat provider",
-  })
 
   M.open_prompt_window()
 
@@ -80,6 +72,12 @@ function M.setup(opts)
   vim.keymap.set("n", "<Leader>8c", function()
     M.toggle_persistent_chat_window()
   end, { desc = "Toggle persistent chat window" })
+
+  vim.keymap.set("n", "<leader>8p", function()
+    M.select_provider()
+  end, {
+    desc = "Select chat provider",
+  })
 
   -- setting global hightlights
   vim.api.nvim_set_hl(0, "ChatUI", { fg = "#ffd57a", bold = true })
