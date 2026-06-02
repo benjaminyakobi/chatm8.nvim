@@ -112,6 +112,12 @@ end
 ---@param provider_name string
 function M.set_provider(provider_name)
   M.providers.set(provider_name)
+  local ok, provider = pcall(require, "chat.providers." .. M.providers.name)
+  if not ok then
+    M.utils.safe_notify("No provider found for: " .. tostring(M.providers.name), vim.log.levels.ERROR)
+    return
+  end
+  M.provider_module = provider
   local session_provider = "Provider: " .. M.providers.current
   vim.api.nvim_buf_set_lines(M.prompt_history_buf, 2, 4, false, { session_provider, "" })
   vim.api.nvim_buf_set_extmark(M.prompt_history_buf, M.chat_ns, 2, 0, {
@@ -423,11 +429,7 @@ end
 function M.call_api(prompt, buf, s_line, e_line, prompt_win)
   local lock_buf = M.unlock_buf(buf)
   local stop_spinner = M.start_spinner(buf, s_line)
-  local ok, provider = pcall(require, "chat.providers." .. M.providers.name)
-  if not ok then
-    M.utils.safe_notify("No provider found for current=" .. tostring(M.providers.name), vim.log.levels.ERROR)
-  end
-  provider.answer(prompt, function(result)
+  M.provider_module.answer(prompt, function(result)
     vim.schedule(function()
       if result.error then
         stop_spinner(false)
@@ -545,11 +547,7 @@ Write the summary as clear bullet points that another engineer can immediately c
     )
     local old_history = M.history.get()
     table.insert(old_history, history_prompt)
-    local ok, provider = pcall(require, "chat.providers." .. M.providers.name)
-    if not ok then
-      M.utils.safe_notify("No provider found for current=" .. tostring(M.providers.name), vim.log.levels.ERROR)
-    end
-    provider.answer(old_history, function(result)
+    M.provider_module.answer(old_history, function(result)
       vim.schedule(function()
         if result.error then
           M.utils.safe_notify("chat.nvim: Failed to summarize history, " .. result.error, vim.log.levels.ERROR)
