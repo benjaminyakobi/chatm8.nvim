@@ -81,32 +81,15 @@ function M.setup(opts_providers, provider_name)
   table.sort(M.list)
 
   M.current = M.map[provider_name][1]
+  M.name = provider_name
 end
 
 ---@return nil
 ---@param name string
 function M.set(name)
   M.current = name
-  local parts = vim.split(name, " ")
-  local provider_name = parts[1]
-  M.api_key = M.map[provider_name].api_key
-  M.model = parts[2]
-end
-
----@return string | nil
----@param name string
-function M.get(name)
-  local parts = vim.split(name, " ")
-
-  local provider_name = parts[1]
-  M.model = parts[2]
-  local ok, provider = pcall(require, "chat.providers." .. provider_name)
-
-  if not ok then
-    error("chat.nvim: invalid provider: " .. name)
-  end
-
-  return provider
+  M.name, M.model = name:match("^(%S+)%s+(.+)$")
+  M.api_key = M.map[M.name].api_key
 end
 
 return M
