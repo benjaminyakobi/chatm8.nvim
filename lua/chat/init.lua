@@ -72,7 +72,7 @@ function M.setup(opts)
     M.toggle_persistent_chat_window()
   end, { desc = "Toggle persistent chat window" })
 
-  vim.keymap.set("n", "<leader>8p", function()
+  vim.keymap.set("n", "<leader>8s", function()
     M.select_provider()
   end, {
     desc = "Select chat provider",
