@@ -19,36 +19,10 @@ function M.setup(opts)
   M.providers = require("chat.providers")
 
   -- setting up a provider
-  -- local provider = opts.providers and opts.providers[opts.provider]
-  -- M.provider_name = opts.provider
   M.opts_providers = opts.providers
 
   M.providers.setup(opts.providers, opts.provider) -- TODO: ORGANIZE THIS LINE!
   M.provider_name = M.providers.current
-
-  -- print(vim.inspect(M.providers.list))
-  -- FIX: THIS MESS SHOULD BE MOVED TO providers.lua
-  --
-  -- M.available_providers_map = {}
-  -- M.available_providers = {}
-  --
-  -- for provider_name, provider in pairs(opts.providers) do
-  --   local provider_models = provider.models
-  --   M.available_providers_map[provider_name] = {}
-  --   if not provider_models then
-  --     table.insert(M.available_providers_map[provider_name], provider_name)
-  --     table.insert(M.available_providers, provider_name)
-  --   else
-  --     for _, model in ipairs(provider_models) do
-  --       table.insert(M.available_providers_map[provider_name], provider_name .. " " .. model)
-  --       table.insert(M.available_providers, provider_name .. " " .. model)
-  --     end
-  --   end
-  -- end
-
-  -- print(vim.inspect(M.available_providers))
-  -- M.provider_name = M.available_providers[1]
-  -- table.sort(M.available_providers)
 
   vim.keymap.set("n", "<leader>8p", function()
     require("chat").select_provider()
@@ -60,7 +34,7 @@ function M.setup(opts)
     vim.ui.select(M.providers.list, { prompt = "Select chat provider:" }, function(choice)
       if choice then
         local lock_buf = M.unlock_buf(M.prompt_history_buf)
-        M.set_provider(M.opts_providers, choice)
+        M.set_provider(choice)
         lock_buf()
       end
     end)
@@ -138,21 +112,12 @@ end
 -- ---------------------------------------------
 
 ---@return nil
----@param opts_providers table
 ---@param provider_name string
 -- TODO: ORGANIZE THIS MESS
-function M.set_provider(opts_providers, provider_name)
-  -- M.providers.setup(opts_providers, provider_name) -- TODO: ORGANIZE THIS LINE!
-
+function M.set_provider(provider_name)
   M.provider_name = provider_name
-  -- M.providers.current = provider_name
   M.providers.set(provider_name)
-  -- print(vim.inspect(M.available_providers), M.provider_name)
   local session_provider = "Provider: " .. M.providers.current
-  -- local session_provider = "Provider: " .. M.available_providers_map[M.provider_name][1]
-  -- if M.provider_name == "openai" then
-  --   session_provider = session_provider .. " " .. M.providers.model
-  -- end
   vim.api.nvim_buf_set_lines(M.prompt_history_buf, 2, 3, false, { session_provider })
   vim.api.nvim_buf_set_lines(M.prompt_history_buf, 3, 4, false, { "" })
   vim.api.nvim_buf_set_extmark(M.prompt_history_buf, M.chat_ns, 2, 0, {
@@ -421,18 +386,8 @@ function M.open_prompt_window()
     end_col = #session_title,
   })
 
-  M.set_provider(M.opts_providers, M.provider_name)
+  M.set_provider(M.provider_name)
 
-  -- local session_provider = "Provider: " .. M.provider_name
-  -- if M.provider_name == "openai" then
-  --   session_provider = session_provider .. " " .. M.providers.openai_model
-  -- end
-  -- vim.api.nvim_buf_set_lines(M.prompt_history_buf, 2, 2, false, { session_provider })
-  -- vim.api.nvim_buf_set_lines(M.prompt_history_buf, 3, 3, false, { "" })
-  -- vim.api.nvim_buf_set_extmark(M.prompt_history_buf, M.chat_ns, 2, 0, {
-  --   hl_group = "ChatUI",
-  --   end_col = #session_provider,
-  -- })
   vim.bo[M.prompt_history_buf].modifiable = false
 
   M.prompt_buf = vim.api.nvim_create_buf(false, true)
