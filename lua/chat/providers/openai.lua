@@ -90,7 +90,7 @@ function M.answer(prompt, callback)
 
     if not ok_extract or not ok_usage then
       callback({
-        error = "Invalid response structure",
+        error = data.error.message,
       })
       return
     end
