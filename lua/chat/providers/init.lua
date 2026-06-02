@@ -83,7 +83,6 @@ function M.setup(opts_providers, provider_name)
   M.current = M.map[provider_name][1]
 end
 
--- TODO: celan this horrible mess
 function M.set(name)
   M.current = name
   local parts = vim.split(name, " ")
