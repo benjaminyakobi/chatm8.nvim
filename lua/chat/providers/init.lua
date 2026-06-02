@@ -83,6 +83,8 @@ function M.setup(opts_providers, provider_name)
   M.current = M.map[provider_name][1]
 end
 
+---@return nil
+---@param name string
 function M.set(name)
   M.current = name
   local parts = vim.split(name, " ")
@@ -91,6 +93,8 @@ function M.set(name)
   M.model = parts[2]
 end
 
+---@return string | nil
+---@param name string
 function M.get(name)
   local parts = vim.split(name, " ")
 
@@ -99,7 +103,7 @@ function M.get(name)
   local ok, provider = pcall(require, "chat.providers." .. provider_name)
 
   if not ok then
-    error("chat.nvim: invalid provider: .. ", name)
+    error("chat.nvim: invalid provider: " .. name)
   end
 
   return provider
