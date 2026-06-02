@@ -25,20 +25,10 @@ function M.setup(opts)
   M.provider_name = M.providers.current
 
   vim.keymap.set("n", "<leader>8p", function()
-    require("chat").select_provider()
+    M.select_provider()
   end, {
     desc = "Select chat provider",
   })
-
-  function M.select_provider()
-    vim.ui.select(M.providers.list, { prompt = "Select chat provider:" }, function(choice)
-      if choice then
-        local lock_buf = M.unlock_buf(M.prompt_history_buf)
-        M.set_provider(choice)
-        lock_buf()
-      end
-    end)
-  end
 
   M.open_prompt_window()
 
@@ -110,6 +100,16 @@ end
 -- ---------------------------------------------
 -- ------------- core buffer logic -------------
 -- ---------------------------------------------
+
+function M.select_provider()
+  vim.ui.select(M.providers.list, { prompt = "Select chat provider:" }, function(choice)
+    if choice then
+      local lock_buf = M.unlock_buf(M.prompt_history_buf)
+      M.set_provider(choice)
+      lock_buf()
+    end
+  end)
+end
 
 ---@return nil
 ---@param provider_name string
