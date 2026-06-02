@@ -65,23 +65,22 @@ function M.setup(opts_providers, provider_name)
   M.map = {}
   M.list = {}
 
-  for provider_name, provider in pairs(opts_providers) do
-    local provider_models = provider.models
-    M.map[provider_name] = { api_key = provider.api_key }
+  for p_name, p_obj in pairs(opts_providers) do
+    local provider_models = p_obj.models
+    M.map[p_name] = { api_key = p_obj.api_key }
     if not provider_models then
-      table.insert(M.map[provider_name], provider_name)
-      table.insert(M.list, provider_name)
+      table.insert(M.map[p_name], p_name)
+      table.insert(M.list, p_name)
     else
       for _, model in ipairs(provider_models) do
-        table.insert(M.map[provider_name], provider_name .. " " .. model)
-        table.insert(M.list, provider_name .. " " .. model)
+        table.insert(M.map[p_name], p_name .. " " .. model)
+        table.insert(M.list, p_name .. " " .. model)
       end
     end
   end
   table.sort(M.list)
 
   M.current = M.map[provider_name][1]
-  -- print(vim.inspect(M.list))
 end
 
 -- TODO: celan this horrible mess
@@ -98,7 +97,6 @@ function M.get(name)
 
   local provider_name = parts[1]
   M.model = parts[2]
-  -- print(provider_name, M.model)
   local ok, provider = pcall(require, "chat.providers." .. provider_name)
 
   if not ok then
