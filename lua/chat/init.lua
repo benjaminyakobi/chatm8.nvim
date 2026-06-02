@@ -373,7 +373,7 @@ function M.open_prompt_window()
   M.prompt_history_buf = vim.api.nvim_create_buf(false, true)
   vim.bo[M.prompt_history_buf].filetype = "markdown"
   vim.bo[M.prompt_history_buf].swapfile = false
-  local session_title = "Ephermal prompt session started"
+  local session_title = "Ephermal prompt session"
   vim.api.nvim_buf_set_lines(M.prompt_history_buf, 0, 0, false, { session_title })
   vim.api.nvim_buf_set_extmark(M.prompt_history_buf, M.chat_ns, 0, 0, {
     hl_group = "ChatUI",
@@ -423,7 +423,10 @@ end
 function M.call_api(prompt, buf, s_line, e_line, prompt_win)
   local lock_buf = M.unlock_buf(buf)
   local stop_spinner = M.start_spinner(buf, s_line)
-  local provider = M.providers.get(M.providers.current)
+  local ok, provider = pcall(require, "chat.providers." .. M.providers.name)
+  if not ok then
+    M.utils.safe_notify("No provider found for current=" .. tostring(M.providers.name), vim.log.levels.ERROR)
+  end
   provider.answer(prompt, function(result)
     vim.schedule(function()
       if result.error then
@@ -516,7 +519,6 @@ function M.append_message(buf, role, text, usage)
 
   if should_summarize == true and role == "Assistant" then
     -- NOTE: summarizing the conversation when hitting history limit
-    local provider = M.providers.get(M.providers.current)
     local history_prompt = M.history.pack(
       "System",
       [[
@@ -543,6 +545,10 @@ Write the summary as clear bullet points that another engineer can immediately c
     )
     local old_history = M.history.get()
     table.insert(old_history, history_prompt)
+    local ok, provider = pcall(require, "chat.providers." .. M.providers.name)
+    if not ok then
+      M.utils.safe_notify("No provider found for current=" .. tostring(M.providers.name), vim.log.levels.ERROR)
+    end
     provider.answer(old_history, function(result)
       vim.schedule(function()
         if result.error then
