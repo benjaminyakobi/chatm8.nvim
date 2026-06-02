@@ -20,7 +20,6 @@ function M.setup(opts)
 
   -- setting up a provider
   M.providers.setup(opts.providers, opts.provider)
-  M.provider_name = M.providers.current
 
   M.open_prompt_window()
 
@@ -113,7 +112,6 @@ end
 ---@param provider_name string
 -- TODO: ORGANIZE THIS MESS
 function M.set_provider(provider_name)
-  M.provider_name = provider_name
   M.providers.set(provider_name)
   local session_provider = "Provider: " .. M.providers.current
   vim.api.nvim_buf_set_lines(M.prompt_history_buf, 2, 3, false, { session_provider })
@@ -384,7 +382,8 @@ function M.open_prompt_window()
     end_col = #session_title,
   })
 
-  M.set_provider(M.provider_name)
+  print(M.providers.current)
+  M.set_provider(M.providers.current)
 
   vim.bo[M.prompt_history_buf].modifiable = false
 
