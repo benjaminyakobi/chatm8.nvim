@@ -88,8 +88,10 @@ end
 ---@param name string
 function M.set(name)
   M.current = name
-  M.name, M.model = name:match("^(%S+)%s+(.+)$")
+  local parts = vim.split(name, " ")
+  M.name = parts[1]
   M.api_key = M.map[M.name].api_key
+  M.model = parts[2]
 end
 
 return M
