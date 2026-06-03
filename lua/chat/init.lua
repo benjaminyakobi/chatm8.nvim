@@ -375,7 +375,73 @@ function M.scroll_to_bottom(win, buf)
   vim.api.nvim_win_set_cursor(win, { line, #last })
 end
 
-function M.open_single_prompt_window() end
+function M.open_single_prompt_window()
+  local single_prompt_buf = vim.api.nvim_create_buf(false, true)
+  vim.bo[single_prompt_buf].buftype = "prompt"
+  vim.bo[single_prompt_buf].filetype = "markdown"
+  vim.bo[single_prompt_buf].swapfile = false
+  vim.fn.prompt_setprompt(single_prompt_buf, "")
+
+  -- callback when user presses Enter
+  vim.fn.prompt_setcallback(single_prompt_buf, function()
+    local prompt_lines = vim.api.nvim_buf_get_lines(single_prompt_buf, 0, -1, false)
+    if M.is_empty(prompt_lines) then
+      M.utils.safe_notify("Write prompt first", vim.log.levels.WARN)
+      vim.api.nvim_buf_set_lines(single_prompt_buf, 0, -1, false, {})
+      return
+    end
+    -- if M.prompt_thinking then
+    --   M.utils.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
+    --   local line_count = vim.api.nvim_buf_line_count(M.prompt_buf)
+    --   vim.api.nvim_buf_set_lines(M.prompt_buf, line_count - 1, line_count, false, {})
+    --   M.scroll_to_bottom(M.prompt_win, M.prompt_buf)
+    --   return
+    -- end
+    local prompt_text = table.concat(prompt_lines, "\n")
+    print(prompt_text)
+    -- M.append_message(M.prompt_history_buf, "You", prompt_text)
+    -- M.send_prompt()
+    -- vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, {})
+  end)
+
+  local prompt_win_height = 1
+
+  -- parent size
+  local parent_width = vim.api.nvim_win_get_width(0)
+  local parent_height = vim.api.nvim_win_get_height(0)
+
+  -- your desired size
+  local width = math.min(90, parent_width - 2)
+  local height = math.min(60, parent_height)
+  local input_height = math.min(15, prompt_win_height)
+
+  -- center position
+  local col = math.floor((parent_width - width) / 2)
+  local row = math.floor((parent_height - height) / 2)
+
+  local single_prompt_win_conf = {
+    relative = "win",
+    win = M.chat_win,
+    row = row,
+    col = col,
+    width = width,
+    height = input_height,
+    style = "minimal",
+    border = "rounded",
+    title = " Custom Prompt ",
+    title_pos = "center",
+  }
+
+  local single_prompt_win = vim.api.nvim_open_win(single_prompt_buf, true, single_prompt_win_conf)
+  M.set_border(single_prompt_win, "PromptBorderActive", "PromptTitleActive")
+
+  -- custom key maps - disabling key maps
+  vim.keymap.set("v", "<Leader>8i", function()
+    M.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
+  end, { desc = "Complete implementation (Disabled)", buf = single_prompt_buf })
+
+  local single_prompt_session_group = vim.api.nvim_create_augroup("llm_single_prompt_session", { clear = true })
+end
 
 ---@return nil
 function M.open_prompt_window()
