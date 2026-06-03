@@ -382,6 +382,10 @@ function M.open_single_prompt_window()
   vim.bo[single_prompt_buf].swapfile = false
   vim.fn.prompt_setprompt(single_prompt_buf, "")
 
+  -- TODO:1. center floating window
+  --      2. resize based on the parent width
+  --      3. call llm with custom prompt + base prompt to "return ready to paste code"
+
   -- callback when user presses Enter
   vim.fn.prompt_setcallback(single_prompt_buf, function()
     local prompt_lines = vim.api.nvim_buf_get_lines(single_prompt_buf, 0, -1, false)
@@ -390,13 +394,13 @@ function M.open_single_prompt_window()
       vim.api.nvim_buf_set_lines(single_prompt_buf, 0, -1, false, {})
       return
     end
-    -- if M.prompt_thinking then
-    --   M.utils.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
-    --   local line_count = vim.api.nvim_buf_line_count(M.prompt_buf)
-    --   vim.api.nvim_buf_set_lines(M.prompt_buf, line_count - 1, line_count, false, {})
-    --   M.scroll_to_bottom(M.prompt_win, M.prompt_buf)
-    --   return
-    -- end
+    if M.prompt_thinking then
+      M.utils.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
+      -- local line_count = vim.api.nvim_buf_line_count(M.prompt_buf)
+      -- vim.api.nvim_buf_set_lines(M.prompt_buf, line_count - 1, line_count, false, {})
+      -- M.scroll_to_bottom(M.prompt_win, M.prompt_buf)
+      return
+    end
     local prompt_text = table.concat(prompt_lines, "\n")
     print(prompt_text)
     -- M.append_message(M.prompt_history_buf, "You", prompt_text)
@@ -407,21 +411,23 @@ function M.open_single_prompt_window()
   local prompt_win_height = 1
 
   -- parent size
-  local parent_width = vim.api.nvim_win_get_width(0)
-  local parent_height = vim.api.nvim_win_get_height(0)
+  local parent_id = vim.api.nvim_get_current_win()
+  local parent_width = vim.api.nvim_win_get_width(parent_id)
+  local parent_height = vim.api.nvim_win_get_height(parent_id)
 
   -- your desired size
   local width = math.min(90, parent_width - 2)
   local height = math.min(60, parent_height)
   local input_height = math.min(15, prompt_win_height)
+  local chat_height = height - input_height - 4
 
   -- center position
   local col = math.floor((parent_width - width) / 2)
-  local row = math.floor((parent_height - height) / 2)
+  local row = math.floor((parent_height - 20) / 2)
 
   local single_prompt_win_conf = {
     relative = "win",
-    win = M.chat_win,
+    win = parent_id,
     row = row,
     col = col,
     width = width,
