@@ -416,14 +416,13 @@ function M.open_single_prompt_window()
   local parent_height = vim.api.nvim_win_get_height(parent_id)
 
   -- your desired size
-  local width = math.min(90, parent_width - 2)
+  local width = math.min(90, parent_width)
   local height = math.min(60, parent_height)
   local input_height = math.min(15, prompt_win_height)
-  local chat_height = height - input_height - 4
 
   -- center position
   local col = math.floor((parent_width - width) / 2)
-  local row = math.floor((parent_height - 20) / 2)
+  local row = math.floor((height - 15) / 2)
 
   local single_prompt_win_conf = {
     relative = "win",
@@ -434,7 +433,7 @@ function M.open_single_prompt_window()
     height = input_height,
     style = "minimal",
     border = "rounded",
-    title = " Custom Prompt ",
+    title = " Custom Prompt (Overrides visual selection) ",
     title_pos = "center",
   }
 
@@ -446,6 +445,7 @@ function M.open_single_prompt_window()
     M.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
   end, { desc = "Complete implementation (Disabled)", buf = single_prompt_buf })
 
+  -- TODO: implement autocmds for the floating window using the below group
   local single_prompt_session_group = vim.api.nvim_create_augroup("llm_single_prompt_session", { clear = true })
 end
 
