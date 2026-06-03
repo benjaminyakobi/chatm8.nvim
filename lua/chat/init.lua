@@ -66,7 +66,14 @@ function M.setup(opts)
 
   vim.keymap.set("v", "<Leader>8i", function()
     M.complete_implementation()
-  end, { desc = "Complete implementation" })
+  end, { desc = "Complete implementation: Replace selection" })
+
+  vim.keymap.set("v", "<leader>8p", function()
+    -- TODO: implement single prompt floating window / vim.ui.input (VISUAL SELECTION ONLY)
+    M.open_single_prompt_window()
+  end, {
+    desc = "Custom prompt: Replace selection",
+  })
 
   vim.keymap.set("n", "<Leader>8c", function()
     M.toggle_persistent_chat_window()
@@ -367,6 +374,8 @@ function M.scroll_to_bottom(win, buf)
   local last = vim.api.nvim_buf_get_lines(buf, line - 1, line, false)[1] or ""
   vim.api.nvim_win_set_cursor(win, { line, #last })
 end
+
+function M.open_single_prompt_window() end
 
 ---@return nil
 function M.open_prompt_window()
