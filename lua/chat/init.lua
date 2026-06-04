@@ -446,6 +446,7 @@ function M.open_single_prompt_window()
   end, { desc = "Complete implementation (Disabled)", buf = single_prompt_buf })
 
   -- TODO: implement autocmds for the floating window using the below group
+  -- WinLeave, WinClosed, WinEnter, TextChanged, TextChangedI
   local single_prompt_session_group = vim.api.nvim_create_augroup("llm_single_prompt_session", { clear = true })
 end
 
