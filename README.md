@@ -10,14 +10,14 @@ Basic setup (currently `openai` & `gemini` only):
     'benjaminyakobi/chat.nvim',
     config = function()
       require('chat').setup {
-        provider = 'gemini',
+        provider = 'openai',
         providers = {
           gemini = {
             api_key = '<GEMINI_API_KEY>',
           },
           openai = {
             api_key = '<OPENAI_API_KEY>',
-            model = 'CHOOSE_MODEL'
+            models = {'MODEL 1', 'MODEL 2', 'ETC.'}
           },
 
         },
@@ -34,14 +34,14 @@ Local dev setup:
     config = function()
       require('chat').setup {
         dev = true,
-        provider = 'gemini',
+        provider = 'openai',
         providers = {
           gemini = {
             api_key = '<GEMINI_API_KEY>',
           },
           openai = {
             api_key = '<OPENAI_API_KEY>',
-            model = 'CHOOSE_MODEL'
+            models = {'MODEL 1', 'MODEL 2', 'ETC.'}
           },
         },
       }
