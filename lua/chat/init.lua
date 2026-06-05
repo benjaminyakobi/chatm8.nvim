@@ -480,6 +480,17 @@ function M.open_single_prompt_window()
       end,
     })
 
+    vim.api.nvim_create_autocmd("WinEnter", {
+      group = single_prompt_session_group,
+      buffer = M.single_prompt_buf,
+      callback = function()
+        local win = vim.api.nvim_get_current_win()
+        if win == M.single_prompt_win then
+          M.set_border(M.single_prompt_win, "PromptBorderActive", "PromptTitleActive")
+        end
+      end,
+    })
+
     vim.api.nvim_create_autocmd("WinClosed", {
       group = single_prompt_session_group,
       callback = function(args)
