@@ -388,7 +388,7 @@ function M.open_single_prompt_window()
   local parent_height = vim.api.nvim_win_get_height(M.parent_win)
 
   -- your desired size
-  local width = math.min(60, parent_width)
+  local width = math.min(90, parent_width)
   local height = math.min(60, parent_height)
   local input_height = math.min(15, prompt_win_height)
 
@@ -409,7 +409,6 @@ function M.open_single_prompt_window()
     title_pos = "center",
   }
   if not M.single_prompt_buf or not M.single_prompt_win then
-    M.count = 0
     M.single_prompt_buf = vim.api.nvim_create_buf(false, true)
     vim.bo[M.single_prompt_buf].buftype = "prompt"
     vim.bo[M.single_prompt_buf].filetype = "markdown"
@@ -493,7 +492,6 @@ function M.open_single_prompt_window()
 
     return
   end
-  M.count = M.count + 1
   vim.api.nvim_win_set_config(M.single_prompt_win, single_prompt_win_conf)
 end
 
