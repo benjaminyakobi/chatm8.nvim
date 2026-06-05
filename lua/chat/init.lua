@@ -251,7 +251,7 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
     -- set cursor at the last line & start insert mode
     local last = vim.api.nvim_buf_line_count(M.prompt_buf)
     vim.api.nvim_win_set_cursor(M.prompt_win, { last, 0 })
-    vim.cmd("startinsert")
+    -- vim.cmd("startinsert")
 
     -- custom key maps - disabling key maps
     for _, buf in ipairs({ M.prompt_buf, M.prompt_history_buf }) do
@@ -376,47 +376,16 @@ function M.scroll_to_bottom(win, buf)
 end
 
 function M.open_single_prompt_window()
-  local single_prompt_buf = vim.api.nvim_create_buf(false, true)
-  vim.bo[single_prompt_buf].buftype = "prompt"
-  vim.bo[single_prompt_buf].filetype = "markdown"
-  vim.bo[single_prompt_buf].swapfile = false
-  vim.fn.prompt_setprompt(single_prompt_buf, "")
-
-  -- TODO:1. center floating window
-  --      2. resize based on the parent width
-  --      3. call llm with custom prompt + base prompt to "return ready to paste code"
-
-  -- callback when user presses Enter
-  vim.fn.prompt_setcallback(single_prompt_buf, function()
-    local prompt_lines = vim.api.nvim_buf_get_lines(single_prompt_buf, 0, -1, false)
-    if M.is_empty(prompt_lines) then
-      M.utils.safe_notify("Write prompt first", vim.log.levels.WARN)
-      vim.api.nvim_buf_set_lines(single_prompt_buf, 0, -1, false, {})
-      return
-    end
-    if M.prompt_thinking then
-      M.utils.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
-      -- local line_count = vim.api.nvim_buf_line_count(M.prompt_buf)
-      -- vim.api.nvim_buf_set_lines(M.prompt_buf, line_count - 1, line_count, false, {})
-      -- M.scroll_to_bottom(M.prompt_win, M.prompt_buf)
-      return
-    end
-    local prompt_text = table.concat(prompt_lines, "\n")
-    print(prompt_text)
-    -- M.append_message(M.prompt_history_buf, "You", prompt_text)
-    -- M.send_prompt()
-    -- vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, {})
-  end)
-
+  print(M.count)
   local prompt_win_height = 1
 
   -- parent size
-  local parent_id = vim.api.nvim_get_current_win()
-  local parent_width = vim.api.nvim_win_get_width(parent_id)
-  local parent_height = vim.api.nvim_win_get_height(parent_id)
+  -- local parent_id = vim.api.nvim_get_current_win()
+  local parent_width = vim.api.nvim_win_get_width(M.parent_win)
+  local parent_height = vim.api.nvim_win_get_height(M.parent_win)
 
   -- your desired size
-  local width = math.min(90, parent_width)
+  local width = math.min(60, parent_width)
   local height = math.min(60, parent_height)
   local input_height = math.min(15, prompt_win_height)
 
@@ -426,7 +395,7 @@ function M.open_single_prompt_window()
 
   local single_prompt_win_conf = {
     relative = "win",
-    win = parent_id,
+    win = M.parent_win,
     row = row,
     col = col,
     width = width,
@@ -436,18 +405,72 @@ function M.open_single_prompt_window()
     title = " Custom Prompt (Overrides visual selection) ",
     title_pos = "center",
   }
+  if not M.single_prompt_buf or not M.single_prompt_win then
+    M.count = 0
+    M.single_prompt_buf = vim.api.nvim_create_buf(false, true)
+    vim.bo[M.single_prompt_buf].buftype = "prompt"
+    vim.bo[M.single_prompt_buf].filetype = "markdown"
+    vim.bo[M.single_prompt_buf].swapfile = false
+    vim.fn.prompt_setprompt(M.single_prompt_buf, "")
 
-  local single_prompt_win = vim.api.nvim_open_win(single_prompt_buf, true, single_prompt_win_conf)
-  M.set_border(single_prompt_win, "PromptBorderActive", "PromptTitleActive")
+    -- TODO:1. center floating window
+    --      2. resize based on the parent width
+    --      3. call llm with custom prompt + base prompt to "return ready to paste code"
 
-  -- custom key maps - disabling key maps
-  vim.keymap.set("v", "<Leader>8i", function()
-    M.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
-  end, { desc = "Complete implementation (Disabled)", buf = single_prompt_buf })
+    -- callback when user presses Enter
+    vim.fn.prompt_setcallback(M.single_prompt_buf, function()
+      local prompt_lines = vim.api.nvim_buf_get_lines(M.single_prompt_buf, 0, -1, false)
+      if M.is_empty(prompt_lines) then
+        M.utils.safe_notify("Write prompt first", vim.log.levels.WARN)
+        vim.api.nvim_buf_set_lines(M.single_prompt_buf, 0, -1, false, {})
+        return
+      end
+      if M.prompt_thinking then
+        M.utils.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
+        -- local line_count = vim.api.nvim_buf_line_count(M.prompt_buf)
+        -- vim.api.nvim_buf_set_lines(M.prompt_buf, line_count - 1, line_count, false, {})
+        -- M.scroll_to_bottom(M.prompt_win, M.prompt_buf)
+        return
+      end
+      local prompt_text = table.concat(prompt_lines, "\n")
+      print(prompt_text)
+      vim.api.nvim_win_close(M.single_prompt_win, true)
+      M.single_prompt_win = nil
+      M.single_prompt_buf = nil
+      -- M.append_message(M.prompt_history_buf, "You", prompt_text)
+      -- M.send_prompt()
+      -- vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, {})
+    end)
+    M.single_prompt_win = vim.api.nvim_open_win(M.single_prompt_buf, true, single_prompt_win_conf)
+    print(M.single_prompt_win)
+    M.set_border(M.single_prompt_win, "PromptBorderActive", "PromptTitleActive")
 
-  -- TODO: implement autocmds for the floating window using the below group
-  -- WinLeave, WinClosed, WinEnter, TextChanged, TextChangedI
-  local single_prompt_session_group = vim.api.nvim_create_augroup("llm_single_prompt_session", { clear = true })
+    -- custom key maps - disabling key maps
+    vim.keymap.set("v", "<Leader>8i", function()
+      M.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
+    end, { desc = "Complete implementation (Disabled)", buf = M.single_prompt_buf })
+
+    vim.keymap.set("n", "<Leader>8c", function()
+      M.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
+    end, { desc = "Toggle persistent chat window (Disabled)", buf = M.single_prompt_buf })
+
+    -- TODO: implement autocmds for the floating window using the below group
+    -- WinLeave, WinClosed, WinEnter, TextChanged, TextChangedI
+    local single_prompt_session_group = vim.api.nvim_create_augroup("llm_single_prompt_session", { clear = true })
+
+    vim.api.nvim_create_autocmd({ "VimResized", "WinResized" }, {
+      group = single_prompt_session_group,
+      callback = function(args)
+        if M.parent_win == tonumber(args.match) and M.single_prompt_win ~= nil then
+          M.open_single_prompt_window()
+        end
+      end,
+    })
+
+    return
+  end
+  M.count = M.count + 1
+  vim.api.nvim_win_set_config(M.single_prompt_win, single_prompt_win_conf)
 end
 
 ---@return nil
