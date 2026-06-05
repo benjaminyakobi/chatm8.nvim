@@ -181,6 +181,7 @@ end
 
 ---@return nil
 ---@param optional_prompt_win_height integer|nil
+-- TODO: ORGANIZE THIS MESSY FUNCTION
 function M.set_prompt_window_conf(optional_prompt_win_height)
   -- if these two buffer not exist - do not configure windows
   if M.prompt_buf == nil or M.prompt_history_buf == nil then
@@ -375,6 +376,8 @@ function M.scroll_to_bottom(win, buf)
   vim.api.nvim_win_set_cursor(win, { line, #last })
 end
 
+---@return nil
+-- TODO: ORGANIZE THIS MESSY FUNCTION
 function M.open_single_prompt_window()
   print(M.count)
   local prompt_win_height = 1
