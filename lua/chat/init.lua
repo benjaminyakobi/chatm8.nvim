@@ -377,10 +377,13 @@ function M.scroll_to_bottom(win, buf)
 end
 
 ---@return nil
+---@param optional_prompt_win_height integer
 -- TODO: ORGANIZE THIS MESSY FUNCTION
-function M.open_single_prompt_window()
-  print(M.count)
-  local prompt_win_height = 1
+function M.open_single_prompt_window(optional_prompt_win_height)
+  -- default prompt window height
+  if optional_prompt_win_height == nil then
+    optional_prompt_win_height = 1
+  end
 
   -- parent size
   -- local parent_id = vim.api.nvim_get_current_win()
@@ -390,7 +393,7 @@ function M.open_single_prompt_window()
   -- your desired size
   local width = math.min(90, parent_width)
   local height = math.min(60, parent_height)
-  local input_height = math.min(15, prompt_win_height)
+  local input_height = math.min(15, optional_prompt_win_height)
 
   -- center position
   local col = math.floor((parent_width - width) / 2)
