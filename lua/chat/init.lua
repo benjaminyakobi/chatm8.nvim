@@ -415,10 +415,6 @@ function M.open_single_prompt_window()
     vim.bo[M.single_prompt_buf].swapfile = false
     vim.fn.prompt_setprompt(M.single_prompt_buf, "")
 
-    -- TODO:1. center floating window
-    --      2. resize based on the parent width
-    --      3. call llm with custom prompt + base prompt to "return ready to paste code"
-
     -- callback when user presses Enter
     vim.fn.prompt_setcallback(M.single_prompt_buf, function()
       local prompt_lines = vim.api.nvim_buf_get_lines(M.single_prompt_buf, 0, -1, false)
@@ -429,19 +425,15 @@ function M.open_single_prompt_window()
       end
       if M.prompt_thinking then
         M.utils.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
-        -- local line_count = vim.api.nvim_buf_line_count(M.prompt_buf)
-        -- vim.api.nvim_buf_set_lines(M.prompt_buf, line_count - 1, line_count, false, {})
-        -- M.scroll_to_bottom(M.prompt_win, M.prompt_buf)
         return
       end
       local prompt_text = table.concat(prompt_lines, "\n")
+      -- TODO: call llm with custom prompt + base prompt to "return ready to paste code"
+      -- M.call_api({ M.history.pack("You", prompt) }, vim.api.nvim_get_current_buf(), M.start_line - 1, M.end_line + 1, false)
       print(prompt_text)
       vim.api.nvim_win_close(M.single_prompt_win, true)
       M.single_prompt_win = nil
       M.single_prompt_buf = nil
-      -- M.append_message(M.prompt_history_buf, "You", prompt_text)
-      -- M.send_prompt()
-      -- vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, {})
     end)
     M.single_prompt_win = vim.api.nvim_open_win(M.single_prompt_buf, true, single_prompt_win_conf)
     print(M.single_prompt_win)
