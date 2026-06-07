@@ -69,8 +69,8 @@ function M.setup(opts)
   end, { desc = "Complete implementation: Replace selection" })
 
   vim.keymap.set("v", "<leader>8p", function()
-    -- TODO: implement single prompt floating window / vim.ui.input (VISUAL SELECTION ONLY)
-    M.open_single_prompt_window()
+    local selected_lines = M.get_visual_selection()
+    M.open_single_prompt_window(selected_lines)
   end, {
     desc = "Custom prompt: Replace selection",
   })
@@ -377,16 +377,14 @@ function M.scroll_to_bottom(win, buf)
 end
 
 ---@return nil
----@param optional_prompt_win_height integer
+---@param selected_lines table
 -- TODO: ORGANIZE THIS MESSY FUNCTION
-function M.open_single_prompt_window(optional_prompt_win_height)
-  -- default prompt window height
-  if optional_prompt_win_height == nil then
-    optional_prompt_win_height = 1
-  end
+function M.open_single_prompt_window(selected_lines)
+  local selected_text = M.tag_selected_text(table.concat(selected_lines, "\n"))
+  local tagged_selected_lines = vim.split(selected_text, "\n")
+  local optional_prompt_win_height = math.min(10, #tagged_selected_lines)
 
   -- parent size
-  -- local parent_id = vim.api.nvim_get_current_win()
   local parent_width = vim.api.nvim_win_get_width(M.parent_win)
   local parent_height = vim.api.nvim_win_get_height(M.parent_win)
 
@@ -417,6 +415,7 @@ function M.open_single_prompt_window(optional_prompt_win_height)
     vim.bo[M.single_prompt_buf].filetype = "markdown"
     vim.bo[M.single_prompt_buf].swapfile = false
     vim.fn.prompt_setprompt(M.single_prompt_buf, "")
+    vim.api.nvim_buf_set_lines(M.single_prompt_buf, 0, -1, false, tagged_selected_lines)
 
     -- callback when user presses Enter
     vim.fn.prompt_setcallback(M.single_prompt_buf, function()
@@ -459,7 +458,7 @@ function M.open_single_prompt_window(optional_prompt_win_height)
       group = single_prompt_session_group,
       callback = function(args)
         if M.parent_win == tonumber(args.match) and M.single_prompt_win ~= nil then
-          M.open_single_prompt_window()
+          M.open_single_prompt_window(selected_lines)
         end
       end,
     })
