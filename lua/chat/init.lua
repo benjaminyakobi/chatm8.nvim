@@ -488,7 +488,7 @@ function M.open_single_prompt_window(selected_lines)
     vim.api.nvim_create_autocmd("WinClosed", {
       group = single_prompt_session_group,
       callback = function(args)
-        if M.chat_win == tonumber(args.match) or M.single_prompt_win == tonumber(args.match) then
+        if M.single_prompt_win == tonumber(args.match) then
           vim.api.nvim_win_close(M.single_prompt_win, true)
           M.single_prompt_win = nil
         end
