@@ -23,6 +23,7 @@ function M.setup(opts)
 
   M.open_prompt_window()
 
+  -- TODO: update this
   local help = [[
 <Leader>8i: Inline Implementation
   1. [Visual Mode] Select text (either code snippets or natural language instructions).
@@ -459,8 +460,6 @@ function M.open_single_prompt_window(selected_lines)
       M.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
     end, { desc = "Toggle persistent chat window (Disabled)", buf = M.single_prompt_buf })
 
-    -- TODO: implement autocmds for the floating window using the below group
-    -- TextChanged, TextChangedI
     local single_prompt_session_group = vim.api.nvim_create_augroup("llm_single_prompt_session", { clear = true })
 
     -- detecting text changes to resize prompt window when needed
