@@ -380,9 +380,18 @@ end
 ---@param selected_lines table
 -- TODO: ORGANIZE THIS MESSY FUNCTION
 function M.open_single_prompt_window(selected_lines)
-  local selected_text = M.tag_selected_text(table.concat(selected_lines, "\n"))
-  local tagged_selected_lines = vim.split(selected_text, "\n")
-  local optional_prompt_win_height = math.min(10, #tagged_selected_lines)
+  local optional_prompt_win_height
+  local tagged_selected_lines
+  if selected_lines then
+    local selected_text = M.tag_selected_text(table.concat(selected_lines, "\n"))
+    tagged_selected_lines = vim.split(selected_text, "\n")
+    optional_prompt_win_height = math.min(10, #tagged_selected_lines)
+  else
+    tagged_selected_lines = vim.api.nvim_buf_get_lines(M.single_prompt_buf, 0, -1, false)
+    local text_height = vim.api.nvim_win_text_height(M.single_prompt_win, {}).all
+    optional_prompt_win_height = math.min(10, text_height)
+    -- M.set_prompt_window_conf(math.min(15, text_height))
+  end
 
   -- parent size
   local parent_width = vim.api.nvim_win_get_width(M.parent_win)
@@ -451,11 +460,36 @@ function M.open_single_prompt_window(selected_lines)
     end, { desc = "Toggle persistent chat window (Disabled)", buf = M.single_prompt_buf })
 
     -- TODO: implement autocmds for the floating window using the below group
-    -- WinLeave, WinClosed, WinEnter, TextChanged, TextChangedI
+    -- TextChanged, TextChangedI
     local single_prompt_session_group = vim.api.nvim_create_augroup("llm_single_prompt_session", { clear = true })
+
+    -- detecting text changes to resize prompt window when needed
+    local timer
+    vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
+      group = single_prompt_session_group,
+      buffer = M.single_prompt_buf,
+      callback = function()
+        -- cancel previous timer on every keystroke
+        if timer and not timer:is_closing() then
+          timer:stop()
+          timer:close()
+          timer = nil
+        end
+
+        -- defered resize call
+        timer = vim.defer_fn(function()
+          -- local lines = vim.api.nvim_buf_get_lines(M.single_prompt_buf, 0, -1, false)
+          -- print(vim.inspect(lines))
+          M.open_single_prompt_window(nil)
+          -- local text_height = vim.api.nvim_win_text_height(M.single_prompt_buf, {}).all
+          -- M.set_prompt_window_conf(math.min(15, text_height))
+        end, 50)
+      end,
+    })
 
     vim.api.nvim_create_autocmd({ "VimResized", "WinResized" }, {
       group = single_prompt_session_group,
+      buffer = M.single_prompt_buf,
       callback = function(args)
         if M.parent_win == tonumber(args.match) and M.single_prompt_win ~= nil then
           M.open_single_prompt_window(selected_lines)
@@ -487,6 +521,7 @@ function M.open_single_prompt_window(selected_lines)
 
     vim.api.nvim_create_autocmd("WinClosed", {
       group = single_prompt_session_group,
+      buffer = M.single_prompt_buf,
       callback = function(args)
         if M.single_prompt_win == tonumber(args.match) then
           vim.api.nvim_win_close(M.single_prompt_win, true)
