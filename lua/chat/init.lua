@@ -381,18 +381,6 @@ end
 ---@param selected_lines table
 -- TODO: ORGANIZE THIS MESSY FUNCTION
 function M.open_single_prompt_window(selected_lines)
-  local optional_prompt_win_height
-  local tagged_selected_lines
-
-  if M.single_prompt_win and M.single_prompt_buf then
-    tagged_selected_lines = vim.api.nvim_buf_get_lines(M.single_prompt_buf, 0, -1, false)
-    optional_prompt_win_height = vim.api.nvim_win_text_height(M.single_prompt_win, {}).all
-  else
-    local selected_text = M.tag_selected_text(table.concat(selected_lines, "\n"))
-    tagged_selected_lines = vim.split(selected_text, "\n")
-    optional_prompt_win_height = #tagged_selected_lines
-  end
-
   -- parent size
   local parent_width = vim.api.nvim_win_get_width(M.parent_win)
   local parent_height = vim.api.nvim_win_get_height(M.parent_win)
@@ -400,7 +388,6 @@ function M.open_single_prompt_window(selected_lines)
   -- your desired size
   local width = math.min(90, parent_width)
   local height = math.min(60, parent_height)
-  local input_height = math.min(15, optional_prompt_win_height)
 
   -- center position
   local col = math.floor((parent_width - width) / 2)
@@ -412,7 +399,7 @@ function M.open_single_prompt_window(selected_lines)
     row = row,
     col = col,
     width = width,
-    height = input_height,
+    height = 15, -- NOTE: default max size
     style = "minimal",
     border = "rounded",
     title = " Custom Prompt (Overrides visual selection) ",
@@ -420,8 +407,14 @@ function M.open_single_prompt_window(selected_lines)
   }
 
   if M.single_prompt_buf and M.single_prompt_win then
+    single_prompt_win_conf.height =
+      math.min(single_prompt_win_conf.height, vim.api.nvim_win_text_height(M.single_prompt_win, {}).all)
     vim.api.nvim_win_set_config(M.single_prompt_win, single_prompt_win_conf)
   else
+    local selected_text = M.tag_selected_text(table.concat(selected_lines, "\n"))
+    local tagged_selected_lines = vim.split(selected_text, "\n")
+    single_prompt_win_conf.height = math.min(single_prompt_win_conf.height, #tagged_selected_lines)
+
     M.single_prompt_buf = vim.api.nvim_create_buf(false, true)
     vim.bo[M.single_prompt_buf].buftype = "prompt"
     vim.bo[M.single_prompt_buf].filetype = "markdown"
