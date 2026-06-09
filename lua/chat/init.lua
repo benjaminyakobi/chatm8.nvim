@@ -383,15 +383,14 @@ end
 function M.open_single_prompt_window(selected_lines)
   local optional_prompt_win_height
   local tagged_selected_lines
-  if selected_lines then
+
+  if M.single_prompt_win and M.single_prompt_buf then
+    tagged_selected_lines = vim.api.nvim_buf_get_lines(M.single_prompt_buf, 0, -1, false)
+    optional_prompt_win_height = vim.api.nvim_win_text_height(M.single_prompt_win, {}).all
+  else
     local selected_text = M.tag_selected_text(table.concat(selected_lines, "\n"))
     tagged_selected_lines = vim.split(selected_text, "\n")
-    optional_prompt_win_height = math.min(10, #tagged_selected_lines)
-  else
-    tagged_selected_lines = vim.api.nvim_buf_get_lines(M.single_prompt_buf, 0, -1, false)
-    local text_height = vim.api.nvim_win_text_height(M.single_prompt_win, {}).all
-    optional_prompt_win_height = math.min(10, text_height)
-    -- M.set_prompt_window_conf(math.min(15, text_height))
+    optional_prompt_win_height = #tagged_selected_lines
   end
 
   -- parent size
@@ -419,7 +418,10 @@ function M.open_single_prompt_window(selected_lines)
     title = " Custom Prompt (Overrides visual selection) ",
     title_pos = "center",
   }
-  if not M.single_prompt_buf or not M.single_prompt_win then
+
+  if M.single_prompt_buf and M.single_prompt_win then
+    vim.api.nvim_win_set_config(M.single_prompt_win, single_prompt_win_conf)
+  else
     M.single_prompt_buf = vim.api.nvim_create_buf(false, true)
     vim.bo[M.single_prompt_buf].buftype = "prompt"
     vim.bo[M.single_prompt_buf].filetype = "markdown"
@@ -477,11 +479,8 @@ function M.open_single_prompt_window(selected_lines)
 
         -- defered resize call
         timer = vim.defer_fn(function()
-          -- local lines = vim.api.nvim_buf_get_lines(M.single_prompt_buf, 0, -1, false)
-          -- print(vim.inspect(lines))
-          M.open_single_prompt_window(nil)
-          -- local text_height = vim.api.nvim_win_text_height(M.single_prompt_buf, {}).all
-          -- M.set_prompt_window_conf(math.min(15, text_height))
+          local lines = vim.api.nvim_buf_get_lines(M.single_prompt_buf, 0, -1, false)
+          M.open_single_prompt_window(lines)
         end, 50)
       end,
     })
@@ -531,7 +530,6 @@ function M.open_single_prompt_window(selected_lines)
 
     return
   end
-  vim.api.nvim_win_set_config(M.single_prompt_win, single_prompt_win_conf)
 end
 
 ---@return nil
