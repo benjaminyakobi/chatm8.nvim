@@ -379,7 +379,6 @@ end
 
 ---@return nil
 ---@param selected_lines table
--- TODO: ORGANIZE THIS MESSY FUNCTION
 function M.open_single_prompt_window(selected_lines)
   -- parent size
   local parent_width = vim.api.nvim_win_get_width(M.parent_win)
