@@ -441,8 +441,6 @@ function M.open_single_prompt_window(selected_lines)
       local prompt_text = table.concat(prompt_lines, "\n")
       local func_data = M.treesitter.get_func_ast_data(0)
       local func_signatures = M.treesitter.get_func_signatures(func_data, true, true)
-      -- TODO: call llm with custom prompt + base prompt to "return ready to paste code"
-      -- M.call_api({ M.history.pack("You", prompt) }, vim.api.nvim_get_current_buf(), M.start_line - 1, M.end_line + 1, false)
       local prompt = "Modify the selected code according to the user's instructions.\n"
         .. "Respond with code only. Do NOT wrap the output in backticks.\n"
         .. "Do NOT include explanations, notes, comments, markdown, or any text outside the replacement code.\n\n"
