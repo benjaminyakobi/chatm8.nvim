@@ -434,15 +434,39 @@ function M.open_single_prompt_window(selected_lines)
         return
       end
       local prompt_text = table.concat(prompt_lines, "\n")
+      local func_data = M.treesitter.get_func_ast_data(0)
+      local func_signatures = M.treesitter.get_func_signatures(func_data, true, true)
       -- TODO: call llm with custom prompt + base prompt to "return ready to paste code"
       -- M.call_api({ M.history.pack("You", prompt) }, vim.api.nvim_get_current_buf(), M.start_line - 1, M.end_line + 1, false)
-      print(prompt_text)
+      local prompt = "Modify the selected code according to the user's instructions.\n"
+        .. "Respond with code only. Do NOT wrap the output in backticks.\n"
+        .. "Do NOT include explanations, notes, comments, markdown, or any text outside the replacement code.\n\n"
+        .. "IMPORTANT (read carefully):\n"
+        .. "- Return only the code that should replace the selected text.\n"
+        .. "- Preserve the surrounding file's style, formatting, naming conventions, and language idioms.\n"
+        .. "- Do not add unrelated refactors, cleanups, or stylistic changes.\n"
+        .. "- Keep existing APIs, function signatures, types, and behavior unchanged unless the user's instructions explicitly require otherwise.\n"
+        .. "- If the selection is only part of a function body, return only the replacement body code.\n"
+        .. "- If the selection is a complete function, class, block, or expression, return the complete replacement for that selection.\n"
+        .. "- Do not add placeholder code, TODO comments, or unfinished implementations.\n\n"
+        .. "If the user's instructions are ambiguous, impossible, or require information not present in the selection, return a single regular comment (in the target language) explaining what is missing.\n\n"
+        .. "User instructions:\n"
+        .. prompt_text
+        .. "\n\n"
+        .. "Language: "
+        .. vim.bo[M.main_buf].filetype
+        .. "\n\n"
+        .. "Available function signatures (reference only — do NOT implement or re-declare):\n"
+        .. table.concat(func_signatures, "\n")
+        .. "\n\n"
+        .. "Keep existing coding style and formatting. Output only code or a single clarifying comment if you cannot proceed."
+      M.call_api({ M.history.pack("You", prompt) }, M.main_buf, M.start_line - 1, M.end_line + 1, false)
+
       vim.api.nvim_win_close(M.single_prompt_win, true)
       M.single_prompt_win = nil
       M.single_prompt_buf = nil
     end)
     M.single_prompt_win = vim.api.nvim_open_win(M.single_prompt_buf, true, single_prompt_win_conf)
-    print(M.single_prompt_win)
     M.set_border(M.single_prompt_win, "PromptBorderActive", "PromptTitleActive")
 
     -- custom key maps - disabling key maps
