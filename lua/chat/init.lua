@@ -410,7 +410,12 @@ function M.open_single_prompt_window(selected_lines)
       math.min(single_prompt_win_conf.height, vim.api.nvim_win_text_height(M.single_prompt_win, {}).all)
     vim.api.nvim_win_set_config(M.single_prompt_win, single_prompt_win_conf)
   else
-    local selected_text = M.tag_selected_text(table.concat(selected_lines, "\n"))
+    local selected_text
+    if M.is_empty(selected_lines) then
+      selected_text = table.concat(selected_lines, "\n")
+    else
+      selected_text = M.tag_selected_text(table.concat(selected_lines, "\n"))
+    end
     local tagged_selected_lines = vim.split(selected_text, "\n")
     single_prompt_win_conf.height = math.min(single_prompt_win_conf.height, #tagged_selected_lines)
 
