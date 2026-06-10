@@ -183,6 +183,7 @@ end
 -- ---@return nil
 -- ---@param optional_prompt_win_height integer|nil
 -- TODO: ORGANIZE THIS MESSY FUNCTION
+
 -- function M.set_prompt_window_conf(optional_prompt_win_height)
 --   -- if these two buffer not exist - do not configure windows
 --   if M.prompt_buf == nil or M.prompt_history_buf == nil then
@@ -468,8 +469,6 @@ function M.open_single_prompt_window(selected_lines)
       M.call_api({ M.history.pack("You", prompt) }, M.main_buf, M.start_line - 1, M.end_line + 1, false)
 
       vim.api.nvim_win_close(M.single_prompt_win, true)
-      M.single_prompt_win = nil
-      M.single_prompt_buf = nil
     end)
     M.single_prompt_win = vim.api.nvim_open_win(M.single_prompt_buf, true, single_prompt_win_conf)
     M.set_border(M.single_prompt_win, "PromptBorderActive", "PromptTitleActive")
@@ -543,8 +542,9 @@ function M.open_single_prompt_window(selected_lines)
       buffer = M.single_prompt_buf,
       callback = function(args)
         if M.single_prompt_win == tonumber(args.match) then
-          vim.api.nvim_win_close(M.single_prompt_win, true)
           M.single_prompt_win = nil
+          M.single_prompt_buf = nil
+          pcall(vim.api.nvim_clear_autocmds, { group = single_prompt_session_group })
         end
       end,
     })
