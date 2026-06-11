@@ -545,6 +545,10 @@ function M.open_prompt_window(optional_prompt_win_height)
           M.prompt_history_win = nil
           vim.api.nvim_win_close(M.chat_win, true)
           M.chat_win = nil
+          if M.single_prompt_win then
+            print(M.single_prompt_win)
+            M.open_single_prompt_window({})
+          end
         end
       end,
     })
