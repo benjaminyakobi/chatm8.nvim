@@ -154,6 +154,7 @@ function M.unlock_buf(buf)
 end
 
 ---@return nil
+-- TODO: merge this func with M.open_prompt_window()
 function M.toggle_persistent_chat_window()
   -- if already open -> close
   if M.chat_win then
