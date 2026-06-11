@@ -448,13 +448,10 @@ function M.open_prompt_window(optional_prompt_win_height)
 
     vim.bo[M.prompt_history_buf].modifiable = false
 
-    -- M.prompt_buf = vim.api.nvim_create_buf(false, true)
     vim.bo[M.prompt_buf].buftype = "prompt"
     vim.bo[M.prompt_buf].filetype = "markdown"
     vim.bo[M.prompt_buf].swapfile = false
     vim.fn.prompt_setprompt(M.prompt_buf, "")
-
-    -- M.set_prompt_window_conf()
 
     -- callback when user presses Enter
     vim.fn.prompt_setcallback(M.prompt_buf, function()
@@ -476,8 +473,6 @@ function M.open_prompt_window(optional_prompt_win_height)
       M.send_prompt()
       vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, {})
     end)
-    -- M.prompt_history_win = vim.api.nvim_open_win(M.prompt_history_buf, true, history_win_conf)
-    -- M.prompt_win = vim.api.nvim_open_win(M.prompt_buf, true, prompt_win_conf)
 
     -- set custom options
     vim.api.nvim_set_option_value("number", true, { win = M.prompt_win })
@@ -562,7 +557,6 @@ function M.open_prompt_window(optional_prompt_win_height)
           if M.prompt_win and vim.api.nvim_win_is_valid(M.prompt_win) then
             text_height = vim.api.nvim_win_text_height(M.prompt_win, {}).all
           end
-          -- M.set_prompt_window_conf(text_height)
           M.open_prompt_window(text_height)
         end
       end,
@@ -584,12 +578,10 @@ function M.open_prompt_window(optional_prompt_win_height)
         -- defered resize call
         timer = vim.defer_fn(function()
           local text_height = vim.api.nvim_win_text_height(M.prompt_win, {}).all
-          -- M.set_prompt_window_conf(math.min(15, text_height))
           M.open_prompt_window(math.min(15, text_height))
         end, 50)
       end,
     })
-    -- M.set_prompt_window_conf()
     M.open_prompt_window()
   end
 end
