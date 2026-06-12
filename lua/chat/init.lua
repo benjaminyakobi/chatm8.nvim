@@ -412,6 +412,10 @@ function M.open_single_prompt_window(selected_lines)
 
     mouse_guard(M.single_prompt_win)
 
+    vim.keymap.set({ "n", "i" }, "<Leader>8p", function()
+      vim.api.nvim_set_current_win(M.single_prompt_win)
+    end, { desc = "Focus custom prompt window", buf = M.main_buf })
+
     vim.api.nvim_create_autocmd("WinEnter", {
       group = single_prompt_session_group,
       buffer = M.single_prompt_buf,
@@ -433,6 +437,7 @@ function M.open_single_prompt_window(selected_lines)
           vim.api.nvim_win_close(backdrop_win, true)
           vim.api.nvim_buf_delete(backdrop_buf, {})
           pcall(vim.api.nvim_clear_autocmds, { group = single_prompt_session_group })
+          vim.keymap.del({ "n", "i" }, "<Leader>8p", { buf = M.main_buf })
         end
       end,
     })
