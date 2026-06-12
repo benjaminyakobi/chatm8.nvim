@@ -110,7 +110,7 @@ function M.select_provider()
   vim.ui.select(M.providers.list, { prompt = "Select chat provider:" }, function(choice)
     if choice then
       local lock_buf = M.unlock_buf(M.prompt_history_buf)
-      M.set_provider(choice)
+      M.set_provider(M.prompt_history_buf, choice)
       lock_buf()
     end
   end)
@@ -118,7 +118,7 @@ end
 
 ---@return nil
 ---@param provider_name string
-function M.set_provider(provider_name)
+function M.set_provider(buf, provider_name)
   M.providers.set(provider_name)
   local ok, provider = pcall(require, "chat.providers." .. M.providers.name)
   if not ok then
@@ -127,8 +127,8 @@ function M.set_provider(provider_name)
   end
   M.provider_module = provider
   local session_provider = "Provider: " .. M.providers.current
-  vim.api.nvim_buf_set_lines(M.prompt_history_buf, 2, 4, false, { session_provider, "" })
-  vim.api.nvim_buf_set_extmark(M.prompt_history_buf, M.chat_ns, 2, 0, {
+  vim.api.nvim_buf_set_lines(buf, 2, 4, false, { session_provider, "" })
+  vim.api.nvim_buf_set_extmark(buf, M.chat_ns, 2, 0, {
     hl_group = "ChatUI",
     end_col = #session_provider,
   })
@@ -493,14 +493,14 @@ function M.open_prompt_window(optional_prompt_win_height)
     -- Configure buffers and windows
     vim.bo[M.prompt_history_buf].filetype = "markdown"
     vim.bo[M.prompt_history_buf].swapfile = false
-    local session_title = "Ephermal prompt session"
+    local session_title = "Ephermal session"
     vim.api.nvim_buf_set_lines(M.prompt_history_buf, 0, 0, false, { session_title })
     vim.api.nvim_buf_set_extmark(M.prompt_history_buf, M.chat_ns, 0, 0, {
       hl_group = "ChatUI",
       end_col = #session_title,
     })
 
-    M.set_provider(M.providers.current)
+    M.set_provider(M.prompt_history_buf, M.providers.current)
 
     vim.bo[M.prompt_history_buf].modifiable = false
 
