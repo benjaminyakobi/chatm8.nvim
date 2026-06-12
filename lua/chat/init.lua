@@ -203,6 +203,7 @@ end
 
 ---@return nil
 ---@param selected_lines table
+-- TODO: REORGANIZE THIS MESSY FUNCTION
 function M.open_single_prompt_window(selected_lines)
   -- parent size
   local parent_width = vim.api.nvim_win_get_width(M.parent_win)
@@ -231,24 +232,6 @@ function M.open_single_prompt_window(selected_lines)
   }
 
   if M.single_prompt_buf and M.single_prompt_win then
-    -- local function close()
-    --   if vim.api.nvim_win_is_valid(M.single_prompt_win) then
-    --     vim.api.nvim_win_close(M.single_prompt_win, true)
-    --   end
-    -- end
-
-    -- vim.keymap.set({ "n", "i" }, "<Esc>", close, {
-    --   buffer = M.single_prompt_buf,
-    --   silent = true,
-    -- })
-
-    -- vim.keymap.set("i", "<C-c>", close, {
-    --   buffer = M.single_prompt_buf,
-    --   silent = true,
-    -- })
-    --
-    -- vim.cmd.startinsert()
-
     single_prompt_win_conf.height =
       math.min(single_prompt_win_conf.height, vim.api.nvim_win_text_height(M.single_prompt_win, {}).all)
     vim.api.nvim_win_set_config(M.single_prompt_win, single_prompt_win_conf)
