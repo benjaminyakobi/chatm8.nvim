@@ -230,6 +230,24 @@ function M.open_single_prompt_window(selected_lines)
   }
 
   if M.single_prompt_buf and M.single_prompt_win then
+    -- local function close()
+    --   if vim.api.nvim_win_is_valid(M.single_prompt_win) then
+    --     vim.api.nvim_win_close(M.single_prompt_win, true)
+    --   end
+    -- end
+
+    -- vim.keymap.set({ "n", "i" }, "<Esc>", close, {
+    --   buffer = M.single_prompt_buf,
+    --   silent = true,
+    -- })
+
+    -- vim.keymap.set("i", "<C-c>", close, {
+    --   buffer = M.single_prompt_buf,
+    --   silent = true,
+    -- })
+    --
+    -- vim.cmd.startinsert()
+
     single_prompt_win_conf.height =
       math.min(single_prompt_win_conf.height, vim.api.nvim_win_text_height(M.single_prompt_win, {}).all)
     vim.api.nvim_win_set_config(M.single_prompt_win, single_prompt_win_conf)
@@ -291,6 +309,7 @@ function M.open_single_prompt_window(selected_lines)
 
       vim.api.nvim_win_close(M.single_prompt_win, true)
     end)
+
     M.single_prompt_win = vim.api.nvim_open_win(M.single_prompt_buf, true, single_prompt_win_conf)
     M.set_border(M.single_prompt_win, "PromptBorderActive", "PromptTitleActive")
 
@@ -347,10 +366,42 @@ function M.open_single_prompt_window(selected_lines)
       end,
     })
 
+    local function mouse_guard(prompt_win)
+      local function handle()
+        local m = vim.fn.getmousepos()
+
+        if m.winid ~= prompt_win then
+          vim.api.nvim_set_current_win(prompt_win)
+          return true
+        end
+
+        return false
+      end
+
+      local mouse_mappings = {
+        "<LeftMouse>",
+        "<RightMouse>",
+        "<MiddleMouse>",
+        "<LeftDrag>",
+        "<LeftRelease>",
+        "<ScrollWheelUp>",
+        "<ScrollWheelDown>",
+      }
+
+      for _, key in ipairs(mouse_mappings) do
+        vim.keymap.set({ "n", "i" }, key, function()
+          handle()
+        end, { silent = true, noremap = true, buf = M.single_prompt_buf })
+      end
+    end
+
+    mouse_guard(M.single_prompt_win)
+
     vim.api.nvim_create_autocmd("WinEnter", {
       group = single_prompt_session_group,
       buffer = M.single_prompt_buf,
       callback = function()
+        single_prompt_win_mouse = vim.o.mouse
         local win = vim.api.nvim_get_current_win()
         if win == M.single_prompt_win then
           M.set_border(M.single_prompt_win, "PromptBorderActive", "PromptTitleActive")
@@ -365,7 +416,9 @@ function M.open_single_prompt_window(selected_lines)
         if M.single_prompt_win == tonumber(args.match) then
           M.single_prompt_win = nil
           M.single_prompt_buf = nil
+          -- vim.api.nvim_win_close(backdrop_win, true)
           pcall(vim.api.nvim_clear_autocmds, { group = single_prompt_session_group })
+          -- vim.o.mouse = old_mouse
         end
       end,
     })
