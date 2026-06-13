@@ -154,7 +154,6 @@ function M.unlock_buf(buf)
 end
 
 ---@return nil
--- TODO: merge this func with M.open_prompt_window()
 function M.toggle_persistent_chat_window()
   -- if already open -> close
   if M.chat_win then
@@ -431,7 +430,6 @@ end
 
 ---@return nil
 ---@param optional_prompt_win_height integer|nil
--- TODO: ORGANIZE THIS MESSY FUNCTION
 function M.open_prompt_window(optional_prompt_win_height)
   if not M.chat_win then
     return
@@ -602,7 +600,6 @@ function M.open_prompt_window(optional_prompt_win_height)
           vim.api.nvim_win_close(M.chat_win, true)
           M.chat_win = nil
           if M.single_prompt_win then
-            print(M.single_prompt_win)
             M.open_single_prompt_window({})
           end
         end
@@ -795,7 +792,6 @@ function M.append_prompt_message(buf, text)
     lines = vim.split(text, "\n", { plain = true })
     lines[#lines + 1] = ""
   else
-    -- M.set_prompt_window_conf()
     M.open_prompt_window()
   end
 
@@ -853,7 +849,6 @@ end
 function M.send_prompt()
   if M.prompt_win then
     local win_buf_lines = vim.api.nvim_buf_get_lines(M.prompt_history_buf, 0, -1, false)
-    -- local win_buf_text = table.concat(win_buf_lines, "\n")
     M.append_prompt_message(M.prompt_buf, nil)
     M.call_api(M.history.get(), M.prompt_history_buf, #win_buf_lines, -1, true)
   else
