@@ -202,7 +202,6 @@ end
 
 ---@return nil
 ---@param selected_lines table
--- TODO: REORGANIZE THIS MESSY FUNCTION
 function M.open_single_prompt_window(selected_lines)
   -- parent size
   local parent_width = vim.api.nvim_win_get_width(M.parent_win)
@@ -241,6 +240,7 @@ function M.open_single_prompt_window(selected_lines)
     else
       selected_text = M.tag_selected_text(table.concat(selected_lines, "\n"))
     end
+
     local tagged_selected_lines = vim.split(selected_text, "\n")
     single_prompt_win_conf.height = math.min(single_prompt_win_conf.height, #tagged_selected_lines)
 
@@ -259,10 +259,12 @@ function M.open_single_prompt_window(selected_lines)
         vim.api.nvim_buf_set_lines(M.single_prompt_buf, 0, -1, false, {})
         return
       end
+
       if M.prompt_thinking then
         M.utils.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
         return
       end
+
       local prompt_text = table.concat(prompt_lines, "\n")
       local func_data = M.treesitter.get_func_ast_data(0)
       local func_signatures = M.treesitter.get_func_signatures(func_data, true, true)
@@ -293,8 +295,8 @@ function M.open_single_prompt_window(selected_lines)
       vim.api.nvim_win_close(M.single_prompt_win, true)
     end)
 
+    -- Creating backdrop buf & win to block mouse clicks
     local backdrop_buf = vim.api.nvim_create_buf(false, true)
-
     local backdrop_win = vim.api.nvim_open_win(backdrop_buf, false, {
       relative = "editor",
       row = 0,
@@ -307,6 +309,7 @@ function M.open_single_prompt_window(selected_lines)
     })
     vim.wo[backdrop_win].winblend = 30
 
+    -- Opening the prompt window
     M.single_prompt_win = vim.api.nvim_open_win(M.single_prompt_buf, true, single_prompt_win_conf)
     M.set_border(M.single_prompt_win, "PromptBorderActive", "PromptTitleActive")
 
@@ -319,7 +322,39 @@ function M.open_single_prompt_window(selected_lines)
       M.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
     end, { desc = "Toggle persistent chat window (Disabled)", buf = M.single_prompt_buf })
 
+    vim.keymap.set({ "n", "i" }, "<Leader>8p", function()
+      vim.api.nvim_set_current_win(M.single_prompt_win)
+    end, { desc = "Focus custom prompt window", buf = M.main_buf })
+
     local single_prompt_session_group = vim.api.nvim_create_augroup("llm_single_prompt_session", { clear = true })
+
+    -- detecting prompt window enter
+    vim.api.nvim_create_autocmd("WinEnter", {
+      group = single_prompt_session_group,
+      buffer = M.single_prompt_buf,
+      callback = function()
+        local win = vim.api.nvim_get_current_win()
+        if win == M.single_prompt_win then
+          M.set_border(M.single_prompt_win, "PromptBorderActive", "PromptTitleActive")
+        end
+      end,
+    })
+
+    -- detecting prompt window close
+    vim.api.nvim_create_autocmd("WinClosed", {
+      group = single_prompt_session_group,
+      buffer = M.single_prompt_buf,
+      callback = function(args)
+        if M.single_prompt_win == tonumber(args.match) then
+          M.single_prompt_win = nil
+          M.single_prompt_buf = nil
+          vim.api.nvim_win_close(backdrop_win, true)
+          vim.api.nvim_buf_delete(backdrop_buf, {})
+          pcall(vim.api.nvim_clear_autocmds, { group = single_prompt_session_group })
+          vim.keymap.del({ "n", "i" }, "<Leader>8p", { buf = M.main_buf })
+        end
+      end,
+    })
 
     -- detecting text changes to resize prompt window when needed
     local timer
@@ -342,6 +377,7 @@ function M.open_single_prompt_window(selected_lines)
       end,
     })
 
+    -- detecting resize events to resize the prompt window
     vim.api.nvim_create_autocmd({ "VimResized", "WinResized" }, {
       group = single_prompt_session_group,
       buffer = M.single_prompt_buf,
@@ -352,6 +388,7 @@ function M.open_single_prompt_window(selected_lines)
       end,
     })
 
+    -- detecting leaving the window to color the window border
     vim.api.nvim_create_autocmd("WinLeave", {
       group = single_prompt_session_group,
       buffer = M.single_prompt_buf,
@@ -363,6 +400,7 @@ function M.open_single_prompt_window(selected_lines)
       end,
     })
 
+    -- NOTE: local function to disable mouse clicks outside the prompt window
     local function mouse_guard(prompt_win)
       local function handle()
         local m = vim.fn.getmousepos()
@@ -371,7 +409,6 @@ function M.open_single_prompt_window(selected_lines)
           vim.api.nvim_set_current_win(prompt_win)
           return true
         end
-
         return false
       end
 
@@ -393,38 +430,6 @@ function M.open_single_prompt_window(selected_lines)
     end
 
     mouse_guard(M.single_prompt_win)
-
-    vim.keymap.set({ "n", "i" }, "<Leader>8p", function()
-      vim.api.nvim_set_current_win(M.single_prompt_win)
-    end, { desc = "Focus custom prompt window", buf = M.main_buf })
-
-    vim.api.nvim_create_autocmd("WinEnter", {
-      group = single_prompt_session_group,
-      buffer = M.single_prompt_buf,
-      callback = function()
-        local win = vim.api.nvim_get_current_win()
-        if win == M.single_prompt_win then
-          M.set_border(M.single_prompt_win, "PromptBorderActive", "PromptTitleActive")
-        end
-      end,
-    })
-
-    vim.api.nvim_create_autocmd("WinClosed", {
-      group = single_prompt_session_group,
-      buffer = M.single_prompt_buf,
-      callback = function(args)
-        if M.single_prompt_win == tonumber(args.match) then
-          M.single_prompt_win = nil
-          M.single_prompt_buf = nil
-          vim.api.nvim_win_close(backdrop_win, true)
-          vim.api.nvim_buf_delete(backdrop_buf, {})
-          pcall(vim.api.nvim_clear_autocmds, { group = single_prompt_session_group })
-          vim.keymap.del({ "n", "i" }, "<Leader>8p", { buf = M.main_buf })
-        end
-      end,
-    })
-
-    return
   end
 end
 
