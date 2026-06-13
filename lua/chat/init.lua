@@ -298,11 +298,12 @@ function M.open_single_prompt_window(selected_lines)
     -- Creating backdrop buf & win to block mouse clicks
     local backdrop_buf = vim.api.nvim_create_buf(false, true)
     local backdrop_win = vim.api.nvim_open_win(backdrop_buf, false, {
-      relative = "editor",
+      relative = "win",
+      win = M.parent_win,
       row = 0,
       col = 0,
-      width = vim.o.columns,
-      height = vim.o.lines,
+      width = parent_width,
+      height = parent_height,
       style = "minimal",
       focusable = false,
       zindex = 100,
