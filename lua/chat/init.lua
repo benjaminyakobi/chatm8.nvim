@@ -447,9 +447,7 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
   end
 
   -- default prompt window height
-  if optional_prompt_win_height == nil then
-    optional_prompt_win_height = 1
-  end
+  optional_prompt_win_height = optional_prompt_win_height or 1
 
   -- parent size
   if not M.chat_win then
@@ -719,8 +717,8 @@ function M.append_message(buf, role, text, usage)
 
   local should_summarize = false
   if role == "You" or role == "Assistant" then
-    -- NOTE: if should_summarize == true - the summarize call is after call
-    -- is after the prompt history window update (bottom of this func)!
+    -- NOTE: if should_summarize == true - the summarize call is after the
+    -- prompt history window update (bottom of this func)!
     should_summarize = M.history.add(role, text)
   end
 
