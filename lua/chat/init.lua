@@ -1,3 +1,4 @@
+-- TODO: those fields should be private fields
 local M = {
   parent_win = vim.api.nvim_get_current_win(),
   prompt_thinking = false,
@@ -6,6 +7,7 @@ local M = {
 
 ---@return nil
 ---@param opts table
+-- TODO: what should i do?
 function M.setup(opts)
   M.main_buf = vim.api.nvim_get_current_buf()
 
@@ -111,6 +113,8 @@ end
 -- ------------- core buffer logic -------------
 -- ---------------------------------------------
 
+---@return nil
+-- TODO: should be private
 function M.select_provider()
   vim.ui.select(M.providers.list, { prompt = "Select chat provider:" }, function(choice)
     if choice then
@@ -123,6 +127,7 @@ end
 
 ---@return nil
 ---@param provider_name string
+-- TODO: should be private
 function M.set_provider(buf, provider_name)
   M.providers.set(provider_name)
   local ok, provider = pcall(require, "chat.providers." .. M.providers.name)
@@ -143,6 +148,7 @@ end
 ---@return function
 ---@param buf integer
 -- NOTE: RAII (Resource acquisition is initialization) pattern
+-- TODO: should be private
 function M.unlock_buf(buf)
   local prev = vim.bo[buf].modifiable
   vim.bo[buf].modifiable = true
@@ -159,6 +165,7 @@ function M.unlock_buf(buf)
 end
 
 ---@return nil
+-- TODO: what should i do?
 function M.toggle_persistent_chat_window()
   -- if already open -> close
   if M.chat_win then
@@ -177,6 +184,7 @@ end
 ---@param win integer
 ---@param border_hl string
 ---@param title_hl string
+-- TODO: should be private
 function M.set_border(win, border_hl, title_hl)
   if not vim.api.nvim_win_is_valid(win) then
     return
@@ -187,6 +195,7 @@ end
 
 ---@return boolean
 ---@param table string[]
+-- TODO: should be private
 function M.is_empty(table)
   if #table == 0 then
     return true
@@ -199,6 +208,8 @@ function M.is_empty(table)
   return true
 end
 
+-- TODO: should be private
+-- TODO: should add missing function types
 function M.scroll_to_bottom(win, buf)
   local line = vim.api.nvim_buf_line_count(buf)
   local last = vim.api.nvim_buf_get_lines(buf, line - 1, line, false)[1] or ""
@@ -207,6 +218,7 @@ end
 
 ---@return nil
 ---@param selected_lines table
+-- TODO: what should i do?
 function M.open_single_prompt_window(selected_lines)
   -- parent size
   local parent_width = vim.api.nvim_win_get_width(M.parent_win)
@@ -407,6 +419,8 @@ function M.open_single_prompt_window(selected_lines)
     })
 
     -- NOTE: local function to disable mouse clicks outside the prompt window
+    -- TODO: should be private to be used elsewhere when needed
+    -- TODO: should add missing function types
     local function mouse_guard(prompt_win)
       local function handle()
         local m = vim.fn.getmousepos()
@@ -440,6 +454,7 @@ function M.open_single_prompt_window(selected_lines)
 end
 
 ---@param optional_prompt_win_height integer|nil
+-- TODO: should be private
 function M.set_prompt_window_conf(optional_prompt_win_height)
   -- if these two buffer not exist - do not configure windows
   if M.prompt_buf == nil or M.prompt_history_buf == nil then
@@ -615,6 +630,7 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
 end
 
 ---@return nil
+-- TODO: should be private
 function M.open_prompt_window()
   if M.prompt_buf and M.prompt_history_buf then
     M.set_prompt_window_conf()
@@ -672,6 +688,7 @@ end
 ---@param s_line integer
 ---@param e_line integer
 ---@param prompt_win boolean
+-- TODO: should be private
 function M.call_api(prompt, buf, s_line, e_line, prompt_win)
   local lock_buf = M.unlock_buf(buf)
   local stop_spinner = M.start_spinner(buf, s_line)
@@ -707,6 +724,7 @@ end
 ---@param buf integer
 ---@param role string
 ---@param text string
+-- TODO: should be private
 function M.append_message(buf, role, text, usage)
   ---@return string
   local function build_header()
@@ -809,6 +827,7 @@ end
 ---@return nil
 ---@param buf integer
 ---@param text string|nil
+-- TODO: should be private
 function M.append_prompt_message(buf, text)
   local lines = {}
   if text then
@@ -831,11 +850,13 @@ end
 
 ---@return string
 ---@param text string
+-- TODO: should be private
 function M.tag_selected_text(text)
   return "```" .. vim.bo.filetype .. "\n" .. text .. "\n```"
 end
 
 ---@return nil
+-- TODO: should be private
 function M.complete_implementation()
   if M.prompt_thinking then
     M.utils.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
@@ -869,6 +890,7 @@ function M.complete_implementation()
 end
 
 ---@return nil
+-- TODO: should be private
 function M.send_prompt()
   if M.prompt_win then
     local win_buf_lines = vim.api.nvim_buf_get_lines(M.prompt_history_buf, 0, -1, false)
@@ -882,6 +904,7 @@ end
 ---@return function
 ---@param buf integer
 ---@param row integer
+-- TODO: should be private
 function M.start_spinner(buf, row)
   M.prompt_thinking = true
   local spinner = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
@@ -930,6 +953,7 @@ function M.start_spinner(buf, row)
 end
 
 ---@return string[]
+-- TODO: should be private
 function M.get_visual_selection()
   -- Get start and end positions
   local _, s_line, s_col, _ = unpack(vim.fn.getpos("v"))
