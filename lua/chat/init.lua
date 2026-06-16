@@ -255,7 +255,7 @@ function M.open_single_prompt_window(selected_lines)
     if M.is_empty(selected_lines) then
       selected_text = table.concat(selected_lines, "\n")
     else
-      selected_text = M.tag_selected_text(table.concat(selected_lines, "\n"))
+      selected_text = M.utils.tag_selected_text(table.concat(selected_lines, "\n"))
     end
 
     local tagged_selected_lines = vim.split(selected_text, "\n")
@@ -848,13 +848,6 @@ function M.append_prompt_message(buf, text)
   end
 end
 
----@return string
----@param text string
--- TODO: should be private
-function M.tag_selected_text(text)
-  return "```" .. vim.bo.filetype .. "\n" .. text .. "\n```"
-end
-
 ---@return nil
 -- TODO: should be private
 function M.complete_implementation()
@@ -866,7 +859,7 @@ function M.complete_implementation()
   local selected_lines = M.get_visual_selection()
   local func_data = M.treesitter.get_func_ast_data(0)
   local func_signatures = M.treesitter.get_func_signatures(func_data, true, true)
-  local selected_text = M.tag_selected_text(table.concat(selected_lines, "\n"))
+  local selected_text = M.utils.tag_selected_text(table.concat(selected_lines, "\n"))
   local prompt = "Implement the following code.\n"
     .. "Respond with code only. Do NOT wrap the output in backticks.\n\n"
     .. "IMPORTANT (read carefully):\n"
