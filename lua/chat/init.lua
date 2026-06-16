@@ -148,7 +148,7 @@ end
 ---@return function
 ---@param buf integer
 -- NOTE: RAII (Resource acquisition is initialization) pattern
--- TODO: should be private
+-- TODO: should be private (maybe move to utils.lua)
 function M.unlock_buf(buf)
   local prev = vim.bo[buf].modifiable
   vim.bo[buf].modifiable = true
@@ -191,21 +191,6 @@ function M.set_border(win, border_hl, title_hl)
   end
 
   vim.api.nvim_set_option_value("winhl", "FloatTitle:" .. title_hl .. ",FloatBorder:" .. border_hl, { win = win })
-end
-
----@return boolean
----@param table string[]
--- TODO: should be private
-function M.is_empty(table)
-  if #table == 0 then
-    return true
-  end
-  for i = 1, #table do
-    if not table[i]:match("^%s*$") then
-      return false
-    end
-  end
-  return true
 end
 
 -- TODO: should be private
@@ -252,7 +237,7 @@ function M.open_single_prompt_window(selected_lines)
     vim.api.nvim_win_set_config(M.single_prompt_win, single_prompt_win_conf)
   else
     local selected_text
-    if M.is_empty(selected_lines) then
+    if M.utils.is_empty(selected_lines) then
       selected_text = table.concat(selected_lines, "\n")
     else
       selected_text = M.utils.tag_selected_text(table.concat(selected_lines, "\n"))
@@ -271,7 +256,7 @@ function M.open_single_prompt_window(selected_lines)
     -- callback when user presses Enter
     vim.fn.prompt_setcallback(M.single_prompt_buf, function()
       local prompt_lines = vim.api.nvim_buf_get_lines(M.single_prompt_buf, 0, -1, false)
-      if M.is_empty(prompt_lines) then
+      if M.utils.is_empty(prompt_lines) then
         M.utils.safe_notify("Write prompt first", vim.log.levels.WARN)
         vim.api.nvim_buf_set_lines(M.single_prompt_buf, 0, -1, false, {})
         return
@@ -663,7 +648,7 @@ function M.open_prompt_window()
   -- callback when user presses Enter
   vim.fn.prompt_setcallback(M.prompt_buf, function()
     local prompt_lines = vim.api.nvim_buf_get_lines(M.prompt_buf, 0, -1, false)
-    if M.is_empty(prompt_lines) then
+    if M.utils.is_empty(prompt_lines) then
       M.utils.safe_notify("Write prompt first", vim.log.levels.WARN)
       vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, {})
       return

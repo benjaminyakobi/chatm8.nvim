@@ -35,4 +35,18 @@ function M.get_visual_selection()
   return vim.api.nvim_buf_get_lines(0, s_line - 1, e_line, false)
 end
 
+---@return boolean
+---@param table string[]
+function M.is_empty(table)
+  if #table == 0 then
+    return true
+  end
+  for i = 1, #table do
+    if not table[i]:match("^%s*$") then
+      return false
+    end
+  end
+  return true
+end
+
 return M
