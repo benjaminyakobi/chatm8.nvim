@@ -298,6 +298,10 @@ function M.open_single_prompt_window(selected_lines)
       M.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
     end, { desc = "Toggle persistent chat window (Disabled)", buf = M.single_prompt_buf })
 
+    vim.keymap.set("v", "<Leader>8p", function()
+      M.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
+    end, { desc = "Custom prompt: Replace selection (Disabled)", buf = M.single_prompt_buf })
+
     vim.keymap.set({ "n", "i" }, "<Leader>8p", function()
       vim.api.nvim_set_current_win(M.single_prompt_win)
     end, { desc = "Focus custom prompt window", buf = M.main_buf })
