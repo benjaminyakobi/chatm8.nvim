@@ -67,4 +67,13 @@ function M.unlock_buf(buf)
   end
 end
 
+---@return nil
+---@param win integer
+---@param buf integer
+function M.scroll_to_bottom(win, buf)
+  local line = vim.api.nvim_buf_line_count(buf)
+  local last = vim.api.nvim_buf_get_lines(buf, line - 1, line, false)[1] or ""
+  vim.api.nvim_win_set_cursor(win, { line, #last })
+end
+
 return M
