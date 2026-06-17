@@ -1,4 +1,3 @@
--- TODO: those fields should be private fields
 local M = {}
 local state = {
   parent_buf = vim.api.nvim_get_current_buf(),
