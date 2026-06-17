@@ -376,38 +376,7 @@ function M.open_single_prompt_window(selected_lines)
       end,
     })
 
-    -- NOTE: local function to disable mouse clicks outside the prompt window
-    -- TODO: should be private (modify and move to utils.lua)
-    -- TODO: should add missing function types
-    local function mouse_guard(prompt_win)
-      local function handle()
-        local m = vim.fn.getmousepos()
-
-        if m.winid ~= prompt_win then
-          vim.api.nvim_set_current_win(prompt_win)
-          return true
-        end
-        return false
-      end
-
-      local mouse_mappings = {
-        "<LeftMouse>",
-        "<RightMouse>",
-        "<MiddleMouse>",
-        "<LeftDrag>",
-        "<LeftRelease>",
-        "<ScrollWheelUp>",
-        "<ScrollWheelDown>",
-      }
-
-      for _, key in ipairs(mouse_mappings) do
-        vim.keymap.set({ "n", "i" }, key, function()
-          handle()
-        end, { silent = true, noremap = true, buf = M.single_prompt_buf })
-      end
-    end
-
-    mouse_guard(M.single_prompt_win)
+    M.utils.mouse_guard(M.single_prompt_win, M.single_prompt_buf)
   end
 end
 

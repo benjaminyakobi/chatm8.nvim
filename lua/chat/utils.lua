@@ -76,4 +76,36 @@ function M.scroll_to_bottom(win, buf)
   vim.api.nvim_win_set_cursor(win, { line, #last })
 end
 
+---@return nil
+---@param prompt_win integer
+---@param buf integer
+-- NOTE: local function to disable mouse clicks outside the prompt window
+function M.mouse_guard(prompt_win, buf)
+  local function handle()
+    local m = vim.fn.getmousepos()
+
+    if m.winid ~= prompt_win then
+      vim.api.nvim_set_current_win(prompt_win)
+      return true
+    end
+    return false
+  end
+
+  local mouse_mappings = {
+    "<LeftMouse>",
+    "<RightMouse>",
+    "<MiddleMouse>",
+    "<LeftDrag>",
+    "<LeftRelease>",
+    "<ScrollWheelUp>",
+    "<ScrollWheelDown>",
+  }
+
+  for _, key in ipairs(mouse_mappings) do
+    vim.keymap.set({ "n", "i" }, key, function()
+      handle()
+    end, { silent = true, noremap = true, buf = buf })
+  end
+end
+
 return M
