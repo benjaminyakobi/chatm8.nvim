@@ -1,5 +1,6 @@
 -- TODO: those fields should be private fields
-local M = {
+local M = {}
+local state = {
   parent_win = vim.api.nvim_get_current_win(),
   prompt_thinking = false,
   chat_ns = vim.api.nvim_create_namespace("llm-chat"),
@@ -54,7 +55,7 @@ function M.setup(opts)
       local closed_win = tonumber(args.match)
 
       -- main window closed
-      if closed_win ~= M.parent_win then
+      if closed_win ~= state.parent_win then
         return
       end
 
@@ -138,7 +139,7 @@ function M.set_provider(buf, provider_name)
   M.provider_module = provider
   local session_provider = "Provider: " .. M.providers.current
   vim.api.nvim_buf_set_lines(buf, 2, 4, false, { session_provider, "" })
-  vim.api.nvim_buf_set_extmark(buf, M.chat_ns, 2, 0, {
+  vim.api.nvim_buf_set_extmark(buf, state.chat_ns, 2, 0, {
     hl_group = "ChatUI",
     end_col = #session_provider,
   })
@@ -166,8 +167,8 @@ end
 -- TODO: should be private
 function M.open_single_prompt_window(selected_lines)
   -- parent size
-  local parent_width = vim.api.nvim_win_get_width(M.parent_win)
-  local parent_height = vim.api.nvim_win_get_height(M.parent_win)
+  local parent_width = vim.api.nvim_win_get_width(state.parent_win)
+  local parent_height = vim.api.nvim_win_get_height(state.parent_win)
 
   -- your desired size
   local width = math.min(90, parent_width)
@@ -179,7 +180,7 @@ function M.open_single_prompt_window(selected_lines)
 
   local single_prompt_win_conf = {
     relative = "win",
-    win = M.parent_win,
+    win = state.parent_win,
     row = row,
     col = col,
     width = width,
@@ -222,7 +223,7 @@ function M.open_single_prompt_window(selected_lines)
         return
       end
 
-      if M.prompt_thinking then
+      if state.prompt_thinking then
         M.utils.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
         return
       end
@@ -261,7 +262,7 @@ function M.open_single_prompt_window(selected_lines)
     local backdrop_buf = vim.api.nvim_create_buf(false, true)
     local backdrop_win = vim.api.nvim_open_win(backdrop_buf, false, {
       relative = "win",
-      win = M.parent_win,
+      win = state.parent_win,
       row = 0,
       col = 0,
       width = parent_width,
@@ -351,7 +352,7 @@ function M.open_single_prompt_window(selected_lines)
       group = single_prompt_session_group,
       buffer = M.single_prompt_buf,
       callback = function(args)
-        if M.parent_win == tonumber(args.match) and M.single_prompt_win ~= nil then
+        if state.parent_win == tonumber(args.match) and M.single_prompt_win ~= nil then
           M.open_single_prompt_window(selected_lines)
         end
       end,
@@ -516,7 +517,7 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
     vim.api.nvim_create_autocmd({ "VimResized", "WinResized" }, {
       group = chat_session_group,
       callback = function(args)
-        if M.parent_win == tonumber(args.match) or M.chat_win == tonumber(args.match) then
+        if state.parent_win == tonumber(args.match) or M.chat_win == tonumber(args.match) then
           local text_height
           if M.prompt_win and vim.api.nvim_win_is_valid(M.prompt_win) then
             text_height = vim.api.nvim_win_text_height(M.prompt_win, {}).all
@@ -566,7 +567,7 @@ function M.open_prompt_window()
   vim.bo[M.prompt_history_buf].swapfile = false
   local session_title = "Ephermal session"
   vim.api.nvim_buf_set_lines(M.prompt_history_buf, 0, 0, false, { session_title })
-  vim.api.nvim_buf_set_extmark(M.prompt_history_buf, M.chat_ns, 0, 0, {
+  vim.api.nvim_buf_set_extmark(M.prompt_history_buf, state.chat_ns, 0, 0, {
     hl_group = "ChatUI",
     end_col = #session_title,
   })
@@ -588,7 +589,7 @@ function M.open_prompt_window()
       vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, {})
       return
     end
-    if M.prompt_thinking then
+    if state.prompt_thinking then
       M.utils.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
       local line_count = vim.api.nvim_buf_line_count(M.prompt_buf)
       vim.api.nvim_buf_set_lines(M.prompt_buf, line_count - 1, line_count, false, {})
@@ -611,8 +612,8 @@ end
 -- TODO: should be private
 function M.call_api(prompt, buf, s_line, e_line, prompt_win)
   local lock_buf = M.utils.unlock_buf(buf)
-  local stop_spinner = M.utils.start_spinner(buf, s_line, M.chat_ns)
-  M.prompt_thinking = true
+  local stop_spinner = M.utils.start_spinner(buf, s_line, state.chat_ns)
+  state.prompt_thinking = true
   M.provider_module.answer(prompt, function(result)
     vim.schedule(function()
       if result.error then
@@ -630,7 +631,7 @@ function M.call_api(prompt, buf, s_line, e_line, prompt_win)
 
       stop_spinner(true)
       lock_buf()
-      M.prompt_thinking = false
+      state.prompt_thinking = false
 
       if prompt_win then
         M.append_message(buf, "Assistant", result.content, result.usage)
@@ -685,12 +686,12 @@ function M.append_message(buf, role, text, usage)
   total_lines[#total_lines + 1] = ""
 
   vim.api.nvim_buf_set_lines(buf, -1, -1, false, total_lines)
-  vim.api.nvim_buf_set_extmark(buf, M.chat_ns, header_line, 0, {
+  vim.api.nvim_buf_set_extmark(buf, state.chat_ns, header_line, 0, {
     hl_group = role,
     end_col = #header,
   })
   if usage then
-    vim.api.nvim_buf_set_extmark(buf, M.chat_ns, header_line + 1, 0, {
+    vim.api.nvim_buf_set_extmark(buf, state.chat_ns, header_line + 1, 0, {
       hl_group = role,
       end_col = #usage,
     })
@@ -773,7 +774,7 @@ end
 ---@return nil
 -- TODO: should be private
 function M.complete_implementation()
-  if M.prompt_thinking then
+  if state.prompt_thinking then
     M.utils.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
     return
   end
