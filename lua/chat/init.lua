@@ -77,7 +77,8 @@ function M.setup(opts)
   end, { desc = "Complete implementation: Replace selection" })
 
   vim.keymap.set("v", "<leader>8p", function()
-    local selected_lines = M.utils.get_visual_selection()
+    local selected_lines, start_line, end_line = M.utils.get_visual_selection()
+    M.start_line, M.end_line = start_line, end_line
     M.open_single_prompt_window(selected_lines)
   end, {
     desc = "Custom prompt: Replace selection",
@@ -624,7 +625,8 @@ end
 -- TODO: should be private
 function M.call_api(prompt, buf, s_line, e_line, prompt_win)
   local lock_buf = M.utils.unlock_buf(buf)
-  local stop_spinner = M.start_spinner(buf, s_line)
+  local stop_spinner = M.utils.start_spinner(buf, s_line, M.chat_ns)
+  M.prompt_thinking = true
   M.provider_module.answer(prompt, function(result)
     vim.schedule(function()
       if result.error then
@@ -642,6 +644,7 @@ function M.call_api(prompt, buf, s_line, e_line, prompt_win)
 
       stop_spinner(true)
       lock_buf()
+      M.prompt_thinking = false
 
       if prompt_win then
         M.append_message(buf, "Assistant", result.content, result.usage)
@@ -789,7 +792,8 @@ function M.complete_implementation()
     return
   end
   vim.api.nvim_input("<Esc>") -- exit selection mode for better ux
-  local selected_lines = M.utils.get_visual_selection()
+  local selected_lines, start_line, end_line = M.utils.get_visual_selection()
+  M.start_line, M.end_line = start_line, end_line
   local func_data = M.treesitter.get_func_ast_data(0)
   local func_signatures = M.treesitter.get_func_signatures(func_data, true, true)
   local selected_text = M.utils.tag_selected_text(table.concat(selected_lines, "\n"))
@@ -824,57 +828,6 @@ function M.send_prompt()
     M.call_api(M.history.get(), M.prompt_history_buf, #win_buf_lines, -1, true)
   else
     M.utils.safe_notify("chat.nvim: Select lines first", vim.log.levels.INFO)
-  end
-end
-
----@return function
----@param buf integer
----@param row integer
--- TODO: should be private (modify and move to utils.lua)
-function M.start_spinner(buf, row)
-  M.prompt_thinking = true
-  local spinner = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
-  local spin_index = 1
-  vim.api.nvim_buf_set_lines(buf, row, row, false, { "" })
-  local timer = vim.uv.new_timer()
-  if not timer then
-    return function() end
-  end
-  timer:start(
-    0,
-    100,
-    vim.schedule_wrap(function()
-      local frame = spinner[spin_index]
-
-      M.mark_id = vim.api.nvim_buf_set_extmark(buf, M.chat_ns, row, 0, {
-        id = M.mark_id, -- reuse same extmark
-        virt_text = { { "Thinking " .. frame, "Comment" } },
-        virt_text_pos = "eol",
-      })
-
-      spin_index = spin_index % #spinner + 1
-    end)
-  )
-
-  ---@return nil
-  ---@param ok boolean
-  return function(ok)
-    if timer then
-      timer:stop()
-      timer:close()
-      timer = nil
-    end
-
-    if M.mark_id then
-      vim.api.nvim_buf_del_extmark(buf, M.chat_ns, M.mark_id)
-      M.mark_id = nil
-    end
-    if not ok then
-      local lock_buf = M.utils.unlock_buf(buf)
-      vim.api.nvim_buf_set_lines(buf, row, row + 1, false, {})
-      lock_buf()
-    end
-    M.prompt_thinking = false
   end
 end
 

@@ -15,13 +15,13 @@ function M.tag_selected_text(text)
   return "```" .. vim.bo.filetype .. "\n" .. text .. "\n```"
 end
 
----@return string[]
+---@return string[], integer, integer
 function M.get_visual_selection()
   -- Get start and end positions
   local _, s_line, s_col, _ = unpack(vim.fn.getpos("v"))
   local _, e_line, e_col, _ = unpack(vim.fn.getpos("."))
-  M.start_line = math.min(s_line, e_line)
-  M.end_line = math.max(s_line, e_line)
+  start_line = math.min(s_line, e_line)
+  end_line = math.max(s_line, e_line)
   -- Ensure start is before end for selection logic
   if s_line > e_line or (s_line == e_line and s_col > e_col) then
     s_line, e_line = e_line, s_line
@@ -32,7 +32,7 @@ function M.get_visual_selection()
   -- return vim.api.nvim_buf_get_text(0, s_line - 1, s_col - 1, e_line - 1, e_col, {})
 
   -- This return the selection of the whole line (not the cursor position)
-  return vim.api.nvim_buf_get_lines(0, s_line - 1, e_line, false)
+  return vim.api.nvim_buf_get_lines(0, s_line - 1, e_line, false), start_line, end_line
 end
 
 ---@return boolean
@@ -105,6 +105,56 @@ function M.mouse_guard(prompt_win, buf)
     vim.keymap.set({ "n", "i" }, key, function()
       handle()
     end, { silent = true, noremap = true, buf = buf })
+  end
+end
+
+---@return function
+---@param buf integer
+---@param row integer
+---@param ns integer
+-- NOTE: RAII (Resource acquisition is initialization) pattern
+function M.start_spinner(buf, row, ns)
+  local spinner = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
+  local spin_index = 1
+  vim.api.nvim_buf_set_lines(buf, row, row, false, { "" })
+  local timer = vim.uv.new_timer()
+  if not timer then
+    return function() end
+  end
+  timer:start(
+    0,
+    100,
+    vim.schedule_wrap(function()
+      local frame = spinner[spin_index]
+
+      M.mark_id = vim.api.nvim_buf_set_extmark(buf, ns, row, 0, {
+        id = M.mark_id, -- reuse same extmark
+        virt_text = { { "Thinking " .. frame, "Comment" } },
+        virt_text_pos = "eol",
+      })
+
+      spin_index = spin_index % #spinner + 1
+    end)
+  )
+
+  ---@return nil
+  ---@param ok boolean
+  return function(ok)
+    if timer then
+      timer:stop()
+      timer:close()
+      timer = nil
+    end
+
+    if M.mark_id then
+      vim.api.nvim_buf_del_extmark(buf, ns, M.mark_id)
+      M.mark_id = nil
+    end
+    if not ok then
+      local lock_buf = M.utils.unlock_buf(buf)
+      vim.api.nvim_buf_set_lines(buf, row, row + 1, false, {})
+      lock_buf()
+    end
   end
 end
 
