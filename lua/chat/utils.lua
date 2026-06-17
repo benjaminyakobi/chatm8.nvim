@@ -151,7 +151,7 @@ function M.start_spinner(buf, row, ns)
       M.mark_id = nil
     end
     if not ok then
-      local lock_buf = M.utils.unlock_buf(buf)
+      local lock_buf = M.unlock_buf(buf)
       vim.api.nvim_buf_set_lines(buf, row, row + 1, false, {})
       lock_buf()
     end
