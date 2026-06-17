@@ -184,7 +184,7 @@ end
 ---@param win integer
 ---@param border_hl string
 ---@param title_hl string
--- TODO: should be private
+-- TODO: should be private (modify and move to utils.lua)
 function M.set_border(win, border_hl, title_hl)
   if not vim.api.nvim_win_is_valid(win) then
     return
@@ -193,8 +193,10 @@ function M.set_border(win, border_hl, title_hl)
   vim.api.nvim_set_option_value("winhl", "FloatTitle:" .. title_hl .. ",FloatBorder:" .. border_hl, { win = win })
 end
 
--- TODO: should be private
--- TODO: should add missing function types
+---@return nil
+---@param win integer
+---@param buf integer
+-- TODO: should be private (modify and move to utils.lua)
 function M.scroll_to_bottom(win, buf)
   local line = vim.api.nvim_buf_line_count(buf)
   local last = vim.api.nvim_buf_get_lines(buf, line - 1, line, false)[1] or ""
@@ -404,7 +406,7 @@ function M.open_single_prompt_window(selected_lines)
     })
 
     -- NOTE: local function to disable mouse clicks outside the prompt window
-    -- TODO: should be private to be used elsewhere when needed
+    -- TODO: should be private (modify and move to utils.lua)
     -- TODO: should add missing function types
     local function mouse_guard(prompt_win)
       local function handle()
@@ -882,7 +884,7 @@ end
 ---@return function
 ---@param buf integer
 ---@param row integer
--- TODO: should be private
+-- TODO: should be private (modify and move to utils.lua)
 function M.start_spinner(buf, row)
   M.prompt_thinking = true
   local spinner = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
