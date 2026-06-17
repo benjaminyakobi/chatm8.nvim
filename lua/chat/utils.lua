@@ -127,8 +127,9 @@ function M.start_spinner(buf, row, ns)
     vim.schedule_wrap(function()
       local frame = spinner[spin_index]
 
-      M.mark_id = vim.api.nvim_buf_set_extmark(buf, ns, row, 0, {
-        id = M.mark_id, -- reuse same extmark
+      ---@type nil | integer
+      MARK_ID = vim.api.nvim_buf_set_extmark(buf, ns, row, 0, {
+        id = MARK_ID, -- reuse same extmark
         virt_text = { { "Thinking " .. frame, "Comment" } },
         virt_text_pos = "eol",
       })
@@ -146,9 +147,9 @@ function M.start_spinner(buf, row, ns)
       timer = nil
     end
 
-    if M.mark_id then
-      vim.api.nvim_buf_del_extmark(buf, ns, M.mark_id)
-      M.mark_id = nil
+    if MARK_ID then
+      vim.api.nvim_buf_del_extmark(buf, ns, MARK_ID)
+      MARK_ID = nil
     end
     if not ok then
       local lock_buf = M.unlock_buf(buf)
