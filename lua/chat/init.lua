@@ -118,7 +118,7 @@ end
 function M.select_provider()
   vim.ui.select(M.providers.list, { prompt = "Select chat provider:" }, function(choice)
     if choice then
-      local lock_buf = M.unlock_buf(M.prompt_history_buf)
+      local lock_buf = M.utils.unlock_buf(M.prompt_history_buf)
       M.set_provider(M.prompt_history_buf, choice)
       lock_buf()
     end
@@ -143,25 +143,6 @@ function M.set_provider(buf, provider_name)
     end_col = #session_provider,
   })
   M.utils.safe_notify("chat.nvim: current provider: " .. M.providers.current, vim.log.levels.INFO)
-end
-
----@return function
----@param buf integer
--- NOTE: RAII (Resource acquisition is initialization) pattern
--- TODO: should be private (maybe move to utils.lua)
-function M.unlock_buf(buf)
-  local prev = vim.bo[buf].modifiable
-  vim.bo[buf].modifiable = true
-
-  -- destructor
-  return function()
-    if prev == true then
-      return
-    end
-    if vim.api.nvim_buf_is_valid(buf) then
-      vim.bo[buf].modifiable = prev
-    end
-  end
 end
 
 ---@return nil
@@ -677,7 +658,7 @@ end
 ---@param prompt_win boolean
 -- TODO: should be private
 function M.call_api(prompt, buf, s_line, e_line, prompt_win)
-  local lock_buf = M.unlock_buf(buf)
+  local lock_buf = M.utils.unlock_buf(buf)
   local stop_spinner = M.start_spinner(buf, s_line)
   M.provider_module.answer(prompt, function(result)
     vim.schedule(function()
@@ -727,7 +708,7 @@ function M.append_message(buf, role, text, usage)
     should_summarize = M.history.add(role, text)
   end
 
-  local lock_buf = M.unlock_buf(buf)
+  local lock_buf = M.utils.unlock_buf(buf)
   local lines = vim.split(text, "\n", { plain = true })
   local header = build_header()
   local header_line = vim.api.nvim_buf_line_count(buf)
@@ -924,7 +905,7 @@ function M.start_spinner(buf, row)
       M.mark_id = nil
     end
     if not ok then
-      local lock_buf = M.unlock_buf(buf)
+      local lock_buf = M.utils.unlock_buf(buf)
       vim.api.nvim_buf_set_lines(buf, row, row + 1, false, {})
       lock_buf()
     end

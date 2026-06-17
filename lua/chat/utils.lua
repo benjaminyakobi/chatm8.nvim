@@ -49,4 +49,22 @@ function M.is_empty(table)
   return true
 end
 
+---@return function
+---@param buf integer
+-- NOTE: RAII (Resource acquisition is initialization) pattern
+function M.unlock_buf(buf)
+  local prev = vim.bo[buf].modifiable
+  vim.bo[buf].modifiable = true
+
+  -- destructor
+  return function()
+    if prev == true then
+      return
+    end
+    if vim.api.nvim_buf_is_valid(buf) then
+      vim.bo[buf].modifiable = prev
+    end
+  end
+end
+
 return M
