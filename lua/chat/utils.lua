@@ -159,4 +159,16 @@ function M.start_spinner(buf, row, ns)
   end
 end
 
+---@return nil
+---@param win integer
+---@param border_hl string
+---@param title_hl string
+function M.set_border(win, border_hl, title_hl)
+  if not vim.api.nvim_win_is_valid(win) then
+    return
+  end
+
+  vim.api.nvim_set_option_value("winhl", "FloatTitle:" .. title_hl .. ",FloatBorder:" .. border_hl, { win = win })
+end
+
 return M

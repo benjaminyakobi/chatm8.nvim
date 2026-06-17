@@ -7,7 +7,6 @@ local M = {
 
 ---@return nil
 ---@param opts table
--- TODO: what should i do?
 function M.setup(opts)
   M.main_buf = vim.api.nvim_get_current_buf()
 
@@ -147,7 +146,7 @@ function M.set_provider(buf, provider_name)
 end
 
 ---@return nil
--- TODO: what should i do?
+-- TODO: should be private
 function M.toggle_persistent_chat_window()
   -- if already open -> close
   if M.chat_win then
@@ -163,21 +162,8 @@ function M.toggle_persistent_chat_window()
 end
 
 ---@return nil
----@param win integer
----@param border_hl string
----@param title_hl string
--- TODO: should be private (modify and move to utils.lua)
-function M.set_border(win, border_hl, title_hl)
-  if not vim.api.nvim_win_is_valid(win) then
-    return
-  end
-
-  vim.api.nvim_set_option_value("winhl", "FloatTitle:" .. title_hl .. ",FloatBorder:" .. border_hl, { win = win })
-end
-
----@return nil
 ---@param selected_lines table
--- TODO: what should i do?
+-- TODO: should be private
 function M.open_single_prompt_window(selected_lines)
   -- parent size
   local parent_width = vim.api.nvim_win_get_width(M.parent_win)
@@ -288,7 +274,7 @@ function M.open_single_prompt_window(selected_lines)
 
     -- Opening the prompt window
     M.single_prompt_win = vim.api.nvim_open_win(M.single_prompt_buf, true, single_prompt_win_conf)
-    M.set_border(M.single_prompt_win, "PromptBorderActive", "PromptTitleActive")
+    M.utils.set_border(M.single_prompt_win, "PromptBorderActive", "PromptTitleActive")
 
     -- custom key maps - disabling key maps
     vim.keymap.set("v", "<Leader>8i", function()
@@ -318,7 +304,7 @@ function M.open_single_prompt_window(selected_lines)
       callback = function()
         local win = vim.api.nvim_get_current_win()
         if win == M.single_prompt_win then
-          M.set_border(M.single_prompt_win, "PromptBorderActive", "PromptTitleActive")
+          M.utils.set_border(M.single_prompt_win, "PromptBorderActive", "PromptTitleActive")
         end
       end,
     })
@@ -378,7 +364,7 @@ function M.open_single_prompt_window(selected_lines)
       callback = function()
         local win = vim.api.nvim_get_current_win()
         if win == M.single_prompt_win then
-          M.set_border(M.single_prompt_win, "ChatBorderInactive", "PromptTitleInactive")
+          M.utils.set_border(M.single_prompt_win, "ChatBorderInactive", "PromptTitleInactive")
         end
       end,
     })
@@ -452,7 +438,7 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
     -- set custom options
     vim.api.nvim_set_option_value("number", true, { win = M.prompt_win })
     vim.api.nvim_set_option_value("number", true, { win = M.prompt_history_win })
-    M.set_border(M.prompt_win, "PromptBorderActive", "PromptTitleActive")
+    M.utils.set_border(M.prompt_win, "PromptBorderActive", "PromptTitleActive")
 
     -- set cursor at the last line & start insert mode
     local last = vim.api.nvim_buf_line_count(M.prompt_buf)
@@ -485,9 +471,9 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
         callback = function()
           local win = vim.api.nvim_get_current_win()
           if win == M.prompt_history_win then
-            M.set_border(M.prompt_history_win, "ChatBorderActive", "PromptTitleActive")
+            M.utils.set_border(M.prompt_history_win, "ChatBorderActive", "PromptTitleActive")
           elseif win == M.prompt_win then
-            M.set_border(M.prompt_win, "PromptBorderActive", "PromptTitleActive")
+            M.utils.set_border(M.prompt_win, "PromptBorderActive", "PromptTitleActive")
           end
         end,
       })
@@ -498,9 +484,9 @@ function M.set_prompt_window_conf(optional_prompt_win_height)
         callback = function()
           local win = vim.api.nvim_get_current_win()
           if win == M.prompt_history_win then
-            M.set_border(M.prompt_history_win, "ChatBorderInactive", "PromptTitleInactive")
+            M.utils.set_border(M.prompt_history_win, "ChatBorderInactive", "PromptTitleInactive")
           elseif win == M.prompt_win then
-            M.set_border(M.prompt_win, "PromptBorderInactive", "PromptTitleInactive")
+            M.utils.set_border(M.prompt_win, "PromptBorderInactive", "PromptTitleInactive")
           end
         end,
       })
