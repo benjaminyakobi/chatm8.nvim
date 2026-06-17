@@ -20,8 +20,8 @@ function M.get_visual_selection()
   -- Get start and end positions
   local _, s_line, s_col, _ = unpack(vim.fn.getpos("v"))
   local _, e_line, e_col, _ = unpack(vim.fn.getpos("."))
-  start_line = math.min(s_line, e_line)
-  end_line = math.max(s_line, e_line)
+  local start_line = math.min(s_line, e_line)
+  local end_line = math.max(s_line, e_line)
   -- Ensure start is before end for selection logic
   if s_line > e_line or (s_line == e_line and s_col > e_col) then
     s_line, e_line = e_line, s_line
