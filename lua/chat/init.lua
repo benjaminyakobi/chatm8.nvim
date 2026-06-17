@@ -291,6 +291,7 @@ function M.open_single_prompt_window(selected_lines)
 
     -- custom key maps - disabling key maps
     vim.keymap.set("v", "<Leader>8i", function()
+      vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "n", false)
       M.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
     end, { desc = "Complete implementation (Disabled)", buf = M.single_prompt_buf })
 
@@ -299,6 +300,7 @@ function M.open_single_prompt_window(selected_lines)
     end, { desc = "Toggle persistent chat window (Disabled)", buf = M.single_prompt_buf })
 
     vim.keymap.set("v", "<Leader>8p", function()
+      vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "n", false)
       M.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
     end, { desc = "Custom prompt: Replace selection (Disabled)", buf = M.single_prompt_buf })
 
