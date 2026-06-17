@@ -1,31 +1,11 @@
 -- TODO: those fields should be private fields
 local M = {}
 local state = {
+  parent_buf = vim.api.nvim_get_current_buf(),
   parent_win = vim.api.nvim_get_current_win(),
   prompt_thinking = false,
   chat_ns = vim.api.nvim_create_namespace("llm-chat"),
-}
-
----@return nil
----@param opts table
-function M.setup(opts)
-  M.main_buf = vim.api.nvim_get_current_buf()
-
-  local chat_setup_group = vim.api.nvim_create_augroup("llm_chat_setup", { clear = true })
-  opts = opts or {}
-
-  -- Importing modules
-  M.treesitter = require("chat.treesitter")
-  M.utils = require("chat.utils")
-  M.history = require("chat.history")
-  M.providers = require("chat.providers")
-
-  -- setting up a provider
-  M.providers.setup(opts.providers, opts.provider)
-
-  M.open_prompt_window()
-
-  local help = [[
+  help = [[
 <Leader>8i: Inline Implementation
   1. [Visual Mode] Select text (either code snippets or natural language instructions).
   2. Press <Leader>8i to automatically complete the implementation or transform 
@@ -46,7 +26,25 @@ function M.setup(opts)
          - Upper window: conversation history (read-only).
          - Lower window: prompt input.
     2.2. [Navigation] Press <C-s> in Normal or Visual mode to switch between the
-         history window and the prompt window.]]
+         history window and the prompt window.]],
+}
+
+---@return nil
+---@param opts table
+function M.setup(opts)
+  local chat_setup_group = vim.api.nvim_create_augroup("llm_chat_setup", { clear = true })
+  opts = opts or {}
+
+  -- Importing modules
+  M.treesitter = require("chat.treesitter")
+  M.utils = require("chat.utils")
+  M.history = require("chat.history")
+  M.providers = require("chat.providers")
+
+  -- setting up a provider
+  M.providers.setup(opts.providers, opts.provider)
+
+  M.open_prompt_window()
 
   -- setting global autocmds
   vim.api.nvim_create_autocmd("WinClosed", {
@@ -66,9 +64,9 @@ function M.setup(opts)
   -- setting global keymaps
   vim.keymap.set("n", "<Leader>8?", function()
     if opts.dev then
-      print("chat.nvim: local setup\n" .. help)
+      print("chat.nvim: local setup\n" .. state.help)
     else
-      print("chat.nvim: remote setup\n" .. help)
+      print("chat.nvim: remote setup\n" .. state.help)
     end
   end, { desc = "Help" })
 
@@ -247,13 +245,13 @@ function M.open_single_prompt_window(selected_lines)
         .. prompt_text
         .. "\n\n"
         .. "Language: "
-        .. vim.bo[M.main_buf].filetype
+        .. vim.bo[state.parent_buf].filetype
         .. "\n\n"
         .. "Available function signatures (reference only — do NOT implement or re-declare):\n"
         .. table.concat(func_signatures, "\n")
         .. "\n\n"
         .. "Keep existing coding style and formatting. Output only code or a single clarifying comment if you cannot proceed."
-      M.call_api({ M.history.pack("You", prompt) }, M.main_buf, M.start_line - 1, M.end_line + 1, false)
+      M.call_api({ M.history.pack("You", prompt) }, state.parent_buf, M.start_line - 1, M.end_line + 1, false)
 
       vim.api.nvim_win_close(M.single_prompt_win, true)
     end)
@@ -294,7 +292,7 @@ function M.open_single_prompt_window(selected_lines)
 
     vim.keymap.set({ "n", "i" }, "<Leader>8p", function()
       vim.api.nvim_set_current_win(M.single_prompt_win)
-    end, { desc = "Focus custom prompt window", buf = M.main_buf })
+    end, { desc = "Focus custom prompt window", buf = state.parent_buf })
 
     local single_prompt_session_group = vim.api.nvim_create_augroup("llm_single_prompt_session", { clear = true })
 
@@ -321,7 +319,7 @@ function M.open_single_prompt_window(selected_lines)
           vim.api.nvim_win_close(backdrop_win, true)
           vim.api.nvim_buf_delete(backdrop_buf, {})
           pcall(vim.api.nvim_clear_autocmds, { group = single_prompt_session_group })
-          vim.keymap.del({ "n", "i" }, "<Leader>8p", { buf = M.main_buf })
+          vim.keymap.del({ "n", "i" }, "<Leader>8p", { buf = state.parent_buf })
         end
       end,
     })
