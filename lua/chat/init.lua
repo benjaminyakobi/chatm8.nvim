@@ -1,3 +1,22 @@
+-- TODO: code refactor!
+--  coupeled functions (mutual dependencies)
+--   `local open_prompt_window`
+--   `local open_single_prompt_window`
+--   `local set_prompt_window_conf`
+-- list of functions which should be organized
+--   `M.setup(opts)` - should stay module level
+--   `M.select_provider()`
+--   `M.set_provider(buf, provider_name)`
+--   `M.toggle_persistent_chat_window()`
+--   `M.open_single_prompt_window(selected_lines)`
+--   `M.set_prompt_window_conf(optional_prompt_win_height)`
+--   `M.open_prompt_window()`
+--   `M.call_api(prompt, buf, s_line, e_line, prompt_win)`
+--   `M.append_message(buf, role, text, usage)`
+--   `M.append_prompt_message(buf, text)`
+--   `M.complete_implementation()`
+--   `M.send_prompt()`
+
 local M = {}
 local state = {
   parent_buf = vim.api.nvim_get_current_buf(),
