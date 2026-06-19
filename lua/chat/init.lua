@@ -4,8 +4,7 @@
 --   `local open_single_prompt_window`
 --   `local set_prompt_window_conf`
 -- list of functions which should be organized
---   `M.setup(opts)` - should stay module level
---   `M.select_provider()`
+--   `select_provider()`
 --   `M.set_provider(buf, provider_name)`
 --   `M.toggle_persistent_chat_window()`
 --   `M.open_single_prompt_window(selected_lines)`
@@ -16,6 +15,7 @@
 --   `M.append_prompt_message(buf, text)`
 --   `M.complete_implementation()`
 --   `M.send_prompt()`
+--   `M.setup(opts)` - should stay module level
 
 local M = {}
 local state = {
@@ -52,8 +52,7 @@ local state = {
 -- ---------------------------------------------
 
 ---@return nil
--- TODO: should be private
-function M.select_provider()
+local function select_provider()
   vim.ui.select(M.providers.list, { prompt = "Select chat provider:" }, function(choice)
     if choice then
       local lock_buf = M.utils.unlock_buf(M.prompt_history_buf)
@@ -813,7 +812,7 @@ function M.setup(opts)
   end, { desc = "Toggle persistent chat window" })
 
   vim.keymap.set("n", "<leader>8s", function()
-    M.select_provider()
+    select_provider()
   end, {
     desc = "Select chat provider",
   })
