@@ -4,8 +4,8 @@
 --   `local open_single_prompt_window`
 --   `local set_prompt_window_conf`
 -- list of functions which should be organized
+--   `set_provider(buf, provider_name)`
 --   `select_provider()`
---   `M.set_provider(buf, provider_name)`
 --   `M.toggle_persistent_chat_window()`
 --   `M.open_single_prompt_window(selected_lines)`
 --   `M.set_prompt_window_conf(optional_prompt_win_height)`
@@ -52,20 +52,8 @@ local state = {
 -- ---------------------------------------------
 
 ---@return nil
-local function select_provider()
-  vim.ui.select(M.providers.list, { prompt = "Select chat provider:" }, function(choice)
-    if choice then
-      local lock_buf = M.utils.unlock_buf(M.prompt_history_buf)
-      M.set_provider(M.prompt_history_buf, choice)
-      lock_buf()
-    end
-  end)
-end
-
----@return nil
 ---@param provider_name string
--- TODO: should be private
-function M.set_provider(buf, provider_name)
+local function set_provider(buf, provider_name)
   M.providers.set(provider_name)
   local ok, provider = pcall(require, "chat.providers." .. M.providers.name)
   if not ok then
@@ -80,6 +68,17 @@ function M.set_provider(buf, provider_name)
     end_col = #session_provider,
   })
   M.utils.safe_notify("chat.nvim: current provider: " .. M.providers.current, vim.log.levels.INFO)
+end
+
+---@return nil
+local function select_provider()
+  vim.ui.select(M.providers.list, { prompt = "Select chat provider:" }, function(choice)
+    if choice then
+      local lock_buf = M.utils.unlock_buf(M.prompt_history_buf)
+      set_provider(M.prompt_history_buf, choice)
+      lock_buf()
+    end
+  end)
 end
 
 ---@return nil
@@ -508,7 +507,7 @@ function M.open_prompt_window()
     end_col = #session_title,
   })
 
-  M.set_provider(M.prompt_history_buf, M.providers.current)
+  set_provider(M.prompt_history_buf, M.providers.current)
 
   vim.bo[M.prompt_history_buf].modifiable = false
 
