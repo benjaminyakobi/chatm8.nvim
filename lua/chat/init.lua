@@ -47,85 +47,6 @@ local state = {
          history window and the prompt window.]],
 }
 
----@return nil
----@param opts table
-function M.setup(opts)
-  local chat_setup_group = vim.api.nvim_create_augroup("llm_chat_setup", { clear = true })
-  opts = opts or {}
-
-  -- Importing modules
-  M.treesitter = require("chat.treesitter")
-  M.utils = require("chat.utils")
-  M.history = require("chat.history")
-  M.providers = require("chat.providers")
-
-  -- setting up a provider
-  M.providers.setup(opts.providers, opts.provider)
-
-  M.open_prompt_window()
-
-  -- setting global autocmds
-  vim.api.nvim_create_autocmd("WinClosed", {
-    group = chat_setup_group,
-    callback = function(args)
-      local closed_win = tonumber(args.match)
-
-      -- main window closed
-      if closed_win ~= state.parent_win then
-        return
-      end
-
-      vim.cmd("qa")
-    end,
-  })
-
-  -- setting global keymaps
-  vim.keymap.set("n", "<Leader>8?", function()
-    if opts.dev then
-      print("chat.nvim: local setup\n" .. state.help)
-    else
-      print("chat.nvim: remote setup\n" .. state.help)
-    end
-  end, { desc = "Help" })
-
-  vim.keymap.set("v", "<Leader>8i", function()
-    M.complete_implementation()
-  end, { desc = "Complete implementation: Replace selection" })
-
-  vim.keymap.set("v", "<leader>8p", function()
-    local selected_lines, start_line, end_line = M.utils.get_visual_selection()
-    M.start_line, M.end_line = start_line, end_line
-    M.open_single_prompt_window(selected_lines)
-  end, {
-    desc = "Custom prompt: Replace selection",
-  })
-
-  vim.keymap.set("n", "<Leader>8c", function()
-    M.toggle_persistent_chat_window()
-  end, { desc = "Toggle persistent chat window" })
-
-  vim.keymap.set("n", "<leader>8s", function()
-    M.select_provider()
-  end, {
-    desc = "Select chat provider",
-  })
-
-  -- setting global hightlights
-  vim.api.nvim_set_hl(0, "ChatUI", { fg = "#ffd57a", bold = true })
-  vim.api.nvim_set_hl(0, "You", { fg = "#89b4fa", bold = true })
-  vim.api.nvim_set_hl(0, "Assistant", { fg = "#a6e3a1", bold = true })
-  vim.api.nvim_set_hl(0, "Error", { fg = "#d43131", bold = true })
-
-  vim.api.nvim_set_hl(0, "PromptTitleActive", { fg = "#00ffcc", bold = true })
-  vim.api.nvim_set_hl(0, "PromptTitleInactive", { fg = "#00ffcc" })
-
-  vim.api.nvim_set_hl(0, "ChatBorderActive", { fg = "#ffd57a" }) -- bright
-  vim.api.nvim_set_hl(0, "ChatBorderInactive", { fg = "#3b4261" }) -- dim
-
-  vim.api.nvim_set_hl(0, "PromptBorderActive", { fg = "#ffd57a" })
-  vim.api.nvim_set_hl(0, "PromptBorderInactive", { fg = "#3b4261" })
-end
-
 -- ---------------------------------------------
 -- ------------- core buffer logic -------------
 -- ---------------------------------------------
@@ -832,6 +753,85 @@ function M.send_prompt()
   else
     M.utils.safe_notify("chat.nvim: Select lines first", vim.log.levels.INFO)
   end
+end
+
+---@return nil
+---@param opts table
+function M.setup(opts)
+  local chat_setup_group = vim.api.nvim_create_augroup("llm_chat_setup", { clear = true })
+  opts = opts or {}
+
+  -- Importing modules
+  M.treesitter = require("chat.treesitter")
+  M.utils = require("chat.utils")
+  M.history = require("chat.history")
+  M.providers = require("chat.providers")
+
+  -- setting up a provider
+  M.providers.setup(opts.providers, opts.provider)
+
+  M.open_prompt_window()
+
+  -- setting global autocmds
+  vim.api.nvim_create_autocmd("WinClosed", {
+    group = chat_setup_group,
+    callback = function(args)
+      local closed_win = tonumber(args.match)
+
+      -- main window closed
+      if closed_win ~= state.parent_win then
+        return
+      end
+
+      vim.cmd("qa")
+    end,
+  })
+
+  -- setting global keymaps
+  vim.keymap.set("n", "<Leader>8?", function()
+    if opts.dev then
+      print("chat.nvim: local setup\n" .. state.help)
+    else
+      print("chat.nvim: remote setup\n" .. state.help)
+    end
+  end, { desc = "Help" })
+
+  vim.keymap.set("v", "<Leader>8i", function()
+    M.complete_implementation()
+  end, { desc = "Complete implementation: Replace selection" })
+
+  vim.keymap.set("v", "<leader>8p", function()
+    local selected_lines, start_line, end_line = M.utils.get_visual_selection()
+    M.start_line, M.end_line = start_line, end_line
+    M.open_single_prompt_window(selected_lines)
+  end, {
+    desc = "Custom prompt: Replace selection",
+  })
+
+  vim.keymap.set("n", "<Leader>8c", function()
+    M.toggle_persistent_chat_window()
+  end, { desc = "Toggle persistent chat window" })
+
+  vim.keymap.set("n", "<leader>8s", function()
+    M.select_provider()
+  end, {
+    desc = "Select chat provider",
+  })
+
+  -- setting global hightlights
+  vim.api.nvim_set_hl(0, "ChatUI", { fg = "#ffd57a", bold = true })
+  vim.api.nvim_set_hl(0, "You", { fg = "#89b4fa", bold = true })
+  vim.api.nvim_set_hl(0, "Assistant", { fg = "#a6e3a1", bold = true })
+  vim.api.nvim_set_hl(0, "Error", { fg = "#d43131", bold = true })
+
+  vim.api.nvim_set_hl(0, "PromptTitleActive", { fg = "#00ffcc", bold = true })
+  vim.api.nvim_set_hl(0, "PromptTitleInactive", { fg = "#00ffcc" })
+
+  vim.api.nvim_set_hl(0, "ChatBorderActive", { fg = "#ffd57a" }) -- bright
+  vim.api.nvim_set_hl(0, "ChatBorderInactive", { fg = "#3b4261" }) -- dim
+
+  vim.api.nvim_set_hl(0, "PromptBorderActive", { fg = "#ffd57a" })
+  vim.api.nvim_set_hl(0, "PromptBorderInactive", { fg = "#3b4261" })
 end
 
 return M
