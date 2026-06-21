@@ -1,15 +1,11 @@
 -- TODO: code refactor!
---  coupeled functions (mutual dependencies)
---   `local open_prompt_window`
---   `local open_single_prompt_window`
---   `local set_prompt_window_conf`
 -- list of functions which should be organized
 --   `set_provider(buf, provider_name)`
 --   `select_provider()`
---   `M.toggle_persistent_chat_window()`
---   `M.open_single_prompt_window(selected_lines)`
---   `M.set_prompt_window_conf(optional_prompt_win_height)`
---   `M.open_prompt_window()`
+--   `set_prompt_window_conf(optional_prompt_win_height)`
+--   `open_prompt_window()`
+--   `toggle_persistent_chat_window()`
+--   `open_single_prompt_window(selected_lines)`
 --   `M.call_api(prompt, buf, s_line, e_line, prompt_win)`
 --   `M.append_message(buf, role, text, usage)`
 --   `M.append_prompt_message(buf, text)`
@@ -81,8 +77,8 @@ local function select_provider()
   end)
 end
 
+---@return nil
 ---@param optional_prompt_win_height integer|nil
--- TODO: should be private
 local function set_prompt_window_conf(optional_prompt_win_height)
   -- if these two buffer not exist - do not configure windows
   if M.prompt_buf == nil or M.prompt_history_buf == nil then
@@ -258,7 +254,6 @@ local function set_prompt_window_conf(optional_prompt_win_height)
 end
 
 ---@return nil
--- TODO: should be private
 local function open_prompt_window()
   if M.prompt_buf and M.prompt_history_buf then
     set_prompt_window_conf()
@@ -311,7 +306,6 @@ local function open_prompt_window()
 end
 
 ---@return nil
--- TODO: should be private
 local function toggle_persistent_chat_window()
   -- if already open -> close
   if M.chat_win then
@@ -328,7 +322,6 @@ end
 
 ---@return nil
 ---@param selected_lines table
--- TODO: should be private
 local function open_single_prompt_window(selected_lines)
   -- parent size
   local parent_width = vim.api.nvim_win_get_width(state.parent_win)
