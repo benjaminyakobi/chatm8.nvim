@@ -1,16 +1,14 @@
--- TODO: code refactor!
--- list of functions which should be organized
+-- TODO: list of organized functions after refacotr
+--   `append_message(buf, role, text, usage)`
 --   `call_api(prompt, buf, s_line, e_line, prompt_win)`
 --   `send_prompt()`
 --   `set_provider(buf, provider_name)`
 --   `select_provider()`
+--   `complete_implementation()`
 --   `open_single_prompt_window(selected_lines)`
 --   `set_prompt_window_conf(optional_prompt_win_height)`
 --   `open_prompt_window()`
 --   `toggle_persistent_chat_window()`
---   `M.append_message(buf, role, text, usage)`
---   `M.append_prompt_message(buf, text)`
---   `M.complete_implementation()`
 --   `M.setup(opts)` - should stay module level
 
 local M = {}
@@ -48,6 +46,109 @@ local state = {
 -- ---------------------------------------------
 
 ---@return nil
+---@param buf integer
+---@param role string
+---@param text string
+local function append_message(buf, role, text, usage)
+  ---@return string
+  local function build_header()
+    local timestamp = os.date("%d-%m-%Y %H:%M:%S")
+    local header = "❯ " .. role .. " | " .. timestamp
+    return header
+  end
+
+  local should_summarize = false
+  if role == "You" or role == "Assistant" then
+    -- NOTE: if should_summarize == true - the summarize call is after the
+    -- prompt history window update (bottom of this func)!
+    should_summarize = M.history.add(role, text)
+  end
+
+  local lock_buf = M.utils.unlock_buf(buf)
+  local lines = vim.split(text, "\n", { plain = true })
+  local header = build_header()
+  local header_line = vim.api.nvim_buf_line_count(buf)
+  local total_lines = { header }
+  if usage then
+    total_lines = { header, usage }
+  end
+
+  for _, v in ipairs(lines) do
+    table.insert(total_lines, v)
+  end
+
+  for i = #total_lines, 1, -1 do
+    if total_lines[i] == "" then
+      table.remove(total_lines, i)
+    else
+      break
+    end
+  end
+  total_lines[#total_lines + 1] = ""
+
+  vim.api.nvim_buf_set_lines(buf, -1, -1, false, total_lines)
+  vim.api.nvim_buf_set_extmark(buf, state.chat_ns, header_line, 0, {
+    hl_group = role,
+    end_col = #header,
+  })
+  if usage then
+    vim.api.nvim_buf_set_extmark(buf, state.chat_ns, header_line + 1, 0, {
+      hl_group = role,
+      end_col = #usage,
+    })
+  end
+
+  local win = vim.fn.bufwinid(buf)
+  if win ~= -1 then
+    vim.api.nvim_win_set_cursor(win, {
+      header_line + 1,
+      0,
+    })
+  end
+  lock_buf()
+
+  if should_summarize == true and role == "Assistant" then
+    -- NOTE: summarizing the conversation when hitting history limit
+    local history_prompt = M.history.pack(
+      "System",
+      [[
+Summarize this conversation for future context.
+
+Keep only information that will help continue the conversation:
+- the user’s current goal or task
+- relevant code context (files, functions, architecture, APIs)
+- important technical decisions already made
+- constraints or requirements
+- unresolved bugs or open questions
+- assumptions established during the conversation
+
+Do not include:
+- greetings
+- repeated explanations
+- irrelevant details
+- conversational filler
+
+Be concise and precise.
+
+Write the summary as clear bullet points that another engineer can immediately continue from.
+        ]]
+    )
+    local old_history = M.history.get()
+    table.insert(old_history, history_prompt)
+    M.provider_module.answer(old_history, function(result)
+      vim.schedule(function()
+        if result.error then
+          M.utils.safe_notify("chat.nvim: Failed to summarize history, " .. result.error, vim.log.levels.ERROR)
+        else
+          M.history.clear()
+          M.history.add("System", result.content)
+        end
+      end)
+    end)
+  end
+end
+
+---@return nil
 ---@param prompt table
 ---@param buf integer
 ---@param s_line integer
@@ -64,7 +165,7 @@ local function call_api(prompt, buf, s_line, e_line, prompt_win)
         lock_buf()
 
         if prompt_win then
-          M.append_message(buf, "Error", result.error)
+          append_message(buf, "Error", result.error)
         else
           M.utils.safe_notify(result.error, vim.log.levels.ERROR)
         end
@@ -77,7 +178,7 @@ local function call_api(prompt, buf, s_line, e_line, prompt_win)
       state.prompt_thinking = false
 
       if prompt_win then
-        M.append_message(buf, "Assistant", result.content, result.usage)
+        append_message(buf, "Assistant", result.content, result.usage)
       else
         vim.api.nvim_buf_set_lines(buf, s_line, e_line, false, vim.split(result.content, "\n"))
         M.utils.safe_notify("chat.nvim: " .. result.usage, vim.log.levels.INFO)
@@ -90,7 +191,6 @@ end
 local function send_prompt()
   if M.prompt_win then
     local win_buf_lines = vim.api.nvim_buf_get_lines(M.prompt_history_buf, 0, -1, false)
-    M.append_prompt_message(M.prompt_buf, nil)
     call_api(M.history.get(), M.prompt_history_buf, #win_buf_lines, -1, true)
   else
     M.utils.safe_notify("chat.nvim: Select lines first", vim.log.levels.INFO)
@@ -125,6 +225,40 @@ local function select_provider()
       lock_buf()
     end
   end)
+end
+
+---@return nil
+local function complete_implementation()
+  if state.prompt_thinking then
+    M.utils.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
+    return
+  end
+  vim.api.nvim_input("<Esc>") -- exit selection mode for better ux
+  local selected_lines, start_line, end_line = M.utils.get_visual_selection()
+  M.start_line, M.end_line = start_line, end_line
+  local func_data = M.treesitter.get_func_ast_data(0)
+  local func_signatures = M.treesitter.get_func_signatures(func_data, true, true)
+  local selected_text = M.utils.tag_selected_text(table.concat(selected_lines, "\n"))
+  local prompt = "Implement the following code.\n"
+    .. "Respond with code only. Do NOT wrap the output in backticks.\n\n"
+    .. "IMPORTANT (read carefully):\n"
+    .. "- The list under 'Available function signatures' is provided strictly as reference (parameter names, types, and return shapes).\n"
+    .. "- DO NOT implement, re-declare, or modify any function signatures that appear in that list. Do not output new top-level function definitions that match those signatures.\n"
+    .. "- If the selected text includes a function signature with an empty body or placeholder, implement only the function body (the code inside the existing signature). Keep the original signature exactly as it appears in the file.\n"
+    .. "- If the selected text already contains a full implementation for a function, do NOT change or re-declare that function.\n"
+    .. "- Do not add imports, new public functions, or change the public API unless the selection clearly requires it and the change is unambiguous.\n\n"
+    .. "If the task is unclear, signatures are inconsistent (e.g. duplicates with different shapes), or you cannot safely implement the requested code, do NOT implement anything. Instead return a single regular comment (in the target language) explaining what must be changed or why the task is ambiguous.\n\n"
+    .. "Code (implement only what's needed inside the selection):\n"
+    .. selected_text
+    .. "\n\n"
+    .. "Language: "
+    .. vim.bo.filetype
+    .. "\n\n"
+    .. "Available function signatures (reference only — do NOT implement or re-declare):\n"
+    .. table.concat(func_signatures, "\n")
+    .. "\n\n"
+    .. "Keep existing coding style and formatting. Output only code or a single clarifying comment if you cannot proceed."
+  call_api({ M.history.pack("You", prompt) }, vim.api.nvim_get_current_buf(), M.start_line - 1, M.end_line + 1, false)
 end
 
 ---@return nil
@@ -560,7 +694,7 @@ local function open_prompt_window()
       return
     end
     local prompt_text = table.concat(prompt_lines, "\n")
-    M.append_message(M.prompt_history_buf, "You", prompt_text)
+    append_message(M.prompt_history_buf, "You", prompt_text)
     send_prompt()
     vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, {})
   end)
@@ -579,169 +713,6 @@ local function toggle_persistent_chat_window()
   vim.cmd("vsplit") -- or "split" for horizontal split window
   M.chat_win = vim.api.nvim_get_current_win()
   open_prompt_window()
-end
-
----@return nil
----@param buf integer
----@param role string
----@param text string
--- TODO: should be private
-function M.append_message(buf, role, text, usage)
-  ---@return string
-  local function build_header()
-    local timestamp = os.date("%d-%m-%Y %H:%M:%S")
-    local header = "❯ " .. role .. " | " .. timestamp
-    return header
-  end
-
-  local should_summarize = false
-  if role == "You" or role == "Assistant" then
-    -- NOTE: if should_summarize == true - the summarize call is after the
-    -- prompt history window update (bottom of this func)!
-    should_summarize = M.history.add(role, text)
-  end
-
-  local lock_buf = M.utils.unlock_buf(buf)
-  local lines = vim.split(text, "\n", { plain = true })
-  local header = build_header()
-  local header_line = vim.api.nvim_buf_line_count(buf)
-  local total_lines = { header }
-  if usage then
-    total_lines = { header, usage }
-  end
-
-  for _, v in ipairs(lines) do
-    table.insert(total_lines, v)
-  end
-
-  for i = #total_lines, 1, -1 do
-    if total_lines[i] == "" then
-      table.remove(total_lines, i)
-    else
-      break
-    end
-  end
-  total_lines[#total_lines + 1] = ""
-
-  vim.api.nvim_buf_set_lines(buf, -1, -1, false, total_lines)
-  vim.api.nvim_buf_set_extmark(buf, state.chat_ns, header_line, 0, {
-    hl_group = role,
-    end_col = #header,
-  })
-  if usage then
-    vim.api.nvim_buf_set_extmark(buf, state.chat_ns, header_line + 1, 0, {
-      hl_group = role,
-      end_col = #usage,
-    })
-  end
-
-  local win = vim.fn.bufwinid(buf)
-  if win ~= -1 then
-    vim.api.nvim_win_set_cursor(win, {
-      header_line + 1,
-      0,
-    })
-  end
-  lock_buf()
-
-  if should_summarize == true and role == "Assistant" then
-    -- NOTE: summarizing the conversation when hitting history limit
-    local history_prompt = M.history.pack(
-      "System",
-      [[
-Summarize this conversation for future context.
-
-Keep only information that will help continue the conversation:
-- the user’s current goal or task
-- relevant code context (files, functions, architecture, APIs)
-- important technical decisions already made
-- constraints or requirements
-- unresolved bugs or open questions
-- assumptions established during the conversation
-
-Do not include:
-- greetings
-- repeated explanations
-- irrelevant details
-- conversational filler
-
-Be concise and precise.
-
-Write the summary as clear bullet points that another engineer can immediately continue from.
-        ]]
-    )
-    local old_history = M.history.get()
-    table.insert(old_history, history_prompt)
-    M.provider_module.answer(old_history, function(result)
-      vim.schedule(function()
-        if result.error then
-          M.utils.safe_notify("chat.nvim: Failed to summarize history, " .. result.error, vim.log.levels.ERROR)
-        else
-          M.history.clear()
-          M.history.add("System", result.content)
-        end
-      end)
-    end)
-  end
-end
-
----@return nil
----@param buf integer
----@param text string|nil
--- TODO: should be private
-function M.append_prompt_message(buf, text)
-  local lines = {}
-  if text then
-    lines = vim.split(text, "\n", { plain = true })
-    lines[#lines + 1] = ""
-  else
-    open_prompt_window()
-  end
-
-  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-
-  local win = vim.fn.bufwinid(buf)
-  if win ~= -1 then
-    vim.api.nvim_win_set_cursor(win, {
-      vim.api.nvim_buf_line_count(buf),
-      0,
-    })
-  end
-end
-
----@return nil
--- TODO: should be private
-function M.complete_implementation()
-  if state.prompt_thinking then
-    M.utils.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
-    return
-  end
-  vim.api.nvim_input("<Esc>") -- exit selection mode for better ux
-  local selected_lines, start_line, end_line = M.utils.get_visual_selection()
-  M.start_line, M.end_line = start_line, end_line
-  local func_data = M.treesitter.get_func_ast_data(0)
-  local func_signatures = M.treesitter.get_func_signatures(func_data, true, true)
-  local selected_text = M.utils.tag_selected_text(table.concat(selected_lines, "\n"))
-  local prompt = "Implement the following code.\n"
-    .. "Respond with code only. Do NOT wrap the output in backticks.\n\n"
-    .. "IMPORTANT (read carefully):\n"
-    .. "- The list under 'Available function signatures' is provided strictly as reference (parameter names, types, and return shapes).\n"
-    .. "- DO NOT implement, re-declare, or modify any function signatures that appear in that list. Do not output new top-level function definitions that match those signatures.\n"
-    .. "- If the selected text includes a function signature with an empty body or placeholder, implement only the function body (the code inside the existing signature). Keep the original signature exactly as it appears in the file.\n"
-    .. "- If the selected text already contains a full implementation for a function, do NOT change or re-declare that function.\n"
-    .. "- Do not add imports, new public functions, or change the public API unless the selection clearly requires it and the change is unambiguous.\n\n"
-    .. "If the task is unclear, signatures are inconsistent (e.g. duplicates with different shapes), or you cannot safely implement the requested code, do NOT implement anything. Instead return a single regular comment (in the target language) explaining what must be changed or why the task is ambiguous.\n\n"
-    .. "Code (implement only what's needed inside the selection):\n"
-    .. selected_text
-    .. "\n\n"
-    .. "Language: "
-    .. vim.bo.filetype
-    .. "\n\n"
-    .. "Available function signatures (reference only — do NOT implement or re-declare):\n"
-    .. table.concat(func_signatures, "\n")
-    .. "\n\n"
-    .. "Keep existing coding style and formatting. Output only code or a single clarifying comment if you cannot proceed."
-  call_api({ M.history.pack("You", prompt) }, vim.api.nvim_get_current_buf(), M.start_line - 1, M.end_line + 1, false)
 end
 
 ---@return nil
@@ -786,7 +757,7 @@ function M.setup(opts)
   end, { desc = "Help" })
 
   vim.keymap.set("v", "<Leader>8i", function()
-    M.complete_implementation()
+    complete_implementation()
   end, { desc = "Complete implementation: Replace selection" })
 
   vim.keymap.set("v", "<leader>8p", function()
