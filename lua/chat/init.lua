@@ -1,16 +1,16 @@
 -- TODO: code refactor!
 -- list of functions which should be organized
+--   `call_api(prompt, buf, s_line, e_line, prompt_win)`
+--   `send_prompt()`
 --   `set_provider(buf, provider_name)`
 --   `select_provider()`
 --   `set_prompt_window_conf(optional_prompt_win_height)`
 --   `open_prompt_window()`
 --   `toggle_persistent_chat_window()`
 --   `open_single_prompt_window(selected_lines)`
---   `M.call_api(prompt, buf, s_line, e_line, prompt_win)`
 --   `M.append_message(buf, role, text, usage)`
 --   `M.append_prompt_message(buf, text)`
 --   `M.complete_implementation()`
---   `M.send_prompt()`
 --   `M.setup(opts)` - should stay module level
 
 local M = {}
@@ -46,6 +46,56 @@ local state = {
 -- ---------------------------------------------
 -- ------------- core buffer logic -------------
 -- ---------------------------------------------
+
+---@return nil
+---@param prompt table
+---@param buf integer
+---@param s_line integer
+---@param e_line integer
+---@param prompt_win boolean
+local function call_api(prompt, buf, s_line, e_line, prompt_win)
+  local lock_buf = M.utils.unlock_buf(buf)
+  local stop_spinner = M.utils.start_spinner(buf, s_line, state.chat_ns)
+  state.prompt_thinking = true
+  M.provider_module.answer(prompt, function(result)
+    vim.schedule(function()
+      if result.error then
+        stop_spinner(false)
+        lock_buf()
+
+        if prompt_win then
+          M.append_message(buf, "Error", result.error)
+        else
+          M.utils.safe_notify(result.error, vim.log.levels.ERROR)
+        end
+
+        return
+      end
+
+      stop_spinner(true)
+      lock_buf()
+      state.prompt_thinking = false
+
+      if prompt_win then
+        M.append_message(buf, "Assistant", result.content, result.usage)
+      else
+        vim.api.nvim_buf_set_lines(buf, s_line, e_line, false, vim.split(result.content, "\n"))
+        M.utils.safe_notify("chat.nvim: " .. result.usage, vim.log.levels.INFO)
+      end
+    end)
+  end)
+end
+
+---@return nil
+local function send_prompt()
+  if M.prompt_win then
+    local win_buf_lines = vim.api.nvim_buf_get_lines(M.prompt_history_buf, 0, -1, false)
+    M.append_prompt_message(M.prompt_buf, nil)
+    call_api(M.history.get(), M.prompt_history_buf, #win_buf_lines, -1, true)
+  else
+    M.utils.safe_notify("chat.nvim: Select lines first", vim.log.levels.INFO)
+  end
+end
 
 ---@return nil
 ---@param provider_name string
@@ -300,7 +350,7 @@ local function open_prompt_window()
     end
     local prompt_text = table.concat(prompt_lines, "\n")
     M.append_message(M.prompt_history_buf, "You", prompt_text)
-    M.send_prompt()
+    send_prompt()
     vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, {})
   end)
 end
@@ -410,7 +460,7 @@ local function open_single_prompt_window(selected_lines)
         .. table.concat(func_signatures, "\n")
         .. "\n\n"
         .. "Keep existing coding style and formatting. Output only code or a single clarifying comment if you cannot proceed."
-      M.call_api({ M.history.pack("You", prompt) }, state.parent_buf, M.start_line - 1, M.end_line + 1, false)
+      call_api({ M.history.pack("You", prompt) }, state.parent_buf, M.start_line - 1, M.end_line + 1, false)
 
       vim.api.nvim_win_close(M.single_prompt_win, true)
     end)
@@ -529,46 +579,6 @@ local function open_single_prompt_window(selected_lines)
 
     M.utils.mouse_guard(M.single_prompt_win, M.single_prompt_buf)
   end
-end
-
----@return nil
----@param prompt table
----@param buf integer
----@param s_line integer
----@param e_line integer
----@param prompt_win boolean
--- TODO: should be private
-function M.call_api(prompt, buf, s_line, e_line, prompt_win)
-  local lock_buf = M.utils.unlock_buf(buf)
-  local stop_spinner = M.utils.start_spinner(buf, s_line, state.chat_ns)
-  state.prompt_thinking = true
-  M.provider_module.answer(prompt, function(result)
-    vim.schedule(function()
-      if result.error then
-        stop_spinner(false)
-        lock_buf()
-
-        if prompt_win then
-          M.append_message(buf, "Error", result.error)
-        else
-          M.utils.safe_notify(result.error, vim.log.levels.ERROR)
-        end
-
-        return
-      end
-
-      stop_spinner(true)
-      lock_buf()
-      state.prompt_thinking = false
-
-      if prompt_win then
-        M.append_message(buf, "Assistant", result.content, result.usage)
-      else
-        vim.api.nvim_buf_set_lines(buf, s_line, e_line, false, vim.split(result.content, "\n"))
-        M.utils.safe_notify("chat.nvim: " .. result.usage, vim.log.levels.INFO)
-      end
-    end)
-  end)
 end
 
 ---@return nil
@@ -731,19 +741,7 @@ function M.complete_implementation()
     .. table.concat(func_signatures, "\n")
     .. "\n\n"
     .. "Keep existing coding style and formatting. Output only code or a single clarifying comment if you cannot proceed."
-  M.call_api({ M.history.pack("You", prompt) }, vim.api.nvim_get_current_buf(), M.start_line - 1, M.end_line + 1, false)
-end
-
----@return nil
--- TODO: should be private
-function M.send_prompt()
-  if M.prompt_win then
-    local win_buf_lines = vim.api.nvim_buf_get_lines(M.prompt_history_buf, 0, -1, false)
-    M.append_prompt_message(M.prompt_buf, nil)
-    M.call_api(M.history.get(), M.prompt_history_buf, #win_buf_lines, -1, true)
-  else
-    M.utils.safe_notify("chat.nvim: Select lines first", vim.log.levels.INFO)
-  end
+  call_api({ M.history.pack("You", prompt) }, vim.api.nvim_get_current_buf(), M.start_line - 1, M.end_line + 1, false)
 end
 
 ---@return nil
