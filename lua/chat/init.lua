@@ -1,0 +1,801 @@
+-- NOTE: functions in this module
+--   append_message(buf, role, text, usage)
+--   call_api(prompt, buf, s_line, e_line, prompt_win)
+--   send_prompt()
+--   set_provider(buf, provider_name)
+--   select_provider()
+--   complete_implementation()
+--   open_single_prompt_window(selected_lines)
+--   set_prompt_window_conf(optional_prompt_win_height)
+--   open_prompt_window()
+--   toggle_persistent_chat_window()
+--   M.setup(opts)
+
+local M = {}
+local state = {
+  parent_buf = vim.api.nvim_get_current_buf(),
+  parent_win = vim.api.nvim_get_current_win(),
+  prompt_thinking = false,
+  chat_ns = vim.api.nvim_create_namespace("llm-chat"),
+  help = [[
+<Leader>8i: Inline Implementation
+  1. [Visual Mode] Select text (either code snippets or natural language instructions).
+  2. Press <Leader>8i to automatically complete the implementation or transform 
+     the selection directly in the current buffer.
+
+<Leader>8p: Single Prompt (Custom on Selection)
+  1. [Visual Mode] Select text and press `<Leader>8p` to open a single prompt window.
+  2. [Prompt Customization] Write a custom prompt template for this request.
+  3. [Replace Selection] The model response replaces the selected text in the buffer.
+
+<Leader>8c: Persistent Chat
+  1. [Normal/Visual Mode] Press `<Leader>8c` to toggle a persistent chat window
+     in a split view.
+  2. [Chat Window] Maintain a continuous, multi-turn conversation with the model
+     that persists across different files and buffers.
+  2.0. [Session] This session is ephemeral: it will be deleted when you quit Neovim.
+    2.1. [Layout] Two windows will open:
+         - Upper window: conversation history (read-only).
+         - Lower window: prompt input.
+    2.2. [Navigation] Press <C-s> in Normal or Visual mode to switch between the
+         history window and the prompt window.
+
+<Leader>8s: LLM Provider Selection
+  1. Press `<Leader>8s` to open a provider selection menu.
+  2. Choose the active LLM provider (e.g., OpenAI / Gemini, depending on your setup).
+  3. [Scope] The selected provider becomes the default for all subsequent Leader-8 features
+     (e.g., `<Leader>8i` inline implementation, `<Leader>8p` single prompt, and `<Leader>8c` chat).
+  4. [Persistence] The selection is saved for the current Neovim session.
+}]],
+}
+
+---@return nil
+---@param buf integer
+---@param role string
+---@param text string
+local function append_message(buf, role, text, usage)
+  ---@return string
+  local function build_header()
+    local timestamp = os.date("%d-%m-%Y %H:%M:%S")
+    local header = "❯ " .. role .. " | " .. timestamp
+    return header
+  end
+
+  local should_summarize = false
+  if role == "You" or role == "Assistant" then
+    -- NOTE: if should_summarize == true - the summarize call is after the
+    -- prompt history window update (bottom of this func)!
+    should_summarize = M.history.add(role, text)
+  end
+
+  local lock_buf = M.utils.unlock_buf(buf)
+  local lines = vim.split(text, "\n", { plain = true })
+  local header = build_header()
+  local header_line = vim.api.nvim_buf_line_count(buf)
+  local total_lines = { header }
+  if usage then
+    total_lines = { header, usage }
+  end
+
+  for _, v in ipairs(lines) do
+    table.insert(total_lines, v)
+  end
+
+  for i = #total_lines, 1, -1 do
+    if total_lines[i] == "" then
+      table.remove(total_lines, i)
+    else
+      break
+    end
+  end
+  total_lines[#total_lines + 1] = ""
+
+  vim.api.nvim_buf_set_lines(buf, -1, -1, false, total_lines)
+  vim.api.nvim_buf_set_extmark(buf, state.chat_ns, header_line, 0, {
+    hl_group = role,
+    end_col = #header,
+  })
+  if usage then
+    vim.api.nvim_buf_set_extmark(buf, state.chat_ns, header_line + 1, 0, {
+      hl_group = role,
+      end_col = #usage,
+    })
+  end
+
+  local win = vim.fn.bufwinid(buf)
+  if win ~= -1 then
+    vim.api.nvim_win_set_cursor(win, {
+      header_line + 1,
+      0,
+    })
+  end
+  lock_buf()
+
+  if should_summarize == true and role == "Assistant" then
+    -- NOTE: summarizing the conversation when hitting history limit
+    local history_prompt = M.history.pack(
+      "System",
+      [[
+Summarize this conversation for future context.
+
+Keep only information that will help continue the conversation:
+- the user’s current goal or task
+- relevant code context (files, functions, architecture, APIs)
+- important technical decisions already made
+- constraints or requirements
+- unresolved bugs or open questions
+- assumptions established during the conversation
+
+Do not include:
+- greetings
+- repeated explanations
+- irrelevant details
+- conversational filler
+
+Be concise and precise.
+
+Write the summary as clear bullet points that another engineer can immediately continue from.
+        ]]
+    )
+    local old_history = M.history.get()
+    table.insert(old_history, history_prompt)
+    M.provider_module.answer(old_history, function(result)
+      vim.schedule(function()
+        if result.error then
+          M.utils.safe_notify("chat.nvim: Failed to summarize history, " .. result.error, vim.log.levels.ERROR)
+        else
+          M.history.clear()
+          M.history.add("System", result.content)
+        end
+      end)
+    end)
+  end
+end
+
+---@return nil
+---@param prompt table
+---@param buf integer
+---@param s_line integer
+---@param e_line integer
+---@param prompt_win boolean
+local function call_api(prompt, buf, s_line, e_line, prompt_win)
+  local lock_buf = M.utils.unlock_buf(buf)
+  local stop_spinner = M.utils.start_spinner(buf, s_line, state.chat_ns)
+  state.prompt_thinking = true
+  M.provider_module.answer(prompt, function(result)
+    vim.schedule(function()
+      if result.error then
+        stop_spinner(false)
+        lock_buf()
+
+        if prompt_win then
+          append_message(buf, "Error", result.error)
+        else
+          M.utils.safe_notify(result.error, vim.log.levels.ERROR)
+        end
+        state.prompt_thinking = false
+        return
+      end
+
+      stop_spinner(true)
+      lock_buf()
+      state.prompt_thinking = false
+
+      if prompt_win then
+        append_message(buf, "Assistant", result.content, result.usage)
+      else
+        vim.api.nvim_buf_set_lines(buf, s_line, e_line, false, vim.split(result.content, "\n"))
+        M.utils.safe_notify("chat.nvim: " .. result.usage, vim.log.levels.INFO)
+      end
+    end)
+  end)
+end
+
+---@return nil
+local function send_prompt()
+  if M.prompt_win then
+    local win_buf_lines = vim.api.nvim_buf_get_lines(M.prompt_history_buf, 0, -1, false)
+    call_api(M.history.get(), M.prompt_history_buf, #win_buf_lines, -1, true)
+  else
+    M.utils.safe_notify("chat.nvim: Select lines first", vim.log.levels.INFO)
+  end
+end
+
+---@return nil
+---@param provider_name string
+local function set_provider(buf, provider_name)
+  M.providers.set(provider_name)
+  local ok, provider = pcall(require, "chat.providers." .. M.providers.name)
+  if not ok then
+    M.utils.safe_notify("No provider found for: " .. tostring(M.providers.name), vim.log.levels.ERROR)
+    return
+  end
+  M.provider_module = provider
+  local session_provider = "Provider: " .. M.providers.current
+  vim.api.nvim_buf_set_lines(buf, 2, 4, false, { session_provider, "" })
+  vim.api.nvim_buf_set_extmark(buf, state.chat_ns, 2, 0, {
+    hl_group = "ChatUI",
+    end_col = #session_provider,
+  })
+  M.utils.safe_notify("chat.nvim: current provider: " .. M.providers.current, vim.log.levels.INFO)
+end
+
+---@return nil
+local function select_provider()
+  vim.ui.select(M.providers.list, { prompt = "Select chat provider:" }, function(choice)
+    if choice then
+      local lock_buf = M.utils.unlock_buf(M.prompt_history_buf)
+      set_provider(M.prompt_history_buf, choice)
+      lock_buf()
+    end
+  end)
+end
+
+---@return nil
+local function complete_implementation()
+  if state.prompt_thinking then
+    M.utils.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
+    return
+  end
+  vim.api.nvim_input("<Esc>") -- exit selection mode for better ux
+  local selected_lines, start_line, end_line = M.utils.get_visual_selection()
+  M.start_line, M.end_line = start_line, end_line
+  local func_data = M.treesitter.get_func_ast_data(0)
+  local func_signatures = M.treesitter.get_func_signatures(func_data, true, true)
+  local selected_text = M.utils.tag_selected_text(table.concat(selected_lines, "\n"))
+  local prompt = "Implement the following code.\n"
+    .. "Respond with code only. Do NOT wrap the output in backticks.\n\n"
+    .. "IMPORTANT (read carefully):\n"
+    .. "- The list under 'Available function signatures' is provided strictly as reference (parameter names, types, and return shapes).\n"
+    .. "- DO NOT implement, re-declare, or modify any function signatures that appear in that list. Do not output new top-level function definitions that match those signatures.\n"
+    .. "- If the selected text includes a function signature with an empty body or placeholder, implement only the function body (the code inside the existing signature). Keep the original signature exactly as it appears in the file.\n"
+    .. "- If the selected text already contains a full implementation for a function, do NOT change or re-declare that function.\n"
+    .. "- Do not add imports, new public functions, or change the public API unless the selection clearly requires it and the change is unambiguous.\n\n"
+    .. "If the task is unclear, signatures are inconsistent (e.g. duplicates with different shapes), or you cannot safely implement the requested code, do NOT implement anything. Instead return a single regular comment (in the target language) explaining what must be changed or why the task is ambiguous.\n\n"
+    .. "Code (implement only what's needed inside the selection):\n"
+    .. selected_text
+    .. "\n\n"
+    .. "Language: "
+    .. vim.bo.filetype
+    .. "\n\n"
+    .. "Available function signatures (reference only — do NOT implement or re-declare):\n"
+    .. table.concat(func_signatures, "\n")
+    .. "\n\n"
+    .. "Keep existing coding style and formatting. Output only code or a single clarifying comment if you cannot proceed."
+  call_api({ M.history.pack("You", prompt) }, vim.api.nvim_get_current_buf(), M.start_line - 1, M.end_line + 1, false)
+end
+
+---@return nil
+---@param selected_lines table
+local function open_single_prompt_window(selected_lines)
+  -- parent size
+  local parent_width = vim.api.nvim_win_get_width(state.parent_win)
+  local parent_height = vim.api.nvim_win_get_height(state.parent_win)
+
+  -- your desired size
+  local width = math.min(90, parent_width)
+  local height = math.min(60, parent_height)
+
+  -- center position
+  local col = math.floor((parent_width - width) / 2)
+  local row = math.floor((height - 15) / 2)
+
+  local single_prompt_win_conf = {
+    relative = "win",
+    win = state.parent_win,
+    row = row,
+    col = col,
+    width = width,
+    height = 15, -- NOTE: default max size
+    style = "minimal",
+    border = "rounded",
+    title = " Custom Prompt (Overrides visual selection) ",
+    title_pos = "center",
+    zindex = 101,
+  }
+
+  if M.single_prompt_buf and M.single_prompt_win then
+    single_prompt_win_conf.height =
+      math.min(single_prompt_win_conf.height, vim.api.nvim_win_text_height(M.single_prompt_win, {}).all)
+    vim.api.nvim_win_set_config(M.single_prompt_win, single_prompt_win_conf)
+  else
+    local selected_text
+    if M.utils.is_empty(selected_lines) then
+      selected_text = table.concat(selected_lines, "\n")
+    else
+      selected_text = M.utils.tag_selected_text(table.concat(selected_lines, "\n"))
+    end
+
+    local tagged_selected_lines = vim.split(selected_text, "\n")
+    single_prompt_win_conf.height = math.min(single_prompt_win_conf.height, #tagged_selected_lines)
+
+    M.single_prompt_buf = vim.api.nvim_create_buf(false, true)
+    vim.bo[M.single_prompt_buf].buftype = "prompt"
+    vim.bo[M.single_prompt_buf].filetype = "markdown"
+    vim.bo[M.single_prompt_buf].swapfile = false
+    vim.fn.prompt_setprompt(M.single_prompt_buf, "")
+    vim.api.nvim_buf_set_lines(M.single_prompt_buf, 0, -1, false, tagged_selected_lines)
+
+    -- callback when user presses Enter
+    vim.fn.prompt_setcallback(M.single_prompt_buf, function()
+      local prompt_lines = vim.api.nvim_buf_get_lines(M.single_prompt_buf, 0, -1, false)
+      if M.utils.is_empty(prompt_lines) then
+        M.utils.safe_notify("Write prompt first", vim.log.levels.WARN)
+        vim.api.nvim_buf_set_lines(M.single_prompt_buf, 0, -1, false, {})
+        return
+      end
+
+      if state.prompt_thinking then
+        M.utils.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
+        return
+      end
+
+      local prompt_text = table.concat(prompt_lines, "\n")
+      local func_data = M.treesitter.get_func_ast_data(0)
+      local func_signatures = M.treesitter.get_func_signatures(func_data, true, true)
+      local prompt = "Modify the selected code according to the user's instructions.\n"
+        .. "Respond with code only. Do NOT wrap the output in backticks.\n"
+        .. "Do NOT include explanations, notes, comments, markdown, or any text outside the replacement code.\n\n"
+        .. "IMPORTANT (read carefully):\n"
+        .. "- Return only the code that should replace the selected text.\n"
+        .. "- Preserve the surrounding file's style, formatting, naming conventions, and language idioms.\n"
+        .. "- Do not add unrelated refactors, cleanups, or stylistic changes.\n"
+        .. "- Keep existing APIs, function signatures, types, and behavior unchanged unless the user's instructions explicitly require otherwise.\n"
+        .. "- If the selection is only part of a function body, return only the replacement body code.\n"
+        .. "- If the selection is a complete function, class, block, or expression, return the complete replacement for that selection.\n"
+        .. "- Do not add placeholder code, TODO comments, or unfinished implementations.\n\n"
+        .. "If the user's instructions are ambiguous, impossible, or require information not present in the selection, return a single regular comment (in the target language) explaining what is missing.\n\n"
+        .. "User instructions:\n"
+        .. prompt_text
+        .. "\n\n"
+        .. "Language: "
+        .. vim.bo[state.parent_buf].filetype
+        .. "\n\n"
+        .. "Available function signatures (reference only — do NOT implement or re-declare):\n"
+        .. table.concat(func_signatures, "\n")
+        .. "\n\n"
+        .. "Keep existing coding style and formatting. Output only code or a single clarifying comment if you cannot proceed."
+      call_api({ M.history.pack("You", prompt) }, state.parent_buf, M.start_line - 1, M.end_line + 1, false)
+
+      vim.api.nvim_win_close(M.single_prompt_win, true)
+    end)
+
+    -- Creating backdrop buf & win to block mouse clicks
+    local backdrop_buf = vim.api.nvim_create_buf(false, true)
+    local backdrop_win = vim.api.nvim_open_win(backdrop_buf, false, {
+      relative = "win",
+      win = state.parent_win,
+      row = 0,
+      col = 0,
+      width = parent_width,
+      height = parent_height,
+      style = "minimal",
+      focusable = false,
+      zindex = 100,
+    })
+    vim.wo[backdrop_win].winblend = 30
+
+    -- Opening the prompt window
+    M.single_prompt_win = vim.api.nvim_open_win(M.single_prompt_buf, true, single_prompt_win_conf)
+    M.utils.set_border(M.single_prompt_win, "PromptBorderActive", "PromptTitleActive")
+
+    -- custom key maps - disabling key maps
+    vim.keymap.set("v", "<Leader>8i", function()
+      vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "n", false)
+      M.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
+    end, { desc = "Complete implementation (Disabled)", buf = M.single_prompt_buf })
+
+    vim.keymap.set("n", "<Leader>8c", function()
+      M.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
+    end, { desc = "Toggle persistent chat window (Disabled)", buf = M.single_prompt_buf })
+
+    vim.keymap.set("v", "<Leader>8p", function()
+      vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "n", false)
+      M.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
+    end, { desc = "Custom prompt: Replace selection (Disabled)", buf = M.single_prompt_buf })
+
+    vim.keymap.set({ "n", "i" }, "<Leader>8p", function()
+      vim.api.nvim_set_current_win(M.single_prompt_win)
+    end, { desc = "Focus custom prompt window", buf = state.parent_buf })
+
+    local single_prompt_session_group = vim.api.nvim_create_augroup("llm_single_prompt_session", { clear = true })
+
+    -- detecting prompt window enter
+    vim.api.nvim_create_autocmd("WinEnter", {
+      group = single_prompt_session_group,
+      buffer = M.single_prompt_buf,
+      callback = function()
+        local win = vim.api.nvim_get_current_win()
+        if win == M.single_prompt_win then
+          M.utils.set_border(M.single_prompt_win, "PromptBorderActive", "PromptTitleActive")
+        end
+      end,
+    })
+
+    -- detecting prompt window close
+    vim.api.nvim_create_autocmd("WinClosed", {
+      group = single_prompt_session_group,
+      buffer = M.single_prompt_buf,
+      callback = function(args)
+        if M.single_prompt_win == tonumber(args.match) then
+          M.single_prompt_win = nil
+          M.single_prompt_buf = nil
+          vim.api.nvim_win_close(backdrop_win, true)
+          vim.api.nvim_buf_delete(backdrop_buf, {})
+          pcall(vim.api.nvim_clear_autocmds, { group = single_prompt_session_group })
+          vim.keymap.del({ "n", "i" }, "<Leader>8p", { buf = state.parent_buf })
+        end
+      end,
+    })
+
+    -- detecting text changes to resize prompt window when needed
+    local timer
+    vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
+      group = single_prompt_session_group,
+      buffer = M.single_prompt_buf,
+      callback = function()
+        -- cancel previous timer on every keystroke
+        if timer and not timer:is_closing() then
+          timer:stop()
+          timer:close()
+          timer = nil
+        end
+
+        -- defered resize call
+        timer = vim.defer_fn(function()
+          local lines = vim.api.nvim_buf_get_lines(M.single_prompt_buf, 0, -1, false)
+          open_single_prompt_window(lines)
+        end, 50)
+      end,
+    })
+
+    -- detecting resize events to resize the prompt window
+    vim.api.nvim_create_autocmd({ "VimResized", "WinResized" }, {
+      group = single_prompt_session_group,
+      buffer = M.single_prompt_buf,
+      callback = function(args)
+        if state.parent_win == tonumber(args.match) and M.single_prompt_win ~= nil then
+          open_single_prompt_window(selected_lines)
+        end
+      end,
+    })
+
+    -- detecting leaving the window to color the window border
+    vim.api.nvim_create_autocmd("WinLeave", {
+      group = single_prompt_session_group,
+      buffer = M.single_prompt_buf,
+      callback = function()
+        local win = vim.api.nvim_get_current_win()
+        if win == M.single_prompt_win then
+          M.utils.set_border(M.single_prompt_win, "ChatBorderInactive", "PromptTitleInactive")
+        end
+      end,
+    })
+
+    M.utils.mouse_guard(M.single_prompt_win, M.single_prompt_buf)
+  end
+end
+
+---@return nil
+---@param optional_prompt_win_height integer|nil
+local function set_prompt_window_conf(optional_prompt_win_height)
+  -- if these two buffer not exist - do not configure windows
+  if M.prompt_buf == nil or M.prompt_history_buf == nil then
+    return
+  end
+
+  -- default prompt window height
+  optional_prompt_win_height = optional_prompt_win_height or 1
+
+  -- parent size
+  if not M.chat_win then
+    return
+  end
+  -- parent size
+  local parent_width = vim.api.nvim_win_get_width(M.chat_win)
+  local parent_height = vim.api.nvim_win_get_height(M.chat_win)
+
+  -- your desired size
+  local width = math.min(90, parent_width - 2)
+  local height = math.min(60, parent_height)
+  local input_height = math.min(15, optional_prompt_win_height)
+  local chat_height = height - input_height - 4
+
+  -- center position
+  local col = math.floor((parent_width - width) / 2)
+  local row = math.floor((parent_height - height) / 2)
+
+  local history_win_conf = {
+    relative = "win",
+    win = M.chat_win,
+    row = row,
+    col = col,
+    width = width,
+    height = chat_height,
+    style = "minimal",
+    border = "rounded",
+    title = " History ",
+    title_pos = "center",
+  }
+
+  local prompt_win_conf = {
+    relative = "win",
+    win = M.chat_win,
+    row = row + chat_height + 2,
+    col = col,
+    width = width,
+    height = input_height,
+    style = "minimal",
+    border = "rounded",
+    title = " Enter Prompt ",
+    title_pos = "center",
+  }
+
+  if M.prompt_win and M.prompt_history_win then
+    vim.api.nvim_win_set_config(M.prompt_win, prompt_win_conf)
+    vim.api.nvim_win_set_config(M.prompt_history_win, history_win_conf)
+  else -- open new windows and continue configuring them
+    M.prompt_history_win = vim.api.nvim_open_win(M.prompt_history_buf, true, history_win_conf)
+    M.prompt_win = vim.api.nvim_open_win(M.prompt_buf, true, prompt_win_conf)
+
+    -- set custom options
+    vim.api.nvim_set_option_value("number", true, { win = M.prompt_win })
+    vim.api.nvim_set_option_value("number", true, { win = M.prompt_history_win })
+    M.utils.set_border(M.prompt_win, "PromptBorderActive", "PromptTitleActive")
+
+    -- set cursor at the last line & start insert mode
+    local last = vim.api.nvim_buf_line_count(M.prompt_buf)
+    vim.api.nvim_win_set_cursor(M.prompt_win, { last, 0 })
+
+    -- custom key maps - disabling key maps
+    for _, buf in ipairs({ M.prompt_buf, M.prompt_history_buf }) do
+      vim.keymap.set("v", "<Leader>8i", function()
+        M.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
+      end, { desc = "Complete implementation (Disabled)", buf = buf })
+    end
+
+    -- custom key maps - switcing between prompt & history windows keymaps
+    vim.keymap.set({ "n", "v" }, "<C-s>", function()
+      vim.api.nvim_set_current_win(M.prompt_history_win)
+    end, { buf = M.prompt_buf })
+
+    vim.keymap.set({ "n", "v" }, "<C-s>", function()
+      vim.api.nvim_set_current_win(M.prompt_win)
+    end, { buf = M.prompt_history_buf })
+
+    -- set auto commands
+    local prompt_session_group = vim.api.nvim_create_augroup("llm_prompt_session", { clear = true })
+    local chat_session_group = vim.api.nvim_create_augroup("llm_chat_session", { clear = true })
+
+    for _, buf in ipairs({ M.prompt_buf, M.prompt_history_buf }) do
+      vim.api.nvim_create_autocmd("WinEnter", {
+        group = prompt_session_group,
+        buffer = buf,
+        callback = function()
+          local win = vim.api.nvim_get_current_win()
+          if win == M.prompt_history_win then
+            M.utils.set_border(M.prompt_history_win, "ChatBorderActive", "PromptTitleActive")
+          elseif win == M.prompt_win then
+            M.utils.set_border(M.prompt_win, "PromptBorderActive", "PromptTitleActive")
+          end
+        end,
+      })
+
+      vim.api.nvim_create_autocmd("WinLeave", {
+        group = prompt_session_group,
+        buffer = buf,
+        callback = function()
+          local win = vim.api.nvim_get_current_win()
+          if win == M.prompt_history_win then
+            M.utils.set_border(M.prompt_history_win, "ChatBorderInactive", "PromptTitleInactive")
+          elseif win == M.prompt_win then
+            M.utils.set_border(M.prompt_win, "PromptBorderInactive", "PromptTitleInactive")
+          end
+        end,
+      })
+    end
+
+    vim.api.nvim_create_autocmd("WinClosed", {
+      group = chat_session_group,
+      callback = function(args)
+        if
+          M.chat_win == tonumber(args.match)
+          or M.prompt_win == tonumber(args.match)
+          or M.prompt_history_win == tonumber(args.match)
+        then
+          vim.api.nvim_win_close(M.prompt_win, true)
+          M.prompt_win = nil
+          vim.api.nvim_win_close(M.prompt_history_win, true)
+          M.prompt_history_win = nil
+          vim.api.nvim_win_close(M.chat_win, true)
+          M.chat_win = nil
+          if M.single_prompt_win then
+            open_single_prompt_window({})
+          end
+        end
+      end,
+    })
+
+    vim.api.nvim_create_autocmd({ "VimResized", "WinResized" }, {
+      group = chat_session_group,
+      callback = function(args)
+        if state.parent_win == tonumber(args.match) or M.chat_win == tonumber(args.match) then
+          local text_height
+          if M.prompt_win and vim.api.nvim_win_is_valid(M.prompt_win) then
+            text_height = vim.api.nvim_win_text_height(M.prompt_win, {}).all
+          end
+          set_prompt_window_conf(text_height)
+        end
+      end,
+    })
+
+    -- detecting text changes to resize prompt window when needed
+    local timer
+    vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
+      group = prompt_session_group,
+      buffer = M.prompt_buf,
+      callback = function()
+        -- cancel previous timer on every keystroke
+        if timer and not timer:is_closing() then
+          timer:stop()
+          timer:close()
+          timer = nil
+        end
+
+        -- defered resize call
+        timer = vim.defer_fn(function()
+          local text_height = vim.api.nvim_win_text_height(M.prompt_win, {}).all
+          set_prompt_window_conf(math.min(15, text_height))
+        end, 50)
+      end,
+    })
+  end
+end
+
+---@return nil
+local function open_prompt_window()
+  if M.prompt_buf and M.prompt_history_buf then
+    set_prompt_window_conf()
+    return
+  end
+
+  -- Create new buffers and windows
+  M.prompt_history_buf = vim.api.nvim_create_buf(false, true)
+  M.prompt_buf = vim.api.nvim_create_buf(false, true)
+
+  -- Configure buffers and windows
+  vim.bo[M.prompt_history_buf].filetype = "markdown"
+  vim.bo[M.prompt_history_buf].swapfile = false
+  local session_title = "Ephermal session"
+  vim.api.nvim_buf_set_lines(M.prompt_history_buf, 0, 0, false, { session_title })
+  vim.api.nvim_buf_set_extmark(M.prompt_history_buf, state.chat_ns, 0, 0, {
+    hl_group = "ChatUI",
+    end_col = #session_title,
+  })
+
+  set_provider(M.prompt_history_buf, M.providers.current)
+
+  vim.bo[M.prompt_history_buf].modifiable = false
+
+  vim.bo[M.prompt_buf].buftype = "prompt"
+  vim.bo[M.prompt_buf].filetype = "markdown"
+  vim.bo[M.prompt_buf].swapfile = false
+  vim.fn.prompt_setprompt(M.prompt_buf, "")
+
+  -- callback when user presses Enter
+  vim.fn.prompt_setcallback(M.prompt_buf, function()
+    local prompt_lines = vim.api.nvim_buf_get_lines(M.prompt_buf, 0, -1, false)
+    if M.utils.is_empty(prompt_lines) then
+      M.utils.safe_notify("Write prompt first", vim.log.levels.WARN)
+      vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, {})
+      return
+    end
+    if state.prompt_thinking then
+      M.utils.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
+      local line_count = vim.api.nvim_buf_line_count(M.prompt_buf)
+      vim.api.nvim_buf_set_lines(M.prompt_buf, line_count - 1, line_count, false, {})
+      M.utils.scroll_to_bottom(M.prompt_win, M.prompt_buf)
+      return
+    end
+    local prompt_text = table.concat(prompt_lines, "\n")
+    append_message(M.prompt_history_buf, "You", prompt_text)
+    send_prompt()
+    vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, {})
+  end)
+end
+
+---@return nil
+local function toggle_persistent_chat_window()
+  -- if already open -> close
+  if M.chat_win then
+    vim.api.nvim_win_close(M.chat_win, true)
+    M.chat_win = nil
+    return
+  end
+
+  -- open new split
+  vim.cmd("vsplit") -- or "split" for horizontal split window
+  M.chat_win = vim.api.nvim_get_current_win()
+  open_prompt_window()
+end
+
+---@return nil
+---@param opts table
+function M.setup(opts)
+  local chat_setup_group = vim.api.nvim_create_augroup("llm_chat_setup", { clear = true })
+  opts = opts or {}
+
+  -- Importing modules
+  M.treesitter = require("chat.treesitter")
+  M.utils = require("chat.utils")
+  M.history = require("chat.history")
+  M.providers = require("chat.providers")
+
+  -- setting up a provider
+  M.providers.setup(opts.providers, opts.provider)
+
+  open_prompt_window()
+
+  -- setting global autocmds
+  vim.api.nvim_create_autocmd("WinClosed", {
+    group = chat_setup_group,
+    callback = function(args)
+      local closed_win = tonumber(args.match)
+
+      -- main window closed
+      if closed_win ~= state.parent_win then
+        return
+      end
+
+      vim.cmd("qa")
+    end,
+  })
+
+  -- setting global keymaps
+  vim.keymap.set("n", "<Leader>8?", function()
+    if opts.dev then
+      print("chat.nvim: local setup\n" .. state.help)
+    else
+      print("chat.nvim: remote setup\n" .. state.help)
+    end
+  end, { desc = "Help" })
+
+  vim.keymap.set("v", "<Leader>8i", function()
+    complete_implementation()
+  end, { desc = "Complete implementation: Replace selection" })
+
+  vim.keymap.set("v", "<leader>8p", function()
+    local selected_lines, start_line, end_line = M.utils.get_visual_selection()
+    M.start_line, M.end_line = start_line, end_line
+    open_single_prompt_window(selected_lines)
+  end, {
+    desc = "Custom prompt: Replace selection",
+  })
+
+  vim.keymap.set("n", "<Leader>8c", function()
+    toggle_persistent_chat_window()
+  end, { desc = "Toggle persistent chat window" })
+
+  vim.keymap.set("n", "<leader>8s", function()
+    select_provider()
+  end, {
+    desc = "Select chat provider",
+  })
+
+  -- setting global hightlights
+  vim.api.nvim_set_hl(0, "ChatUI", { fg = "#ffd57a", bold = true })
+  vim.api.nvim_set_hl(0, "You", { fg = "#89b4fa", bold = true })
+  vim.api.nvim_set_hl(0, "Assistant", { fg = "#a6e3a1", bold = true })
+  vim.api.nvim_set_hl(0, "Error", { fg = "#d43131", bold = true })
+
+  vim.api.nvim_set_hl(0, "PromptTitleActive", { fg = "#00ffcc", bold = true })
+  vim.api.nvim_set_hl(0, "PromptTitleInactive", { fg = "#00ffcc" })
+
+  vim.api.nvim_set_hl(0, "ChatBorderActive", { fg = "#ffd57a" }) -- bright
+  vim.api.nvim_set_hl(0, "ChatBorderInactive", { fg = "#3b4261" }) -- dim
+
+  vim.api.nvim_set_hl(0, "PromptBorderActive", { fg = "#ffd57a" })
+  vim.api.nvim_set_hl(0, "PromptBorderInactive", { fg = "#3b4261" })
+end
+
+return M
