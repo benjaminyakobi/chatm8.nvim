@@ -38,7 +38,15 @@ local state = {
          - Upper window: conversation history (read-only).
          - Lower window: prompt input.
     2.2. [Navigation] Press <C-s> in Normal or Visual mode to switch between the
-         history window and the prompt window.]],
+         history window and the prompt window.
+
+<Leader>8s: LLM Provider Selection
+  1. Press `<Leader>8s` to open a provider selection menu.
+  2. Choose the active LLM provider (e.g., OpenAI / Gemini, depending on your setup).
+  3. [Scope] The selected provider becomes the default for all subsequent Leader-8 features
+     (e.g., `<Leader>8i` inline implementation, `<Leader>8p` single prompt, and `<Leader>8c` chat).
+  4. [Persistence] The selection is saved for the current Neovim session.
+}]],
 }
 
 ---@return nil
