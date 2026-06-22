@@ -1,15 +1,15 @@
--- TODO: list of organized functions after refacotr
---   `append_message(buf, role, text, usage)`
---   `call_api(prompt, buf, s_line, e_line, prompt_win)`
---   `send_prompt()`
---   `set_provider(buf, provider_name)`
---   `select_provider()`
---   `complete_implementation()`
---   `open_single_prompt_window(selected_lines)`
---   `set_prompt_window_conf(optional_prompt_win_height)`
---   `open_prompt_window()`
---   `toggle_persistent_chat_window()`
---   `M.setup(opts)` - should stay module level
+-- NOTE: functions in this module
+--   append_message(buf, role, text, usage)
+--   call_api(prompt, buf, s_line, e_line, prompt_win)
+--   send_prompt()
+--   set_provider(buf, provider_name)
+--   select_provider()
+--   complete_implementation()
+--   open_single_prompt_window(selected_lines)
+--   set_prompt_window_conf(optional_prompt_win_height)
+--   open_prompt_window()
+--   toggle_persistent_chat_window()
+--   M.setup(opts)
 
 local M = {}
 local state = {
@@ -40,10 +40,6 @@ local state = {
     2.2. [Navigation] Press <C-s> in Normal or Visual mode to switch between the
          history window and the prompt window.]],
 }
-
--- ---------------------------------------------
--- ------------- core buffer logic -------------
--- ---------------------------------------------
 
 ---@return nil
 ---@param buf integer
@@ -169,7 +165,7 @@ local function call_api(prompt, buf, s_line, e_line, prompt_win)
         else
           M.utils.safe_notify(result.error, vim.log.levels.ERROR)
         end
-
+        state.prompt_thinking = false
         return
       end
 
