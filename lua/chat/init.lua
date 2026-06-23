@@ -222,7 +222,7 @@ end
 
 ---@return nil
 local function select_provider()
-  vim.ui.select(M.providers.list, { prompt = "Select chat provider:" }, function(choice)
+  vim.ui.select(M.providers.list, { prompt = "Select chat provider" }, function(choice)
     if choice then
       local lock_buf = M.utils.unlock_buf(M.prompt_history_buf)
       set_provider(M.prompt_history_buf, choice)
@@ -721,7 +721,7 @@ end
 
 ---@return nil
 local function select_automated_operation()
-  vim.ui.select({ "Complete implementation" }, { prompt = "Select automated operation:" }, function(choice)
+  vim.ui.select({ "Complete implementation" }, { prompt = "Select automated operation" }, function(choice)
     if choice then
       print(choice)
     end
