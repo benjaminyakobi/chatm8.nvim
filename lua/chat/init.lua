@@ -720,6 +720,15 @@ local function toggle_persistent_chat_window()
 end
 
 ---@return nil
+local function select_automated_operation()
+  vim.ui.select({ "Complete implementation" }, { prompt = "Select automated operation:" }, function(choice)
+    if choice then
+      print(choice)
+    end
+  end)
+end
+
+---@return nil
 ---@param opts table
 function M.setup(opts)
   local chat_setup_group = vim.api.nvim_create_augroup("llm_chat_setup", { clear = true })
@@ -773,7 +782,7 @@ function M.setup(opts)
   })
 
   vim.keymap.set("v", "<Leader>8o", function()
-    print("Select automated operation")
+    select_automated_operation()
   end, { desc = "Select automated operation: Replace Selection" })
 
   vim.keymap.set("n", "<Leader>8c", function()
