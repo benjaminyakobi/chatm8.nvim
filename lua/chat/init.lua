@@ -772,6 +772,10 @@ function M.setup(opts)
     desc = "Custom prompt: Replace selection",
   })
 
+  vim.keymap.set("v", "<Leader>8o", function()
+    print("Select automated operation")
+  end, { desc = "Select automated operation: Replace Selection" })
+
   vim.keymap.set("n", "<Leader>8c", function()
     toggle_persistent_chat_window()
   end, { desc = "Toggle persistent chat window" })
