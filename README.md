@@ -1,5 +1,5 @@
-# chat.nvim
-NeoVim AI Chat Plugin
+# chatm8.nvim
+A NeoVim AI Chat Plugin for exploring how AI understands and helps with code.
 
 ## Installation
 Using [lazy.nvim](https://github.com/folke/lazy.nvim)
@@ -7,7 +7,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim)
 Basic setup (currently `openai` & `gemini` only):
 ```lua
   {
-    'benjaminyakobi/chat.nvim',
+    'benjaminyakobi/chatm8.nvim',
     config = function()
       require('chat').setup {
         provider = 'openai',
@@ -29,8 +29,8 @@ Local dev setup:
 
 ```lua
   {
-    'benjaminyakobi/chat.nvim',
-    dir = '<CLONE_BASE_DIR>/chat.nvim/',
+    'benjaminyakobi/chatm8.nvim',
+    dir = '<CLONE_BASE_DIR>/chatm8.nvim/',
     config = function()
       require('chat').setup {
         dev = true,
