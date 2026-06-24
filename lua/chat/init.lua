@@ -5,7 +5,7 @@
 --   set_provider(buf, provider_name)
 --   select_provider()
 --   complete_implementation()
---   open_single_prompt_window(selected_lines)
+--   open_single_prompt_window()
 --   set_prompt_window_conf(optional_prompt_win_height)
 --   open_prompt_window()
 --   toggle_persistent_chat_window()
@@ -266,8 +266,7 @@ local function complete_implementation()
 end
 
 ---@return nil
----@param selected_lines table
-local function open_single_prompt_window(selected_lines)
+local function open_single_prompt_window()
   -- parent size
   local parent_width = vim.api.nvim_win_get_width(state.parent_win)
   local parent_height = vim.api.nvim_win_get_height(state.parent_win)
@@ -300,6 +299,8 @@ local function open_single_prompt_window(selected_lines)
     vim.api.nvim_win_set_config(M.single_prompt_win, single_prompt_win_conf)
   else
     local selected_text
+    local selected_lines, start_line, end_line = M.utils.get_visual_selection()
+    M.start_line, M.end_line = start_line, end_line
     if M.utils.is_empty(selected_lines) then
       selected_text = table.concat(selected_lines, "\n")
     else
@@ -443,8 +444,7 @@ local function open_single_prompt_window(selected_lines)
 
         -- defered resize call
         timer = vim.defer_fn(function()
-          local lines = vim.api.nvim_buf_get_lines(M.single_prompt_buf, 0, -1, false)
-          open_single_prompt_window(lines)
+          open_single_prompt_window()
         end, 50)
       end,
     })
@@ -455,7 +455,7 @@ local function open_single_prompt_window(selected_lines)
       buffer = M.single_prompt_buf,
       callback = function(args)
         if state.parent_win == tonumber(args.match) and M.single_prompt_win ~= nil then
-          open_single_prompt_window(selected_lines)
+          open_single_prompt_window()
         end
       end,
     })
@@ -610,7 +610,7 @@ local function set_prompt_window_conf(optional_prompt_win_height)
           vim.api.nvim_win_close(M.chat_win, true)
           M.chat_win = nil
           if M.single_prompt_win then
-            open_single_prompt_window({})
+            open_single_prompt_window()
           end
         end
       end,
@@ -781,9 +781,7 @@ function M.setup(opts)
   end, { desc = "Complete implementation: Replace selection" })
 
   vim.keymap.set("v", "<leader>8p", function()
-    local selected_lines, start_line, end_line = M.utils.get_visual_selection()
-    M.start_line, M.end_line = start_line, end_line
-    open_single_prompt_window(selected_lines)
+    open_single_prompt_window()
   end, {
     desc = "Custom prompt: Replace selection",
   })
