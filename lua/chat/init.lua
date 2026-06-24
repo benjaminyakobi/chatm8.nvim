@@ -720,12 +720,9 @@ local function toggle_persistent_chat_window()
 end
 
 ---@return nil
-local function select_automated_operation()
-  local operations = { ["Complete implementation"] = complete_implementation }
-  local op_keys = {}
-  for key, _ in pairs(operations) do
-    table.insert(op_keys, key)
-  end
+---@param operations table<string, function>
+---@param op_keys table<string>
+local function select_automated_operation(operations, op_keys)
   vim.ui.select(op_keys, { prompt = "Select automated operation" }, function(choice)
     if choice then
       local fn = operations[choice]
@@ -792,7 +789,12 @@ function M.setup(opts)
   })
 
   vim.keymap.set("v", "<Leader>8o", function()
-    select_automated_operation()
+    local operations = { ["Complete implementation"] = complete_implementation }
+    local op_keys = {}
+    for key, _ in pairs(operations) do
+      table.insert(op_keys, key)
+    end
+    select_automated_operation(operations, op_keys)
   end, { desc = "Select automated operation: Replace Selection" })
 
   vim.keymap.set("n", "<Leader>8c", function()
