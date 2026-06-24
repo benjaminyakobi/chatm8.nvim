@@ -789,7 +789,9 @@ function M.setup(opts)
   })
 
   vim.keymap.set("v", "<Leader>8o", function()
+    ---@type table<string, function>
     local operations = { ["Complete implementation"] = complete_implementation }
+    ---@type table<string>
     local op_keys = {}
     for key, _ in pairs(operations) do
       table.insert(op_keys, key)
