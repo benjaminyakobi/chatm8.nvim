@@ -722,8 +722,8 @@ end
 ---@return nil
 local function select_automated_operation()
   vim.ui.select({ "Complete implementation" }, { prompt = "Select automated operation" }, function(choice)
-    if choice then
-      print(choice)
+    if choice == "Complete implementation" then
+      complete_implementation()
     end
   end)
 end
