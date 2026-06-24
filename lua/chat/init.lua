@@ -788,7 +788,10 @@ function M.setup(opts)
 
   vim.keymap.set("v", "<Leader>8o", function()
     ---@type table<string, function>
-    local operations = { ["Complete implementation"] = complete_implementation }
+    local operations = {
+      ["Complete implementation"] = complete_implementation,
+      ["Custom prompt"] = open_single_prompt_window,
+    }
     ---@type table<string>
     local op_keys = {}
     for key, _ in pairs(operations) do
