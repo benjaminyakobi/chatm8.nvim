@@ -721,9 +721,19 @@ end
 
 ---@return nil
 local function select_automated_operation()
-  vim.ui.select({ "Complete implementation" }, { prompt = "Select automated operation" }, function(choice)
-    if choice == "Complete implementation" then
-      complete_implementation()
+  local operations = { ["Complete implementation"] = complete_implementation }
+  local op_keys = {}
+  for key, _ in pairs(operations) do
+    table.insert(op_keys, key)
+  end
+  vim.ui.select(op_keys, { prompt = "Select automated operation" }, function(choice)
+    if choice then
+      local fn = operations[choice]
+      if fn then
+        fn()
+      else
+        M.utils.safe_notify("chat.nvim: Invalid operation", vim.log.levels.ERROR)
+      end
     end
   end)
 end
