@@ -23,7 +23,7 @@ local providers = require("chat.providers")
 --   --data '{"model": "claude-sonnet-4-6", "max_tokens": 1024,
 --     "messages": [{"role": "user", "content": "Hello, world"}]}'
 
----@return table|nil system_prompt, messages
+---@return table|nil, table|nil
 ---@param prompt table
 local function normalize_prompt(prompt)
   local system_prompt = nil
@@ -75,14 +75,9 @@ end
 ---@param callback function
 function M.answer(prompt, callback)
   local system_prompt, messages = normalize_prompt(prompt)
-
   local body = {
     model = providers.model,
-
-    -- If your plugin has a configurable max_tokens, wire it in here.
-    -- Otherwise Claude will apply server-side defaults.
     max_tokens = providers.max_tokens or 1024,
-
     messages = messages,
   }
 
@@ -134,7 +129,9 @@ function M.answer(prompt, callback)
       -- { content: [{ type="text", text="..." }, ...], usage={...} }
       -- Also sometimes it's empty on errors.
       if not data.content then
-        error("Missing data.content")
+        callback({
+          error = "Missing data.content",
+        })
       end
 
       local parts = {}
