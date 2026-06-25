@@ -1,0 +1,174 @@
+-- NOTE: anthropic provider
+local M = {}
+
+local providers = require("chat.providers")
+
+-- Anthropic Claude expects:
+--   POST /v1/messages
+-- with:
+--   {
+--     model = "...",
+--     max_tokens = ...,
+--     system = "...",           -- optional (string)
+--     messages = [{ role = "user"|"assistant", content = "..." }, ...]
+--   }
+--
+-- We map your plugin's generic roles (system/user/assistant plus "System"/"User"/etc)
+-- into Claude's {system string, messages[] } format.
+
+-- curl https://api.anthropic.com/v1/messages \
+--   --header "x-api-key: some_api_key" \
+--   --header "anthropic-version: 2023-06-01" \
+--   --header "content-type: application/json" \
+--   --data '{"model": "claude-sonnet-4-6", "max_tokens": 1024,
+--     "messages": [{"role": "user", "content": "Hello, world"}]}'
+
+---@return table|nil system_prompt, messages
+---@param prompt table
+local function normalize_prompt(prompt)
+  local system_prompt = nil
+  local messages = {}
+
+  -- Preserve order; system messages become a single system string.
+  -- If multiple system messages exist, we join them with newlines.
+  for _, msg in ipairs(prompt) do
+    local role = msg.role
+    if role == "Assistant" then
+      role = "assistant"
+    elseif role == "You" then
+      role = "user"
+    elseif role == "System" then
+      role = "system"
+    end
+
+    local content = msg.text
+    if role == "system" then
+      if system_prompt and system_prompt ~= "" then
+        system_prompt = system_prompt .. "\n" .. content
+      else
+        system_prompt = content
+      end
+    elseif role == "user" then
+      table.insert(messages, {
+        role = "user",
+        content = content,
+      })
+    elseif role == "assistant" then
+      table.insert(messages, {
+        role = "assistant",
+        content = content,
+      })
+    else
+      -- Fallback: treat unknown role as user to avoid dropping content
+      table.insert(messages, {
+        role = "user",
+        content = content,
+      })
+    end
+  end
+
+  return system_prompt, messages
+end
+
+---@return nil
+---@param prompt table
+---@param callback function
+function M.answer(prompt, callback)
+  local system_prompt, messages = normalize_prompt(prompt)
+
+  local body = {
+    model = providers.model,
+
+    -- If your plugin has a configurable max_tokens, wire it in here.
+    -- Otherwise Claude will apply server-side defaults.
+    max_tokens = providers.max_tokens or 1024,
+
+    messages = messages,
+  }
+
+  if system_prompt and system_prompt ~= "" then
+    body.system = system_prompt
+  end
+
+  local ok_encode, json = pcall(vim.json.encode, body)
+  if not ok_encode then
+    callback({
+      error = "JSON encode failed: " .. json,
+    })
+    return
+  end
+
+  vim.system({
+    "curl",
+    "https://api.anthropic.com/v1/messages",
+    "-H",
+    "Content-Type: application/json",
+    -- Anthropic requires a special header in addition to the API key:
+    "-H",
+    "x-api-key: " .. providers.api_key,
+    -- Required by Anthropic for messages API:
+    "-H",
+    "anthropic-version: 2023-06-01",
+    "-X",
+    "POST",
+    "-d",
+    json,
+  }, { text = true }, function(res)
+    if res.code ~= 0 then
+      callback({
+        error = "Request failed: " .. (res.stderr or "unknown error"),
+      })
+      return
+    end
+
+    local ok_decode, data = pcall(vim.json.decode, res.stdout)
+    if not ok_decode then
+      callback({
+        error = "JSON decode failed",
+      })
+      return
+    end
+
+    local ok_extract, text = pcall(function()
+      -- Claude returns:
+      -- { content: [{ type="text", text="..." }, ...], usage={...} }
+      -- Also sometimes it's empty on errors.
+      if not data.content then
+        error("Missing data.content")
+      end
+
+      local parts = {}
+      for _, item in ipairs(data.content) do
+        if item.type == "text" and item.text then
+          table.insert(parts, item.text)
+        end
+      end
+
+      return table.concat(parts, "")
+    end)
+
+    local ok_usage, usage = pcall(function()
+      return data.usage
+    end)
+
+    if not ok_extract or not ok_usage then
+      -- keep your original behavior: try to surface error.message
+      callback({
+        error = (data and data.error and data.error.message) or "Unknown error",
+      })
+      return
+    end
+
+    -- Claude usage fields are typically:
+    -- input_tokens, output_tokens
+    local prompt_count = tostring((usage and (usage.input_tokens or usage.prompt_tokens)) or 0)
+    local completion_count = tostring((usage and (usage.output_tokens or usage.completion_tokens)) or 0)
+
+    callback({
+      content = text,
+      usage = "Prompt Tokens: " .. prompt_count .. " | Completion Tokens: " .. completion_count,
+    })
+  end)
+end
+
+return M
