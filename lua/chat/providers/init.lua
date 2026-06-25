@@ -61,6 +61,27 @@ function M.setup(opts_providers, provider_name)
     )
   end
 
+  M.max_tokens = provider.max_tokens
+  if provider_name == "anthropic" and not M.max_tokens then
+    M.max_tokens = 1024
+    vim.notify(
+      "chat.nvim: missing max_tokens for anthropic provider, using default of 1024"
+        .. "`.\n\n"
+        .. "Example:\n"
+        .. "require('chat').setup({\n"
+        .. "  provider = 'anthropic',\n"
+        .. "  providers = {\n"
+        .. "    anthropic = {\n"
+        .. "      api_key = 'your_api_key',\n"
+        .. "      max_tokens = 25000,\n"
+        .. "      models = {'claude-opus-4-6', 'claude-opus-4-8'},\n"
+        .. "    },\n"
+        .. "  },\n"
+        .. "})",
+      vim.log.levels.WARN
+    )
+  end
+
   -- NOTE: process the `models` field to create list of available providers
   M.map = {}
   M.list = {}
