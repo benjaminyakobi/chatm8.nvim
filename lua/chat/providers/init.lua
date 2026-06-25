@@ -45,7 +45,7 @@ function M.setup(opts_providers, provider_name)
   M.models = provider.models or {}
   if provider_name == "openai" and not M.models then
     error(
-      "chat.nvim: missing model for openai provider `"
+      "chat.nvim: missing models for openai provider `"
         .. tostring(provider_name)
         .. "`.\n\n"
         .. "Example:\n"
@@ -54,7 +54,7 @@ function M.setup(opts_providers, provider_name)
         .. "  providers = {\n"
         .. "    openai = {\n"
         .. "      api_key = 'your_api_key',\n"
-        .. "      model = 'gpt-5-mini',\n"
+        .. "      models = {'gpt-5-nano', 'gpt-5-mini', 'gpt-5'},\n"
         .. "    },\n"
         .. "  },\n"
         .. "})"
