@@ -26,6 +26,16 @@ local providers = require("chat.providers")
 ---@return table|nil, table|nil
 ---@param prompt table
 local function normalize_prompt(prompt)
+  -- NOTE: Anthropic valid roles: USER, ASSISTANT, SYSTEM (top level only!)
+  -- Exmaple:
+  -- body = {
+  --   system = "system prompt....",
+  --   messages = {
+  --     { role = "user", content = "Write quicksort in Python" },
+  --     { role = "assistant", content = "..." },
+  --     { role = "user", content = "Now convert to Go" },
+  --     }
+  -- }
   local system_prompt = nil
   local messages = {}
 
@@ -81,6 +91,8 @@ function M.answer(prompt, callback)
     messages = messages,
   }
 
+  -- NOTE:system prompt should be "top level prompt"
+  --      the messages table should contain "user" & assistant message only
   if system_prompt and system_prompt ~= "" then
     body.system = system_prompt
   end
