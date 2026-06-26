@@ -113,6 +113,12 @@ Local dev setup:
   2. [Prompt Customization] Write a custom prompt template for this request.
   3. [Replace Selection] The model response replaces the selected text in the buffer.
 
+<Leader>8o: Select Automated Operation
+  1. [Visual Mode] Select text and press `<Leader>8o` to open an operation menu.
+  2. Choose one of the available automated operations in the list.
+  3. [Replace Selection] The selected operation runs on the selected text and replaces
+     the selection with the model response.
+
 <Leader>8c: Persistent Chat
   1. [Normal/Visual Mode] Press `<Leader>8c` to toggle a persistent chat window
      in a split view.
