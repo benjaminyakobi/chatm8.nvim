@@ -4,7 +4,7 @@ A NeoVim AI Chat Plugin for exploring how AI understands and helps with code.
 ## Installation
 Using [lazy.nvim](https://github.com/folke/lazy.nvim)
 
-Basic setup (currently `openai` & `gemini` only):
+Basic setup for OpenAI, Anthropic, and Gemini:
 ```lua
   {
     'benjaminyakobi/chatm8.nvim',
@@ -17,9 +17,35 @@ Basic setup (currently `openai` & `gemini` only):
           },
           openai = {
             api_key = '<OPENAI_API_KEY>',
-            models = {'MODEL 1', 'MODEL 2', 'ETC.'}
-          },
+            models = {
+              'gpt-5.5',
 
+              'gpt-5.4-nano',
+              'gpt-5.4-mini',
+              'gpt-5.4',
+
+              'gpt-5-nano',
+              'gpt-5-mini',
+              'gpt-5',
+
+              'gpt-4.1-nano',
+              'gpt-4.1-mini',
+              'gpt-4.1',
+            },
+          },
+          anthropic = {
+            api_key = '<ANTHROPIC_API_KEY>',
+            max_tokens = 25000,
+            models = {
+              'claude-opus-4-8',
+              'claude-opus-4-7',
+              'claude-opus-4-6',
+              'claude-opus-4-5',
+
+              'claude-sonnet-4-6',
+              'claude-sonnet-4-5',
+            },
+          },
         },
       }
     end,
@@ -41,7 +67,34 @@ Local dev setup:
           },
           openai = {
             api_key = '<OPENAI_API_KEY>',
-            models = {'MODEL 1', 'MODEL 2', 'ETC.'}
+            models = {
+              'gpt-5.5',
+
+              'gpt-5.4-nano',
+              'gpt-5.4-mini',
+              'gpt-5.4',
+
+              'gpt-5-nano',
+              'gpt-5-mini',
+              'gpt-5',
+
+              'gpt-4.1-nano',
+              'gpt-4.1-mini',
+              'gpt-4.1',
+            },
+          },
+          anthropic = {
+            api_key = '<ANTHROPIC_API_KEY>',
+            max_tokens = 25000,
+            models = {
+              'claude-opus-4-8',
+              'claude-opus-4-7',
+              'claude-opus-4-6',
+              'claude-opus-4-5',
+
+              'claude-sonnet-4-6',
+              'claude-sonnet-4-5',
+            },
           },
         },
       }
