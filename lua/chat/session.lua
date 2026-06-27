@@ -1,0 +1,1 @@
+-- NOTE: this file manages chat sessions
