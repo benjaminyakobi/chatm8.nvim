@@ -15,3 +15,14 @@ function Session.new() -- constructor
     messages = {},
   }, Session)
 end
+
+function Session:add(role, content)
+  table.insert(self.messages, {
+    role = role,
+    content = content,
+  })
+
+  self.updated_at = os.time()
+end
+
+return Session
