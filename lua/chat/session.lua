@@ -42,12 +42,10 @@ Prefer answers that fit naturally into an editor workflow.
 When showing code changes, keep them minimal and easy to paste into a file.
   ]]
 
--- NOTE: type definition a Chat Message
 ---@class ChatMessage
 ---@field role string
 ---@field content string
 
--- NOTE: type definition for the Session table
 ---@class Session
 ---@field id integer
 ---@field created_at integer
@@ -56,10 +54,10 @@ When showing code changes, keep them minimal and easy to paste into a file.
 ---@field messages ChatMessage[]
 local Session = {}
 
-Session.__index = Session -- class
+Session.__index = Session
 
 ---@return Session
-function Session.new() -- constructor
+function Session.new() -- session class constructor
   local ts = os.time()
 
   ---@type Session
