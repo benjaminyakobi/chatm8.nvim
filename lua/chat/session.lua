@@ -61,6 +61,9 @@ function Session.new() -- constructor
   return self
 end
 
+---@return nil
+---@param role string
+---@param content string
 function Session:add(role, content)
   table.insert(self.messages, {
     role = role,
