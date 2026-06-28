@@ -42,13 +42,27 @@ Prefer answers that fit naturally into an editor workflow.
 When showing code changes, keep them minimal and easy to paste into a file.
   ]]
 
+-- NOTE: type definition a Chat Message
+---@class ChatMessage
+---@field role string
+---@field content string
+
+-- NOTE: type definition for the Session table
+---@class Session
+---@field id integer
+---@field created_at integer
+---@field updated_at integer
+---@field title string
+---@field messages ChatMessage[]
 local Session = {}
 
 Session.__index = Session -- class
 
----@return metatable
+---@return Session
 function Session.new() -- constructor
   local ts = os.time()
+
+  ---@type Session
   local self = setmetatable({
     id = ts,
     created_at = ts,
@@ -56,7 +70,7 @@ function Session.new() -- constructor
     title = "New Chat",
     messages = {},
   }, Session)
-  self.messages = { self:add("system", SYSTEM_PROMPT) }
+  self:add("system", SYSTEM_PROMPT)
 
   return self
 end
@@ -71,6 +85,11 @@ function Session:add(role, content)
   })
 
   self.updated_at = os.time()
+end
+
+---@return ChatMessage[]
+function Session:get_messages()
+  return vim.deepcopy(self.messages)
 end
 
 return Session
