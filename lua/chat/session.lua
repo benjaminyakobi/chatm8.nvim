@@ -42,6 +42,8 @@ Prefer answers that fit naturally into an editor workflow.
 When showing code changes, keep them minimal and easy to paste into a file.
   ]]
 
+local RECENT_MESSAGE_COUNT = 12
+
 ---@class ChatMessage
 ---@field role string
 ---@field content string
@@ -95,6 +97,38 @@ end
 ---@return ChatMessage[]
 function Session:get_messages()
   return vim.deepcopy(self.messages)
+end
+
+---@return ChatMessage[]
+function Session:build_context()
+  local context = {}
+
+  -- Always keep the system prompt.
+  table.insert(context, vim.deepcopy(self.messages[1]))
+
+  -- Insert all completed summaries.
+  for _, summary in ipairs(self.summaries) do
+    table.insert(context, {
+      role = "system",
+      content = ("Summary of messages %d-%d:\n\n%s"):format(summary.start_idx, summary.end_idx, summary.content),
+    })
+  end
+
+  -- Find the first message not covered by summaries.
+  local first_unsummarized = 2
+
+  if #self.summaries > 0 then
+    first_unsummarized = self.summaries[#self.summaries].end_idx + 1
+  end
+
+  -- Keep only the most recent unsummarized messages.
+  first_unsummarized = math.max(first_unsummarized, #self.messages - RECENT_MESSAGE_COUNT + 1)
+
+  for i = first_unsummarized, #self.messages do
+    table.insert(context, vim.deepcopy(self.messages[i]))
+  end
+
+  return context
 end
 
 return Session
