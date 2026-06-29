@@ -42,6 +42,7 @@ Prefer answers that fit naturally into an editor workflow.
 When showing code changes, keep them minimal and easy to paste into a file.
   ]]
 
+local SUMMARY_CHUNK_SIZE = 40
 local RECENT_MESSAGE_COUNT = 12
 
 ---@class ChatMessage
@@ -129,6 +130,24 @@ function Session:build_context()
   end
 
   return context
+end
+
+---@return integer?, integer?
+function Session:next_chunk_to_summarize()
+  local start = 2
+
+  if #self.summaries > 0 then
+    start = self.summaries[#self.summaries].end_idx + 1
+  end
+
+  local finish = start + SUMMARY_CHUNK_SIZE - 1
+
+  -- Leave recent messages unsummarized.
+  if finish > #self.messages - RECENT_MESSAGE_COUNT then
+    return nil
+  end
+
+  return start, finish
 end
 
 return Session
