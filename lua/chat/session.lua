@@ -46,12 +46,18 @@ When showing code changes, keep them minimal and easy to paste into a file.
 ---@field role string
 ---@field content string
 
+---@class SummaryChunk
+---@field start_idx integer
+---@field end_idx integer
+---@field content string
+
 ---@class Session
 ---@field id integer
 ---@field created_at integer
 ---@field updated_at integer
 ---@field title string
 ---@field messages ChatMessage[]
+---@field summaries SummaryChunk[]
 local Session = {}
 
 Session.__index = Session
@@ -67,6 +73,7 @@ function Session.new() -- session class constructor
     updated_at = ts,
     title = "New Chat",
     messages = {},
+    summaries = {},
   }, Session)
   self:add("system", SYSTEM_PROMPT)
 
