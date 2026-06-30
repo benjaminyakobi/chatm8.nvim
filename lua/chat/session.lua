@@ -83,14 +83,21 @@ function Session.new() -- session class constructor
   return self
 end
 
+---@return table
+---@param role string
+---@param content string
+function Session:pack(role, content)
+  return {
+    role = role,
+    content = content,
+  }
+end
+
 ---@return nil
 ---@param role string
 ---@param content string
 function Session:add(role, content)
-  table.insert(self.messages, {
-    role = role,
-    content = content,
-  })
+  table.insert(self.messages, self:pack(role, content))
 
   self.updated_at = os.time()
 end
