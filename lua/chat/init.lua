@@ -133,6 +133,7 @@ local function append_message(buf, role, text, usage)
   end
   if should_summarize == true and role == "Assistant" then
     -- NOTE: summarizing the conversation when hitting history limit
+    -- TODO: depracate history.pack() and use new session.pack()
     local history_prompt = M.history.pack(
       "System",
       [[
