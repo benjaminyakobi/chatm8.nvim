@@ -48,7 +48,7 @@ local function normalize_prompt(prompt)
     table.insert(contents, {
       role = role,
       parts = {
-        text = msg.text,
+        text = msg.content,
       },
     })
   end
