@@ -67,12 +67,8 @@ local function append_message(buf, role, text, usage)
     return header
   end
 
-  local should_summarize = false
   if role == "You" or role == "Assistant" then
-    -- NOTE: if should_summarize == true - the summarize call is after the
-    -- prompt history window update (bottom of this func)!
     M.session:add(role, text)
-    -- should_summarize = M.history.add(role, text)
   end
 
   local lock_buf = M.utils.unlock_buf(buf)
@@ -132,45 +128,46 @@ local function append_message(buf, role, text, usage)
     -- TODO: implement session:add_summary function!
     -- session:add_summary(start_idx, end_idx, summary)
   end
-  if should_summarize == true and role == "Assistant" then
-    -- NOTE: summarizing the conversation when hitting history limit
-    local history_prompt = M.session:pack(
-      "System",
-      [[
-Summarize this conversation for future context.
-
-Keep only information that will help continue the conversation:
-- the user’s current goal or task
-- relevant code context (files, functions, architecture, APIs)
-- important technical decisions already made
-- constraints or requirements
-- unresolved bugs or open questions
-- assumptions established during the conversation
-
-Do not include:
-- greetings
-- repeated explanations
-- irrelevant details
-- conversational filler
-
-Be concise and precise.
-
-Write the summary as clear bullet points that another engineer can immediately continue from.
-        ]]
-    )
-    local old_history = M.history.get()
-    table.insert(old_history, history_prompt)
-    M.provider_module.answer(old_history, function(result)
-      vim.schedule(function()
-        if result.error then
-          M.utils.safe_notify("chat.nvim: Failed to summarize history, " .. result.error, vim.log.levels.ERROR)
-        else
-          M.history.clear()
-          M.history.add("System", result.content)
-        end
-      end)
-    end)
-  end
+  --   TODO: refactor summarization using the new session module
+  --   if should_summarize == true and role == "Assistant" then
+  --     -- NOTE: summarizing the conversation when hitting history limit
+  --     local history_prompt = M.session:pack(
+  --       "System",
+  --       [[
+  -- Summarize this conversation for future context.
+  --
+  -- Keep only information that will help continue the conversation:
+  -- - the user’s current goal or task
+  -- - relevant code context (files, functions, architecture, APIs)
+  -- - important technical decisions already made
+  -- - constraints or requirements
+  -- - unresolved bugs or open questions
+  -- - assumptions established during the conversation
+  --
+  -- Do not include:
+  -- - greetings
+  -- - repeated explanations
+  -- - irrelevant details
+  -- - conversational filler
+  --
+  -- Be concise and precise.
+  --
+  -- Write the summary as clear bullet points that another engineer can immediately continue from.
+  --         ]]
+  --     )
+  --     local old_history = M.history.get()
+  --     table.insert(old_history, history_prompt)
+  --     M.provider_module.answer(old_history, function(result)
+  --       vim.schedule(function()
+  --         if result.error then
+  --           M.utils.safe_notify("chat.nvim: Failed to summarize history, " .. result.error, vim.log.levels.ERROR)
+  --         else
+  --           M.history.clear()
+  --           M.history.add("System", result.content)
+  --         end
+  --       end)
+  --     end)
+  --   end
 end
 
 ---@return nil
@@ -216,9 +213,7 @@ end
 local function send_prompt()
   if M.prompt_win then
     local win_buf_lines = vim.api.nvim_buf_get_lines(M.prompt_history_buf, 0, -1, false)
-    -- TODO: call session.build_context() instead of history.get()
     call_api(M.session:build_context(), M.prompt_history_buf, #win_buf_lines, -1, true)
-    -- call_api(M.history.get(), M.prompt_history_buf, #win_buf_lines, -1, true)
   else
     M.utils.safe_notify("chat.nvim: Select lines first", vim.log.levels.INFO)
   end
