@@ -71,7 +71,8 @@ local function append_message(buf, role, text, usage)
   if role == "You" or role == "Assistant" then
     -- NOTE: if should_summarize == true - the summarize call is after the
     -- prompt history window update (bottom of this func)!
-    should_summarize = M.history.add(role, text)
+    M.session:add(role, text)
+    -- should_summarize = M.history.add(role, text)
   end
 
   local lock_buf = M.utils.unlock_buf(buf)
@@ -216,7 +217,8 @@ local function send_prompt()
   if M.prompt_win then
     local win_buf_lines = vim.api.nvim_buf_get_lines(M.prompt_history_buf, 0, -1, false)
     -- TODO: call session.build_context() instead of history.get()
-    call_api(M.history.get(), M.prompt_history_buf, #win_buf_lines, -1, true)
+    call_api(M.session:build_context(), M.prompt_history_buf, #win_buf_lines, -1, true)
+    -- call_api(M.history.get(), M.prompt_history_buf, #win_buf_lines, -1, true)
   else
     M.utils.safe_notify("chat.nvim: Select lines first", vim.log.levels.INFO)
   end
