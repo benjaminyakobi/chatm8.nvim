@@ -120,7 +120,7 @@ local function append_message(buf, role, text, usage)
   M.session:add(role, text)
   local start_idx, end_idx = M.session:next_chunk_to_summarize()
   -- TODO: remove this line later, just for testing
-  print(start_idx, end_idx, vim.inspect(M.session:get_messages()))
+  -- print(start_idx, end_idx, vim.inspect(M.session:get_messages()))
   if start_idx then
     -- TODO: remove this line later, just for testing
     local messages = vim.list_slice(M.session.messages, start_idx, end_idx)
@@ -133,8 +133,7 @@ local function append_message(buf, role, text, usage)
   end
   if should_summarize == true and role == "Assistant" then
     -- NOTE: summarizing the conversation when hitting history limit
-    -- TODO: depracate history.pack() and use new session.pack()
-    local history_prompt = M.history.pack(
+    local history_prompt = M.session:pack(
       "System",
       [[
 Summarize this conversation for future context.
@@ -284,8 +283,7 @@ local function complete_implementation()
     .. table.concat(func_signatures, "\n")
     .. "\n\n"
     .. "Keep existing coding style and formatting. Output only code or a single clarifying comment if you cannot proceed."
-  -- TODO: depracate history.pack() and use new session.pack()
-  call_api({ M.history.pack("You", prompt) }, vim.api.nvim_get_current_buf(), M.start_line - 1, M.end_line + 1, false)
+  call_api({ M.session:pack("You", prompt) }, vim.api.nvim_get_current_buf(), M.start_line - 1, M.end_line + 1, false)
 end
 
 ---@return nil
@@ -379,8 +377,7 @@ local function open_single_prompt_window()
         .. table.concat(func_signatures, "\n")
         .. "\n\n"
         .. "Keep existing coding style and formatting. Output only code or a single clarifying comment if you cannot proceed."
-      -- TODO: depracate history.pack() and use new session.pack()
-      call_api({ M.history.pack("You", prompt) }, state.parent_buf, M.start_line - 1, M.end_line + 1, false)
+      call_api({ M.session:pack("You", prompt) }, state.parent_buf, M.start_line - 1, M.end_line + 1, false)
 
       vim.api.nvim_win_close(M.single_prompt_win, true)
     end)
