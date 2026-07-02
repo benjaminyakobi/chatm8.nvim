@@ -86,7 +86,6 @@ local function summarize(messages, cb)
   M.provider_module.answer(messages, function(result)
     vim.schedule(function()
       if result.error then
-        -- M.utils.safe_notify("chat.nvim: Failed to summarize history, " .. result.error, vim.log.levels.ERROR)
         cb(nil, result.error)
         return
       end
@@ -762,7 +761,6 @@ function M.setup(opts)
   -- Importing modules
   M.treesitter = require("chat.treesitter")
   M.utils = require("chat.utils")
-  M.history = require("chat.history")
   M.providers = require("chat.providers")
   local Session = require("chat.session")
   M.session = Session.new()
