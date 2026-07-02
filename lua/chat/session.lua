@@ -42,8 +42,8 @@ Prefer answers that fit naturally into an editor workflow.
 When showing code changes, keep them minimal and easy to paste into a file.
   ]]
 
-local SUMMARY_CHUNK_SIZE = 40
-local RECENT_MESSAGE_COUNT = 12
+local SUMMARY_CHUNK_SIZE = 2
+local RECENT_MESSAGE_COUNT = 1
 
 ---@class ChatMessage
 ---@field role string
@@ -136,6 +136,7 @@ function Session:build_context()
     table.insert(context, vim.deepcopy(self.messages[i]))
   end
 
+  print(vim.inspect(context))
   return context
 end
 
@@ -155,6 +156,27 @@ function Session:next_chunk_to_summarize()
   end
 
   return start, finish
+end
+
+---@param start_idx integer
+---@param end_idx integer
+---@param content string
+function Session:add_summary(start_idx, end_idx, content)
+  assert(start_idx <= end_idx, "Invalid summary range")
+
+  local last = self.summaries[#self.summaries]
+
+  if last then
+    assert(start_idx == last.end_idx + 1, "Summary chunks must be contiguous")
+  end
+
+  table.insert(self.summaries, {
+    start_idx = start_idx,
+    end_idx = end_idx,
+    content = content,
+  })
+
+  self.updated_at = os.time()
 end
 
 return Session
