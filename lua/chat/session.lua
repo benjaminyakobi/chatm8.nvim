@@ -136,7 +136,6 @@ function Session:build_context()
     table.insert(context, vim.deepcopy(self.messages[i]))
   end
 
-  print(vim.inspect(context))
   return context
 end
 
