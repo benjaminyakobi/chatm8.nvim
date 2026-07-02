@@ -158,7 +158,7 @@ local function append_message(buf, role, text, usage)
 
   local start_idx, end_idx = M.session:next_chunk_to_summarize()
   if start_idx and end_idx then
-    local messages = vim.list_slice(M.session.messages, start_idx, end_idx)
+    local messages = vim.list_slice(M.session:get_messages(), start_idx, end_idx)
     summarize(messages, function(summary, err)
       if err then
         M.utils.safe_notify("chat.nvim: Failed to summarize history, " .. err, vim.log.levels.ERROR)
