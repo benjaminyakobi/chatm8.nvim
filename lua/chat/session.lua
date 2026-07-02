@@ -1,5 +1,8 @@
 -- NOTE: this file manages chat sessions
 
+local SUMMARY_CHUNK_SIZE = 44
+local RECENT_MESSAGE_COUNT = 12
+
 local SYSTEM_PROMPT = [[
 You are a senior software engineer and technical mentor.
 
@@ -41,9 +44,6 @@ If something is ambiguous, state assumptions clearly and continue with the most 
 Prefer answers that fit naturally into an editor workflow.
 When showing code changes, keep them minimal and easy to paste into a file.
   ]]
-
-local SUMMARY_CHUNK_SIZE = 2
-local RECENT_MESSAGE_COUNT = 1
 
 ---@class ChatMessage
 ---@field role string
