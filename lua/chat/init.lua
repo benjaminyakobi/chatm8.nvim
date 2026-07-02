@@ -55,6 +55,48 @@ local state = {
 }]],
 }
 
+---@return string
+---@param messages ChatMessage[]
+---@param cb function
+local function summarize(messages, cb)
+  local summarize_prompt = M.session:pack(
+    "System",
+    [[ Summarize this conversation for future context.
+
+      Keep only information that will help continue the conversation:
+      - the user’s current goal or task
+      - relevant code context (files, functions, architecture, APIs)
+      - important technical decisions already made
+      - constraints or requirements
+      - unresolved bugs or open questions
+      - assumptions established during the conversation
+
+      Do not include:
+      - greetings
+      - repeated explanations
+      - irrelevant details
+      - conversational filler
+
+      Be concise and precise.
+
+      Write the summary as clear bullet points that another engineer can immediately continue from. ]]
+  )
+  table.insert(messages, summarize_prompt)
+  local text
+  M.provider_module.answer(messages, function(result)
+    vim.schedule(function()
+      if result.error then
+        -- M.utils.safe_notify("chat.nvim: Failed to summarize history, " .. result.error, vim.log.levels.ERROR)
+        cb(nil, result.error)
+        return
+      end
+
+      cb(result.content, nil)
+    end)
+  end)
+  return text
+end
+
 ---@return nil
 ---@param buf integer
 ---@param role string
@@ -114,19 +156,31 @@ local function append_message(buf, role, text, usage)
   end
   lock_buf()
 
-  M.session:add(role, text)
+  -- M.session:add(role, text)
   local start_idx, end_idx = M.session:next_chunk_to_summarize()
   -- TODO: remove this line later, just for testing
   -- print(start_idx, end_idx, vim.inspect(M.session:get_messages()))
   if start_idx then
     -- TODO: remove this line later, just for testing
     local messages = vim.list_slice(M.session.messages, start_idx, end_idx)
+    print(start_idx, end_idx, vim.inspect(M.session:get_messages()))
+    -- print(vim.inspect(messages))
 
     -- TODO: implement summarize function!
     -- local summary = summarize(messages)
+    -- print("summary:", summary)
+    summarize(messages, function(summary, err)
+      if err then
+        M.utils.safe_notify("chat.nvim: Failed to summarize history, " .. err, vim.log.levels.ERROR)
+        return
+      end
+
+      -- use text here
+      print(summary)
+    end)
 
     -- TODO: implement session:add_summary function!
-    -- session:add_summary(start_idx, end_idx, summary)
+    -- M.session:add_summary(start_idx, end_idx, summary)
   end
   --   TODO: refactor summarization using the new session module
   --   if should_summarize == true and role == "Assistant" then
