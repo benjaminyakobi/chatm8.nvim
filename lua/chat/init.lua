@@ -156,71 +156,18 @@ local function append_message(buf, role, text, usage)
   end
   lock_buf()
 
-  -- M.session:add(role, text)
   local start_idx, end_idx = M.session:next_chunk_to_summarize()
-  -- TODO: remove this line later, just for testing
-  -- print(start_idx, end_idx, vim.inspect(M.session:get_messages()))
   if start_idx and end_idx then
-    -- TODO: remove this line later, just for testing
     local messages = vim.list_slice(M.session.messages, start_idx, end_idx)
-    -- print(start_idx, end_idx, vim.inspect(M.session:get_messages()))
-    -- print(vim.inspect(messages))
-
-    -- TODO: implement summarize function!
-    -- local summary = summarize(messages)
-    -- print("summary:", summary)
     summarize(messages, function(summary, err)
       if err then
         M.utils.safe_notify("chat.nvim: Failed to summarize history, " .. err, vim.log.levels.ERROR)
         return
       end
 
-      -- use text here
-      -- print(summary)
-      -- TODO: implement session:add_summary function!
       M.session:add_summary(start_idx, end_idx, summary)
     end)
   end
-  --   TODO: refactor summarization using the new session module
-  --   if should_summarize == true and role == "Assistant" then
-  --     -- NOTE: summarizing the conversation when hitting history limit
-  --     local history_prompt = M.session:pack(
-  --       "System",
-  --       [[
-  -- Summarize this conversation for future context.
-  --
-  -- Keep only information that will help continue the conversation:
-  -- - the user’s current goal or task
-  -- - relevant code context (files, functions, architecture, APIs)
-  -- - important technical decisions already made
-  -- - constraints or requirements
-  -- - unresolved bugs or open questions
-  -- - assumptions established during the conversation
-  --
-  -- Do not include:
-  -- - greetings
-  -- - repeated explanations
-  -- - irrelevant details
-  -- - conversational filler
-  --
-  -- Be concise and precise.
-  --
-  -- Write the summary as clear bullet points that another engineer can immediately continue from.
-  --         ]]
-  --     )
-  --     local old_history = M.history.get()
-  --     table.insert(old_history, history_prompt)
-  --     M.provider_module.answer(old_history, function(result)
-  --       vim.schedule(function()
-  --         if result.error then
-  --           M.utils.safe_notify("chat.nvim: Failed to summarize history, " .. result.error, vim.log.levels.ERROR)
-  --         else
-  --           M.history.clear()
-  --           M.history.add("System", result.content)
-  --         end
-  --       end)
-  --     end)
-  --   end
 end
 
 ---@return nil
