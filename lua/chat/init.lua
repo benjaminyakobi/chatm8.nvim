@@ -160,10 +160,10 @@ local function append_message(buf, role, text, usage)
   local start_idx, end_idx = M.session:next_chunk_to_summarize()
   -- TODO: remove this line later, just for testing
   -- print(start_idx, end_idx, vim.inspect(M.session:get_messages()))
-  if start_idx then
+  if start_idx and end_idx then
     -- TODO: remove this line later, just for testing
     local messages = vim.list_slice(M.session.messages, start_idx, end_idx)
-    print(start_idx, end_idx, vim.inspect(M.session:get_messages()))
+    -- print(start_idx, end_idx, vim.inspect(M.session:get_messages()))
     -- print(vim.inspect(messages))
 
     -- TODO: implement summarize function!
@@ -176,11 +176,10 @@ local function append_message(buf, role, text, usage)
       end
 
       -- use text here
-      print(summary)
+      -- print(summary)
+      -- TODO: implement session:add_summary function!
+      M.session:add_summary(start_idx, end_idx, summary)
     end)
-
-    -- TODO: implement session:add_summary function!
-    -- M.session:add_summary(start_idx, end_idx, summary)
   end
   --   TODO: refactor summarization using the new session module
   --   if should_summarize == true and role == "Assistant" then
