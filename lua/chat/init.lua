@@ -16,6 +16,7 @@ local state = {
   parent_buf = vim.api.nvim_get_current_buf(),
   parent_win = vim.api.nvim_get_current_win(),
   prompt_thinking = false,
+  summarize_in_progress = false,
   chat_ns = vim.api.nvim_create_namespace("llm-chat"),
   help = [[
 <Leader>8i: Inline Implementation
@@ -60,7 +61,7 @@ local state = {
 ---@param cb function
 local function summarize(messages, cb)
   local summarize_prompt = M.session:pack(
-    "System",
+    "You",
     [[ Summarize this conversation for future context.
 
       Keep only information that will help continue the conversation:
@@ -156,7 +157,8 @@ local function append_message(buf, role, text, usage)
   lock_buf()
 
   local start_idx, end_idx = M.session:next_chunk_to_summarize()
-  if start_idx and end_idx then
+  if start_idx and end_idx and not state.summarize_in_progress then
+    state.summarize_in_progress = true
     local messages = vim.list_slice(M.session:get_messages(), start_idx, end_idx)
     summarize(messages, function(summary, err)
       if err then
@@ -165,6 +167,7 @@ local function append_message(buf, role, text, usage)
       end
 
       M.session:add_summary(start_idx, end_idx, summary)
+      state.summarize_in_progress = false
     end)
   end
 end
