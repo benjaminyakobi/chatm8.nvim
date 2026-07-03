@@ -1,7 +1,6 @@
 -- NOTE: this file manages chat sessions
 
 local SUMMARY_CHUNK_SIZE = 44
-local RECENT_MESSAGE_COUNT = 12
 
 local SYSTEM_PROMPT = [[
 You are a senior software engineer and technical mentor.
@@ -129,9 +128,7 @@ function Session:build_context()
     first_unsummarized = self.summaries[#self.summaries].end_idx + 1
   end
 
-  -- Keep only the most recent unsummarized messages.
-  first_unsummarized = math.max(first_unsummarized, #self.messages - RECENT_MESSAGE_COUNT + 1)
-
+  -- Append every unsummarized message.
   for i = first_unsummarized, #self.messages do
     table.insert(context, vim.deepcopy(self.messages[i]))
   end
@@ -148,9 +145,9 @@ function Session:next_chunk_to_summarize()
   end
 
   local finish = start + SUMMARY_CHUNK_SIZE - 1
-
-  -- Leave recent messages unsummarized.
-  if finish > #self.messages - RECENT_MESSAGE_COUNT then
+  print(start, finish, #self.messages)
+  -- Only summarize complete chunks.
+  if finish > #self.messages then
     return nil
   end
 
@@ -165,6 +162,7 @@ function Session:add_summary(start_idx, end_idx, content)
 
   local last = self.summaries[#self.summaries]
 
+  print(start_idx, vim.inspect(last))
   if last then
     assert(start_idx == last.end_idx + 1, "Summary chunks must be contiguous")
   end
