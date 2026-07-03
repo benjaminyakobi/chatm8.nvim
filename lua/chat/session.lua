@@ -145,7 +145,6 @@ function Session:next_chunk_to_summarize()
   end
 
   local finish = start + SUMMARY_CHUNK_SIZE - 1
-  print(start, finish, #self.messages)
   -- Only summarize complete chunks.
   if finish > #self.messages then
     return nil
@@ -162,7 +161,6 @@ function Session:add_summary(start_idx, end_idx, content)
 
   local last = self.summaries[#self.summaries]
 
-  print(start_idx, vim.inspect(last))
   if last then
     assert(start_idx == last.end_idx + 1, "Summary chunks must be contiguous")
   end
