@@ -312,6 +312,8 @@ local function open_single_prompt_window()
     title_pos = "center",
     zindex = 101,
   }
+  -- NOTE: storing current buf number before opening the float window
+  local current_buf = vim.api.nvim_get_current_buf()
 
   if M.single_prompt_buf and M.single_prompt_win then
     single_prompt_win_conf.height =
@@ -376,7 +378,7 @@ local function open_single_prompt_window()
         .. table.concat(func_signatures, "\n")
         .. "\n\n"
         .. "Keep existing coding style and formatting. Output only code or a single clarifying comment if you cannot proceed."
-      call_api({ M.session:pack("You", prompt) }, state.parent_buf, M.start_line - 1, M.end_line + 1, false)
+      call_api({ M.session:pack("You", prompt) }, current_buf, M.start_line - 1, M.end_line + 1, false)
 
       vim.api.nvim_win_close(M.single_prompt_win, true)
     end)
