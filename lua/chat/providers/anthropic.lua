@@ -42,32 +42,23 @@ local function normalize_prompt(prompt)
   -- Preserve order; system messages become a single system string.
   -- If multiple system messages exist, we join them with newlines.
   for _, msg in ipairs(prompt) do
-    local role = msg.role
-    if role == "Assistant" then
-      role = "assistant"
-    elseif role == "You" then
-      role = "user"
-    elseif role == "System" then
-      role = "system"
-    end
-
-    local content = msg.content
-    if role == "system" then
-      if system_prompt and system_prompt ~= "" then
-        system_prompt = system_prompt .. "\n" .. content
-      else
-        system_prompt = content
-      end
-    elseif role == "user" then
-      table.insert(messages, {
-        role = "user",
-        content = content,
-      })
-    elseif role == "assistant" then
+    if msg.role == "Assistant" then
+      -- role = "assistant"
       table.insert(messages, {
         role = "assistant",
-        content = content,
+        content = msg.content,
       })
+    elseif msg.role == "You" then
+      table.insert(messages, {
+        role = "user",
+        content = msg.content,
+      })
+    elseif msg.role == "system" then
+      if system_prompt and system_prompt ~= "" then
+        system_prompt = system_prompt .. "\n" .. msg.content
+      else
+        system_prompt = msg.content
+      end
     end
   end
 
