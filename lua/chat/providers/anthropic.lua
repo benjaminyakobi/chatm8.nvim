@@ -3,26 +3,6 @@ local M = {}
 
 local providers = require("chat.providers")
 
--- Anthropic Claude expects:
---   POST /v1/messages
--- with:
---   {
---     model = "...",
---     max_tokens = ...,
---     system = "...",           -- optional (string)
---     messages = [{ role = "user"|"assistant", content = "..." }, ...]
---   }
---
--- We map your plugin's generic roles (system/user/assistant plus "System"/"User"/etc)
--- into Claude's {system string, messages[] } format.
-
--- curl https://api.anthropic.com/v1/messages \
---   --header "x-api-key: some_api_key" \
---   --header "anthropic-version: 2023-06-01" \
---   --header "content-type: application/json" \
---   --data '{"model": "claude-sonnet-4-6", "max_tokens": 1024,
---     "messages": [{"role": "user", "content": "Hello, world"}]}'
-
 ---@return table|nil, table|nil
 ---@param prompt table
 local function normalize_prompt(prompt)
