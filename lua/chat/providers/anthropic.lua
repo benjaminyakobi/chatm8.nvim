@@ -68,12 +68,6 @@ local function normalize_prompt(prompt)
         role = "assistant",
         content = content,
       })
-    else
-      -- Fallback: treat unknown role as user to avoid dropping content
-      table.insert(messages, {
-        role = "user",
-        content = content,
-      })
     end
   end
 
