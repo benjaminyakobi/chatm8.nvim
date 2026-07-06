@@ -14,6 +14,7 @@ local function normalize_prompt(prompt)
   --     { role = "assistant", content = "..." },
   --     { role = "user", content = "Now convert to Go" },
   --     }
+  local system_prompt = nil
   local contents = {}
 
   for _, msg in ipairs(prompt) do
@@ -28,14 +29,25 @@ local function normalize_prompt(prompt)
         role = "user",
         content = msg.content,
       })
-    elseif role == "System" then
-      table.insert(contents, {
-        role = "system",
-        content = msg.content,
-      })
+    elseif role == "system" then
+      if system_prompt and system_prompt ~= "" then
+        system_prompt = system_prompt .. "\n" .. msg.content
+      else
+        system_prompt = msg.content
+      end
     end
   end
 
+  -- NOTE: returning single system prompt instead of multiple
+  if system_prompt then
+    return {
+      {
+        role = "system",
+        content = system_prompt,
+      },
+      unpack(contents),
+    }
+  end
   return contents
 end
 
