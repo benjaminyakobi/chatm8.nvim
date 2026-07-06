@@ -1,6 +1,6 @@
 -- NOTE: this file manages chat sessions
 
-local SUMMARY_CHUNK_SIZE = 2
+local SUMMARY_CHUNK_SIZE = 44
 
 local SYSTEM_PROMPT = [[
 You are a senior software engineer and technical mentor.
@@ -77,7 +77,7 @@ function Session.new() -- session class constructor
     messages = {},
     summaries = {},
   }, Session)
-  self:add("System", SYSTEM_PROMPT)
+  self:add("system", SYSTEM_PROMPT)
 
   return self
 end
@@ -116,10 +116,11 @@ function Session:build_context()
   -- Insert all completed summaries.
   for _, summary in ipairs(self.summaries) do
     table.insert(context, {
-      role = "System",
+      role = "system",
       content = ("Summary of messages %d-%d:\n\n%s"):format(summary.start_idx, summary.end_idx, summary.content),
     })
   end
+  -- TODO: concat all summaries with system prompt
 
   -- Find the first message not covered by summaries.
   local first_unsummarized = 2
