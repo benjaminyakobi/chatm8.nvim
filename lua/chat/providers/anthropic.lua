@@ -23,7 +23,6 @@ local function normalize_prompt(prompt)
   -- If multiple system messages exist, we join them with newlines.
   for _, msg in ipairs(prompt) do
     if msg.role == "Assistant" then
-      -- role = "assistant"
       table.insert(messages, {
         role = "assistant",
         content = msg.content,
@@ -33,7 +32,7 @@ local function normalize_prompt(prompt)
         role = "user",
         content = msg.content,
       })
-    elseif msg.role == "system" then
+    elseif msg.role == "System" then
       if system_prompt and system_prompt ~= "" then
         system_prompt = system_prompt .. "\n" .. msg.content
       else
@@ -102,9 +101,6 @@ function M.answer(prompt, callback)
     end
 
     local ok_extract, text = pcall(function()
-      -- Claude returns:
-      -- { content: [{ type="text", text="..." }, ...], usage={...} }
-      -- Also sometimes it's empty on errors.
       if not data.content then
         callback({
           error = "Missing data.content",
