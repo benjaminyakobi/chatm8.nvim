@@ -19,17 +19,21 @@ local function normalize_prompt(prompt)
   for _, msg in ipairs(prompt) do
     local role = msg.role
     if role == "Assistant" then
-      role = "assistant"
+      table.insert(contents, {
+        role = "assistant",
+        content = msg.content,
+      })
     elseif role == "You" then
-      role = "user"
+      table.insert(contents, {
+        role = "user",
+        content = msg.content,
+      })
     elseif role == "System" then
-      role = "system"
+      table.insert(contents, {
+        role = "system",
+        content = msg.content,
+      })
     end
-
-    table.insert(contents, {
-      role = role,
-      content = msg.content,
-    })
   end
 
   return contents
@@ -39,9 +43,10 @@ end
 ---@param prompt table
 ---@param callback function
 function M.answer(prompt, callback)
+  local messages = normalize_prompt(prompt)
   local body = {
     model = providers.model,
-    messages = normalize_prompt(prompt),
+    messages = messages,
   }
 
   local ok_encode, json = pcall(vim.json.encode, body)
