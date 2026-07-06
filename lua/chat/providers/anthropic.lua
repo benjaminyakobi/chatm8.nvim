@@ -32,7 +32,7 @@ local function normalize_prompt(prompt)
         role = "user",
         content = msg.content,
       })
-    elseif msg.role == "System" then
+    elseif msg.role == "system" then
       if system_prompt and system_prompt ~= "" then
         system_prompt = system_prompt .. "\n" .. msg.content
       else
