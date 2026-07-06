@@ -18,18 +18,17 @@ local function normalize_prompt(prompt)
   local contents = {}
 
   for _, msg in ipairs(prompt) do
-    local role = msg.role
-    if role == "Assistant" then
+    if msg.role == "Assistant" then
       table.insert(contents, {
         role = "assistant",
         content = msg.content,
       })
-    elseif role == "You" then
+    elseif msg.role == "You" then
       table.insert(contents, {
         role = "user",
         content = msg.content,
       })
-    elseif role == "system" then
+    elseif msg.role == "system" then
       if system_prompt and system_prompt ~= "" then
         system_prompt = system_prompt .. "\n" .. msg.content
       else
