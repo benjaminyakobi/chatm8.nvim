@@ -13,10 +13,11 @@ function M.setup(opts_providers, provider_name)
         .. "`.\n\n"
         .. "Example:\n"
         .. "require('chat').setup({\n"
-        .. "  provider = 'gemini',\n"
+        .. "  provider = 'openai',\n"
         .. "  providers = {\n"
-        .. "    gemini = {\n"
+        .. "    openai = {\n"
         .. "      api_key = 'your_api_key',\n"
+        .. "      models = {'gpt-5-nano', 'gpt-5-mini', 'gpt-5'},\n"
         .. "    },\n"
         .. "  },\n"
         .. "})"
@@ -32,10 +33,11 @@ function M.setup(opts_providers, provider_name)
         .. "`.\n\n"
         .. "Example:\n"
         .. "require('chat').setup({\n"
-        .. "  provider = 'gemini',\n"
+        .. "  provider = 'openai',\n"
         .. "  providers = {\n"
-        .. "    gemini = {\n"
+        .. "    openai = {\n"
         .. "      api_key = 'your_api_key',\n"
+        .. "      models = {'gpt-5-nano', 'gpt-5-mini', 'gpt-5'},\n"
         .. "    },\n"
         .. "  },\n"
         .. "})"
@@ -43,7 +45,7 @@ function M.setup(opts_providers, provider_name)
   end
 
   M.models = provider.models or {}
-  if provider_name == "openai" and not M.models then
+  if not M.models then
     error(
       "chat.nvim: missing models for openai provider `"
         .. tostring(provider_name)
