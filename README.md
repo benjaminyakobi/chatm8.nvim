@@ -4,7 +4,7 @@ A NeoVim AI Chat Plugin for exploring how AI understands and helps with code.
 ## Installation
 Using [lazy.nvim](https://github.com/folke/lazy.nvim)
 
-Basic setup for OpenAI, Anthropic, and Gemini:
+Basic setup for OpenAI & Anthropic:
 ```lua
   {
     'benjaminyakobi/chatm8.nvim',
@@ -12,9 +12,6 @@ Basic setup for OpenAI, Anthropic, and Gemini:
       require('chat').setup {
         provider = 'openai',
         providers = {
-          gemini = {
-            api_key = '<GEMINI_API_KEY>',
-          },
           openai = {
             api_key = '<OPENAI_API_KEY>',
             models = {
@@ -62,9 +59,6 @@ Local dev setup:
         dev = true,
         provider = 'openai',
         providers = {
-          gemini = {
-            api_key = '<GEMINI_API_KEY>',
-          },
           openai = {
             api_key = '<OPENAI_API_KEY>',
             models = {
@@ -133,7 +127,7 @@ Local dev setup:
 
 <Leader>8s: LLM Provider Selection
   1. Press `<Leader>8s` to open a provider selection menu.
-  2. Choose the active LLM provider (e.g., OpenAI / Gemini, depending on your setup).
+  2. Choose the active LLM provider (e.g., OpenAI / Anthropic, depending on your setup).
   3. [Scope] The selected provider becomes the default for all subsequent Leader-8 features
      (e.g., `<Leader>8i` inline implementation, `<Leader>8p` single prompt, and `<Leader>8c` chat).
   4. [Persistence] The selection is saved for the current Neovim session.
