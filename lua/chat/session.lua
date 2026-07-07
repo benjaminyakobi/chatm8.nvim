@@ -120,7 +120,6 @@ function Session:build_context()
       content = ("Summary of messages %d-%d:\n\n%s"):format(summary.start_idx, summary.end_idx, summary.content),
     })
   end
-  -- TODO: concat all summaries with system prompt
 
   -- Find the first message not covered by summaries.
   local first_unsummarized = 2
