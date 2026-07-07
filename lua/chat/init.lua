@@ -1,4 +1,5 @@
 -- NOTE: functions in this module
+--   summarize(messages, cb)
 --   append_message(buf, role, text, usage)
 --   call_api(prompt, buf, s_line, e_line, prompt_win)
 --   send_prompt()
@@ -9,6 +10,7 @@
 --   set_prompt_window_conf(optional_prompt_win_height)
 --   open_prompt_window()
 --   toggle_persistent_chat_window()
+--   select_automated_operation(operations, op_keys)
 --   M.setup(opts)
 
 local M = {}
@@ -49,7 +51,7 @@ local state = {
 
 <Leader>8s: LLM Provider Selection
   1. Press `<Leader>8s` to open a provider selection menu.
-  2. Choose the active LLM provider (e.g., OpenAI / Gemini, depending on your setup).
+  2. Choose the active LLM provider (e.g., OpenAI / Anthropic, depending on your setup).
   3. [Scope] The selected provider becomes the default for all subsequent Leader-8 features
      (e.g., `<Leader>8i` inline implementation, `<Leader>8p` single prompt, and `<Leader>8c` chat).
   4. [Persistence] The selection is saved for the current Neovim session.
