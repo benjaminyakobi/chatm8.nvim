@@ -1,0 +1,1 @@
+-- NOTE: this module should handle saving/loading sessions to/from disk
