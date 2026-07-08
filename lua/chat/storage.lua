@@ -2,11 +2,14 @@
 
 local M = {}
 
--- function M.save_session() end
+-- ---@param session Session
+-- function M.save_session(session) end
 --
--- function M.load_session() end
+-- ---@param id integer
+-- function M.load_session(id) end
 --
--- function M.delete_session() end
+-- ---@param id integer
+-- function M.delete_session(id) end
 --
 -- function M.list_sessions() end
 
