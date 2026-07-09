@@ -1,6 +1,12 @@
 -- NOTE: this module should handle saving/loading sessions to/from disk
 
+local uv = vim.uv or vim.loop
+
 local M = {}
+
+local ROOT_DIR = vim.fn.stdpath("data") .. "/chatm8"
+local SESSIONS_DIR = ROOT_DIR .. "/sessions"
+local INDEX_PATH = SESSIONS_DIR .. "/index.json"
 
 -- TODO: implelemt
 -- ---@param session Session
