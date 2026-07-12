@@ -15,6 +15,20 @@ local INDEX_PATH = SESSIONS_DIR .. "/index.json"
 ---@field created_at integer
 ---@field updated_at integer
 
+local function ensure_dirs()
+  vim.fn.mkdir(SESSIONS_DIR, "p") -- make dir if not exists already
+
+  if uv.fs_stat(INDEX_PATH) then -- do nothing if already exists
+    return
+  end
+
+  local MODE_644 = 420 -- 0644 = rw-r--r--
+  -- open INDEX_PATH for writing (truncate/create), erroring if it fails
+  local fd = assert(uv.fs_open(INDEX_PATH, "w", MODE_644))
+  uv.fs_write(fd, "[]", -1) -- write empty array
+  uv.fs_close(fd) -- close fd after write
+end
+
 -- TODO: implelemt
 -- ---@param session Session
 -- function M.save_session(session) end
