@@ -95,12 +95,23 @@ end
 -- Public API
 ----------------------------------
 
+-- ---@return boolean, string?
+-- ---@param session Session
+-- NOTE: success: return true, failure: return false, error message
 -- function M.save_session(session) end
 
+-- ---@return Session?, string?
+-- ---@param id integer
+-- NOTE: sucess: return session, failure: return nil, error message
 -- function M.load_session(id) end
 
+-- ---@return boolean, string?
+-- ---@param id integer
+-- NOTE: success: return true, failure: return false, error message
 -- function M.delete_session(id) end
 
+-- ---@return SessionInfo[]
+-- NOTE: return SessionInfo[]
 -- function M.list_sessions() end
 
 return M
