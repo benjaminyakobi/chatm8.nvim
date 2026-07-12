@@ -65,6 +65,7 @@ end
 
 ---@return nil
 ---@param index SessionInfo[]
+-- NOTE: write index to index.json file
 local function write_index(index)
   local json = vim.json.encode(index)
 
@@ -72,6 +73,18 @@ local function write_index(index)
   local fd = assert(uv.fs_open(INDEX_PATH, "w", MODE_644))
   uv.fs_write(fd, json, -1) -- write new index to file
   uv.fs_close(fd) -- close fd after write
+end
+
+---@return SessionInfo?, integer?
+---@param id integer
+---@param index SessionInfo[]
+-- NOTE: return entry and its index if exists in the index, otherwise nil
+local function find_entry(id, index)
+  for i, entry in ipairs(index) do
+    if id == entry.id then
+      return entry, i
+    end
+  end
 end
 
 -- TODO: implelemt
