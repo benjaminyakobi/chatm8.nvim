@@ -8,6 +8,13 @@ local ROOT_DIR = vim.fn.stdpath("data") .. "/chatm8"
 local SESSIONS_DIR = ROOT_DIR .. "/sessions"
 local INDEX_PATH = SESSIONS_DIR .. "/index.json"
 
+---@class SessionInfo
+---@field id integer
+---@field title string
+---@field filename string
+---@field created_at integer
+---@field updated_at integer
+
 -- TODO: implelemt
 -- ---@param session Session
 -- function M.save_session(session) end
