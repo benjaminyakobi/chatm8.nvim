@@ -38,6 +38,31 @@ local function session_path(filename)
   return SESSIONS_DIR .. "/" .. filename
 end
 
+---@return SessionInfo[]
+-- NOTE: returns the content of index.json
+local function read_index()
+  ensure_dirs()
+
+  local stat = uv.fs_stat(INDEX_PATH)
+  if not stat then -- return empty table, index.json not exists
+    return {}
+  end
+
+  local MODE_666 = 438 -- 0638 = rw-rw-rw-
+  local fd = assert(uv.fs_open(INDEX_PATH, "r", MODE_666))
+  local json = uv.fs_read(fd, stat.size, 0)
+  uv.fs_close(fd)
+
+  ---@type boolean, SessionInfo[]?
+  local ok, index = pcall(vim.json.decode, json)
+  if not ok then -- return empty table, error reading index.json
+    return {}
+  end
+
+  ---@cast index SessionInfo[]
+  return index
+end
+
 -- TODO: implelemt
 -- ---@param session Session
 -- function M.save_session(session) end
