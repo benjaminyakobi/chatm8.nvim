@@ -15,6 +15,8 @@ local INDEX_PATH = SESSIONS_DIR .. "/index.json"
 ---@field created_at integer
 ---@field updated_at integer
 
+---@return nil
+-- NOTE: ensure sessions directory and index.json exists
 local function ensure_dirs()
   vim.fn.mkdir(SESSIONS_DIR, "p") -- make dir if not exists already
 
