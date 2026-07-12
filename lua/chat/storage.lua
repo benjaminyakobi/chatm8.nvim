@@ -63,6 +63,17 @@ local function read_index()
   return index
 end
 
+---@return nil
+---@param index SessionInfo[]
+local function write_index(index)
+  local json = vim.json.encode(index)
+
+  local MODE_644 = 420 -- 0644 = rw-r--r--
+  local fd = assert(uv.fs_open(INDEX_PATH, "w", MODE_644))
+  uv.fs_write(fd, json, -1) -- write new index to file
+  uv.fs_close(fd) -- close fd after write
+end
+
 -- TODO: implelemt
 -- ---@param session Session
 -- function M.save_session(session) end
