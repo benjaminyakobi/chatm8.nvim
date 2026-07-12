@@ -15,6 +15,10 @@ local INDEX_PATH = SESSIONS_DIR .. "/index.json"
 ---@field created_at integer
 ---@field updated_at integer
 
+----------------------------------
+-- Private Helper Functions
+----------------------------------
+
 ---@return nil
 -- NOTE: ensure sessions directory and index.json exists
 local function ensure_dirs()
@@ -86,6 +90,10 @@ local function find_entry(id, index)
     end
   end
 end
+
+----------------------------------
+-- Public API
+----------------------------------
 
 -- TODO: implelemt
 -- ---@param session Session
