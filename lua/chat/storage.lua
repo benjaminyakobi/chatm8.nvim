@@ -31,6 +31,13 @@ local function ensure_dirs()
   uv.fs_close(fd) -- close fd after write
 end
 
+---@return string
+---@param filename string
+-- NOTE: returns full path of a session
+local function session_path(filename)
+  return SESSIONS_DIR .. "/" .. filename
+end
+
 -- TODO: implelemt
 -- ---@param session Session
 -- function M.save_session(session) end
