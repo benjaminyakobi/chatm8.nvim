@@ -8,7 +8,7 @@ function M.setup(opts_providers, provider_name)
 
   if not provider then
     error(
-      "chat.nvim: invalid provider `"
+      "chatm8.nvim: invalid provider `"
         .. tostring(provider_name)
         .. "`.\n\n"
         .. "Example:\n"
@@ -28,7 +28,7 @@ function M.setup(opts_providers, provider_name)
 
   if not M.api_key then
     error(
-      "chat.nvim: missing api_key for provider `"
+      "chatm8.nvim: missing api_key for provider `"
         .. tostring(provider_name)
         .. "`.\n\n"
         .. "Example:\n"
@@ -47,7 +47,7 @@ function M.setup(opts_providers, provider_name)
   M.models = provider.models or {}
   if not M.models then
     error(
-      "chat.nvim: missing models for openai provider `"
+      "chatm8.nvim: missing models for openai provider `"
         .. tostring(provider_name)
         .. "`.\n\n"
         .. "Example:\n"
@@ -67,7 +67,7 @@ function M.setup(opts_providers, provider_name)
   if provider_name == "anthropic" and not M.max_tokens then
     M.max_tokens = 1024
     vim.notify(
-      "chat.nvim: missing max_tokens for anthropic provider, using default of 1024"
+      "chatm8.nvim: missing max_tokens for anthropic provider, using default of 1024"
         .. "`.\n\n"
         .. "Example:\n"
         .. "require('chat').setup({\n"
