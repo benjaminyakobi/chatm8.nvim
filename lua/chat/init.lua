@@ -164,7 +164,7 @@ local function append_message(buf, role, text, usage)
     local messages = vim.list_slice(M.session:get_messages(), start_idx, end_idx)
     summarize(messages, function(summary, err)
       if err then
-        M.utils.safe_notify("chat.nvim: Failed to summarize history, " .. err, vim.log.levels.ERROR)
+        M.utils.safe_notify("chatm8.nvim: Failed to summarize history, " .. err, vim.log.levels.ERROR)
         return
       end
 
@@ -207,7 +207,7 @@ local function call_api(prompt, buf, s_line, e_line, prompt_win)
         append_message(buf, "Assistant", result.content, result.usage)
       else
         vim.api.nvim_buf_set_lines(buf, s_line, e_line, false, vim.split(result.content, "\n"))
-        M.utils.safe_notify("chat.nvim: " .. result.usage, vim.log.levels.INFO)
+        M.utils.safe_notify("chatm8.nvim: " .. result.usage, vim.log.levels.INFO)
       end
     end)
   end)
@@ -219,7 +219,7 @@ local function send_prompt()
     local win_buf_lines = vim.api.nvim_buf_get_lines(M.prompt_history_buf, 0, -1, false)
     call_api(M.session:build_context(), M.prompt_history_buf, #win_buf_lines, -1, true)
   else
-    M.utils.safe_notify("chat.nvim: Select lines first", vim.log.levels.INFO)
+    M.utils.safe_notify("chatm8.nvim: Select lines first", vim.log.levels.INFO)
   end
 end
 
@@ -239,7 +239,7 @@ local function set_provider(buf, provider_name)
     hl_group = "ChatUI",
     end_col = #session_provider,
   })
-  M.utils.safe_notify("chat.nvim: current provider: " .. M.providers.current, vim.log.levels.INFO)
+  M.utils.safe_notify("chatm8.nvim: current provider: " .. M.providers.current, vim.log.levels.INFO)
 end
 
 ---@return nil
@@ -753,7 +753,7 @@ local function select_automated_operation(operations, op_keys)
       if fn then
         fn()
       else
-        M.utils.safe_notify("chat.nvim: Invalid operation", vim.log.levels.ERROR)
+        M.utils.safe_notify("chatm8.nvim: Invalid operation", vim.log.levels.ERROR)
       end
     end
   end)
@@ -795,9 +795,9 @@ function M.setup(opts)
   -- setting global keymaps
   vim.keymap.set("n", "<Leader>8?", function()
     if opts.dev then
-      print("chat.nvim: local setup\n" .. state.help)
+      print("chatm8.nvim: local setup\n" .. state.help)
     else
-      print("chat.nvim: remote setup\n" .. state.help)
+      print("chatm8.nvim: remote setup\n" .. state.help)
     end
   end, { desc = "Help" })
 
