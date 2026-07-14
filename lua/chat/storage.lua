@@ -153,8 +153,10 @@ end
 -- NOTE: success: return true, failure: return false, error message
 -- function M.delete_session(id) end
 
--- ---@return SessionInfo[]
+---@return SessionInfo[]
 -- NOTE: return SessionInfo[]
--- function M.list_sessions() end
+function M.list_sessions()
+  return read_index()
+end
 
 return M
