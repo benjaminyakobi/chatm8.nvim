@@ -95,10 +95,53 @@ end
 -- Public API
 ----------------------------------
 
--- ---@return boolean, string?
--- ---@param session Session
+---@return boolean, string?
+---@param session Session
 -- NOTE: success: return true, failure: return false, error message
--- function M.save_session(session) end
+function M.save_session(session)
+  ensure_dirs()
+
+  session.updated_at = os.time()
+
+  local filename = string.format("%d.json", session.id)
+  local ok, json = pcall(vim.json.encode, session)
+  if not ok then -- failed to save session
+    return false, "failed to save session, encode error"
+  end
+
+  -- NOTE: save session to file
+  local MODE_644 = 420 -- 0644 = rw-r--r--
+  local fd, err = uv.fs_open(session_path(filename), "w", MODE_644)
+  if not fd then
+    return false, err
+  end
+  uv.fs_write(fd, json, -1)
+  uv.fs_close(fd)
+
+  -- NOTE: write entry to index.json
+  local index = read_index()
+  local entry = find_entry(session.id, index)
+
+  if entry then
+    entry.updated_at = session.updated_at
+  else
+    table.insert(index, {
+      id = session.id,
+      filename = filename,
+      title = session.title,
+      created_at = session.created_at,
+      updated_at = session.updated_at,
+    })
+  end
+
+  table.sort(index, function(a, b)
+    return a.updated_at > b.updated_at
+  end)
+
+  write_index(index)
+
+  return true
+end
 
 -- ---@return Session?, string?
 -- ---@param id integer
