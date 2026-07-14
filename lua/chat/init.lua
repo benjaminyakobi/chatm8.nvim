@@ -874,6 +874,20 @@ function M.setup(opts)
     desc = "Load old sessions",
   })
 
+  -- custom key maps including overrides
+  vim.keymap.set("n", "<C-w>l", function()
+    local cur = vim.api.nvim_get_current_win()
+
+    -- If we're in the parent split, jump to the float.
+    if cur == state.parent_win and M.prompt_win and vim.api.nvim_win_is_valid(M.prompt_win) then
+      vim.api.nvim_set_current_win(M.prompt_win)
+      return
+    end
+
+    -- Otherwise perform the normal <C-w>l
+    vim.cmd("wincmd l")
+  end)
+
   -- setting global hightlights
   vim.api.nvim_set_hl(0, "ChatUI", { fg = "#ffd57a", bold = true })
   vim.api.nvim_set_hl(0, "You", { fg = "#89b4fa", bold = true })
