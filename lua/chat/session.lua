@@ -67,13 +67,14 @@ Session.__index = Session
 ---@return Session
 function Session.new() -- session class constructor
   local ts = os.time()
+  local human_ts = os.date("%Y-%m-%d %H:%M:%S", ts)
 
   ---@type Session
   local self = setmetatable({
     id = ts,
     created_at = ts,
     updated_at = ts,
-    title = "New Chat",
+    title = "New Chat" .. "_" .. human_ts,
     messages = {},
     summaries = {},
   }, Session)
