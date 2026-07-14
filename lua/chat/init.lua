@@ -768,7 +768,7 @@ local function select_automated_operation(operations, op_keys)
 end
 
 local function load_session()
-  ---@type Session[]
+  ---@type table<string, string>
   local sessions_title_id_map = M.storage.list_sessions()
 
   ---@type table<string>

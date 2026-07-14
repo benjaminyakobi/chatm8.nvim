@@ -153,8 +153,8 @@ end
 -- NOTE: success: return true, failure: return false, error message
 -- function M.delete_session(id) end
 
----@return SessionInfo[]
--- NOTE: return SessionInfo[]
+---@return table<string, string>
+-- NOTE: return map of sessions titles and ids
 function M.list_sessions()
   local index = vim.deepcopy(read_index())
 
