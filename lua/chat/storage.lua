@@ -156,7 +156,15 @@ end
 ---@return SessionInfo[]
 -- NOTE: return SessionInfo[]
 function M.list_sessions()
-  return read_index()
+  local index = vim.deepcopy(read_index())
+
+  ---@type table<string>
+  local sessions_title_id_map = {}
+  for _, session in ipairs(index) do
+    sessions_title_id_map[session.title] = session.id
+  end
+
+  return vim.deepcopy(sessions_title_id_map)
 end
 
 return M
