@@ -113,6 +113,7 @@ local function append_message(buf, role, text, usage)
 
   if role == "You" or role == "Assistant" then
     M.session:add(role, text)
+    M.storage.save_session(M.session)
   end
 
   local lock_buf = M.utils.unlock_buf(buf)
@@ -169,6 +170,7 @@ local function append_message(buf, role, text, usage)
       end
 
       M.session:add_summary(start_idx, end_idx, summary)
+      M.storage.save_session(M.session)
       state.summarize_in_progress = false
     end)
   end
@@ -769,6 +771,7 @@ function M.setup(opts)
   M.treesitter = require("chat.treesitter")
   M.utils = require("chat.utils")
   M.providers = require("chat.providers")
+  M.storage = require("chat.storage")
   local Session = require("chat.session")
   M.session = Session.new()
 
