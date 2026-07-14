@@ -55,7 +55,13 @@ local state = {
   3. [Scope] The selected provider becomes the default for all subsequent Leader-8 features
      (e.g., `<Leader>8i` inline implementation, `<Leader>8p` single prompt, and `<Leader>8c` chat).
   4. [Persistence] The selection is saved for the current Neovim session.
-}]],
+
+<Leader>8l: Load Old Sessions
+  1. [Normal Mode] Press `<Leader>8l` to open a list of previously saved chat sessions.
+  2. Select a session to load its conversation history into the chat window.
+  3. [Restore] The loaded session becomes the active context, letting you resume a
+     past conversation across files and buffers.
+]],
 }
 
 ---@return string
