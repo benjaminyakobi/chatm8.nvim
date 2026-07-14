@@ -761,6 +761,26 @@ local function select_automated_operation(operations, op_keys)
   end)
 end
 
+local function load_session()
+  ---@type Session[]
+  local sessions_title_id_map = M.storage.list_sessions()
+
+  ---@type table<string>
+  local session_titles = {}
+  for title, _ in pairs(sessions_title_id_map) do
+    table.insert(session_titles, title)
+  end
+
+  vim.ui.select(session_titles, { prompt = "Select session to load" }, function(choice)
+    if choice then
+      print(choice, sessions_title_id_map[choice])
+      -- TODO: load the session
+    else
+      M.utils.safe_notify("chatm8.nvim: Invalid session", vim.log.levels.ERROR)
+    end
+  end)
+end
+
 ---@return nil
 ---@param opts table
 function M.setup(opts)
@@ -836,6 +856,12 @@ function M.setup(opts)
     select_provider()
   end, {
     desc = "Select chat provider",
+  })
+
+  vim.keymap.set("n", "<leader>8l", function()
+    load_session()
+  end, {
+    desc = "Load old sessions",
   })
 
   -- setting global hightlights
