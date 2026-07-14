@@ -42,7 +42,7 @@ local state = {
      in a split view.
   2. [Chat Window] Maintain a continuous, multi-turn conversation with the model
      that persists across different files and buffers.
-  2.0. [Session] This session is ephemeral: it will be deleted when you quit Neovim.
+  2.0. [Session] This session is persistent: it can be load again with `<Leader>8l`.
     2.1. [Layout] Two windows will open:
          - Upper window: conversation history (read-only).
          - Lower window: prompt input.
@@ -698,7 +698,7 @@ local function open_prompt_window()
   -- Configure buffers and windows
   vim.bo[M.prompt_history_buf].filetype = "markdown"
   vim.bo[M.prompt_history_buf].swapfile = false
-  local session_title = "Ephermal session"
+  local session_title = "Persistent session"
   vim.api.nvim_buf_set_lines(M.prompt_history_buf, 0, 0, false, { session_title })
   vim.api.nvim_buf_set_extmark(M.prompt_history_buf, state.chat_ns, 0, 0, {
     hl_group = "ChatUI",
