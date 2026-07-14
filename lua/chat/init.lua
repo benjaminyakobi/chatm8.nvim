@@ -779,10 +779,14 @@ local function load_session()
 
   vim.ui.select(session_titles, { prompt = "Select session to load" }, function(choice)
     if choice then
-      print(choice, sessions_title_id_map[choice])
+      local session_id = sessions_title_id_map[choice]
+      if session_id then
+        print(choice, sessions_title_id_map[choice])
       -- TODO: load the session
-    else
-      M.utils.safe_notify("chatm8.nvim: Invalid session", vim.log.levels.ERROR)
+      -- M.storage.load_session(session_id)
+      else
+        M.utils.safe_notify("chatm8.nvim: Invalid session", vim.log.levels.ERROR)
+      end
     end
   end)
 end
