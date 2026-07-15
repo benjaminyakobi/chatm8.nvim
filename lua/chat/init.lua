@@ -109,6 +109,9 @@ end
 ---@param buf integer
 ---@param role string
 ---@param text string
+-- TODO: DECOUPLE to two different functions:
+--  1. append messages to the chat window
+--  2. append messages to the session instance
 local function append_message(buf, role, text, usage)
   ---@return string
   local function build_header()
@@ -788,7 +791,9 @@ local function load_session()
           M.utils.safe_notify("chatm8.nvim: " .. err, vim.log.levels.ERROR)
         else
           -- TODO: load the session
-          print(vim.inspect(session))
+          -- print(vim.inspect(M.session:get_messages())) -- TODO remove later
+          M.session = M.session:from_table(session --[[@as Session]])
+          -- print(vim.inspect(M.session:get_messages())) -- TODO remove later
         end
       else
         M.utils.safe_notify("chatm8.nvim: Invalid session", vim.log.levels.ERROR)
