@@ -767,6 +767,7 @@ local function select_automated_operation(operations, op_keys)
   end)
 end
 
+---@return nil
 local function load_session()
   ---@type table<string, string>
   local sessions_title_id_map = M.storage.list_sessions()
@@ -782,8 +783,13 @@ local function load_session()
       local session_id = sessions_title_id_map[choice]
       if session_id then
         print(choice, sessions_title_id_map[choice])
-      -- TODO: load the session
-      -- M.storage.load_session(session_id)
+        ---@type Session?, string?
+        local session, err = M.storage.load_session(session_id)
+        if err then
+          M.utils.safe_notify("chatm8.nvim: " .. err, vim.log.levels.ERROR)
+        else
+          print(vim.inspect(session))
+        end
       else
         M.utils.safe_notify("chatm8.nvim: Invalid session", vim.log.levels.ERROR)
       end
