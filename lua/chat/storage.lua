@@ -143,10 +143,36 @@ function M.save_session(session)
   return true
 end
 
--- ---@return Session?, string?
--- ---@param id integer
+---@return Session?, string?
+---@param id integer
 -- NOTE: sucess: return session, failure: return nil, error message
--- function M.load_session(id) end
+function M.load_session(id)
+  local index = read_index()
+
+  ---@type SessionInfo?
+  local entry = find_entry(id, index)
+  if not entry then
+    return nil, "Session not found"
+  end
+
+  local path = session_path(entry.filename)
+  local stat = uv.fs_stat(path)
+  if not stat then
+    return nil, "Session file missing"
+  end
+
+  local MODE_666 = 438 -- 0638 = rw-rw-rw-
+  local fd = assert(uv.fs_open(path, "r", MODE_666))
+  local json = uv.fs_read(fd, stat.size, 0)
+  uv.fs_close(fd)
+
+  local ok, session = pcall(vim.json.decode, json)
+  if not ok then
+    return nil, session
+  end
+
+  return session
+end
 
 -- ---@return boolean, string?
 -- ---@param id integer
