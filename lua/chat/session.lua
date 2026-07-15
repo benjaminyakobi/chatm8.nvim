@@ -54,7 +54,7 @@ When showing code changes, keep them minimal and easy to paste into a file.
 ---@field content string
 
 ---@class Session
----@field id integer
+---@field id string
 ---@field created_at integer
 ---@field updated_at integer
 ---@field title string

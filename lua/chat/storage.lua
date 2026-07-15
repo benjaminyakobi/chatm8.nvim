@@ -80,7 +80,7 @@ local function write_index(index)
 end
 
 ---@return SessionInfo?, integer?
----@param id integer
+---@param id string
 ---@param index SessionInfo[]
 -- NOTE: return entry and its index if exists in the index, otherwise nil
 local function find_entry(id, index)
@@ -144,7 +144,7 @@ function M.save_session(session)
 end
 
 ---@return Session?, string?
----@param id integer
+---@param id string
 -- NOTE: sucess: return session, failure: return nil, error message
 function M.load_session(id)
   local index = read_index()
