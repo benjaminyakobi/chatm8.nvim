@@ -83,6 +83,12 @@ function Session.new() -- session class constructor
   return self
 end
 
+---@param data Session
+---@return Session
+function Session:from_table(data)
+  return setmetatable(data, Session)
+end
+
 ---@return table
 ---@param role string
 ---@param content string
