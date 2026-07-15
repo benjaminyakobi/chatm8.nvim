@@ -782,12 +782,12 @@ local function load_session()
     if choice then
       local session_id = sessions_title_id_map[choice]
       if session_id then
-        print(choice, sessions_title_id_map[choice])
         ---@type Session?, string?
         local session, err = M.storage.load_session(session_id)
         if err then
           M.utils.safe_notify("chatm8.nvim: " .. err, vim.log.levels.ERROR)
         else
+          -- TODO: load the session
           print(vim.inspect(session))
         end
       else
