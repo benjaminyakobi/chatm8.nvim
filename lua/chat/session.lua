@@ -44,8 +44,6 @@ Prefer answers that fit naturally into an editor workflow.
 When showing code changes, keep them minimal and easy to paste into a file.
   ]]
 
--- TODO: store and load session metadata: original timestamps, token usage for each message
-
 ---@class ChatMessage
 ---@field role string
 ---@field content string
@@ -98,7 +96,6 @@ end
 ---@param content string
 ---@param timestamp integer
 ---@param token_usage string?
--- TODO: add timestamo and token_usage
 function Session:pack(role, content, timestamp, token_usage)
   return {
     role = role,
@@ -113,7 +110,6 @@ end
 ---@param content string
 ---@param timestamp integer
 ---@param token_usage string?
--- TODO: add timestamo and token_usage
 function Session:add(role, content, timestamp, token_usage)
   table.insert(self.messages, self:pack(role, content, timestamp, token_usage))
 
@@ -130,7 +126,7 @@ function Session:build_context()
   local context = {}
 
   -- Always keep the system prompt.
-  table.insert(context, vim.deepcopy(self.messages[1])) -- TODO: remove timestamp & token_usage
+  table.insert(context, vim.deepcopy(self.messages[1]))
 
   -- Insert all completed summaries.
   for _, summary in ipairs(self.summaries) do

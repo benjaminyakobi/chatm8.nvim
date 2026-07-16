@@ -111,7 +111,6 @@ end
 ---@param text string
 ---@param timestamp integer
 ---@param token_usage string?
--- TODO: add timestamo and token_usage
 local function add_to_session(role, text, timestamp, token_usage)
   if role == "You" or role == "Assistant" then
     M.session:add(role, text, timestamp, token_usage)
