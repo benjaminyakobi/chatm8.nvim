@@ -44,6 +44,7 @@ Prefer answers that fit naturally into an editor workflow.
 When showing code changes, keep them minimal and easy to paste into a file.
   ]]
 
+-- TODO: store and load session metadata: original timestamps, token usage for each message
 ---@class ChatMessage
 ---@field role string
 ---@field content string
@@ -69,6 +70,7 @@ function Session.new() -- session class constructor
   local ts = os.time()
   local human_ts = os.date("%Y-%m-%d %H:%M:%S", ts)
 
+  -- TODO: title - instead of "New Chat_timestamp" use "<root_dir>_timestamp"
   ---@type Session
   local self = setmetatable({
     id = ts,
