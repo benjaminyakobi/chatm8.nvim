@@ -106,23 +106,30 @@ local function summarize(messages, cb)
 end
 
 ---@return nil
+---@param role string
+---@param text string
+local function add_to_session(role, text)
+  if role == "You" or role == "Assistant" then
+    M.session:add(role, text)
+    M.storage.save_session(M.session)
+  end
+end
+
+---@return nil
 ---@param buf integer
 ---@param role string
 ---@param text string
--- TODO: DECOUPLE to two different functions:
---  1. append messages to the chat window
---  2. append messages to the session instance
-local function append_message(buf, role, text, usage)
+---@param usage string?
+local function add_to_chat_window(buf, role, text, usage)
+  if role ~= "You" and role ~= "Assistant" and role ~= "Error" then
+    return
+  end
+
   ---@return string
   local function build_header()
     local timestamp = os.date("%d-%m-%Y %H:%M:%S")
     local header = "❯ " .. role .. " | " .. timestamp
     return header
-  end
-
-  if role == "You" or role == "Assistant" then
-    M.session:add(role, text)
-    M.storage.save_session(M.session)
   end
 
   local lock_buf = M.utils.unlock_buf(buf)
@@ -167,7 +174,10 @@ local function append_message(buf, role, text, usage)
     })
   end
   lock_buf()
+end
 
+---@return nil
+local function maybe_summarize()
   local start_idx, end_idx = M.session:next_chunk_to_summarize()
   if start_idx and end_idx and not state.summarize_in_progress then
     state.summarize_in_progress = true
@@ -184,6 +194,97 @@ local function append_message(buf, role, text, usage)
     end)
   end
 end
+
+---@return nil
+---@param buf integer
+---@param role string
+---@param text string
+---@param usage string?
+local function append_message(buf, role, text, usage)
+  add_to_session(role, text)
+  add_to_chat_window(buf, role, text, usage)
+  maybe_summarize()
+end
+
+-- ---@return nil
+-- ---@param buf integer
+-- ---@param role string
+-- ---@param text string
+-- -- TODO: DECOUPLE to two different functions:
+-- --  1. append messages to the chat window
+-- --  2. append messages to the session instance
+-- local function old_append_message(buf, role, text, usage)
+--   ---@return string
+--   local function build_header()
+--     local timestamp = os.date("%d-%m-%Y %H:%M:%S")
+--     local header = "❯ " .. role .. " | " .. timestamp
+--     return header
+--   end
+--
+--   if role == "You" or role == "Assistant" then
+--     M.session:add(role, text)
+--     M.storage.save_session(M.session)
+--   end
+--
+--   local lock_buf = M.utils.unlock_buf(buf)
+--   local lines = vim.split(text, "\n", { plain = true })
+--   local header = build_header()
+--   local header_line = vim.api.nvim_buf_line_count(buf)
+--   local total_lines = { header }
+--   if usage then
+--     total_lines = { header, usage }
+--   end
+--
+--   for _, v in ipairs(lines) do
+--     table.insert(total_lines, v)
+--   end
+--
+--   for i = #total_lines, 1, -1 do
+--     if total_lines[i] == "" then
+--       table.remove(total_lines, i)
+--     else
+--       break
+--     end
+--   end
+--   total_lines[#total_lines + 1] = ""
+--
+--   vim.api.nvim_buf_set_lines(buf, -1, -1, false, total_lines)
+--   vim.api.nvim_buf_set_extmark(buf, state.chat_ns, header_line, 0, {
+--     hl_group = role,
+--     end_col = #header,
+--   })
+--   if usage then
+--     vim.api.nvim_buf_set_extmark(buf, state.chat_ns, header_line + 1, 0, {
+--       hl_group = role,
+--       end_col = #usage,
+--     })
+--   end
+--
+--   local win = vim.fn.bufwinid(buf)
+--   if win ~= -1 then
+--     vim.api.nvim_win_set_cursor(win, {
+--       header_line + 1,
+--       0,
+--     })
+--   end
+--   lock_buf()
+--
+--   local start_idx, end_idx = M.session:next_chunk_to_summarize()
+--   if start_idx and end_idx and not state.summarize_in_progress then
+--     state.summarize_in_progress = true
+--     local messages = vim.list_slice(M.session:get_messages(), start_idx, end_idx)
+--     summarize(messages, function(summary, err)
+--       if err then
+--         M.utils.safe_notify("chatm8.nvim: Failed to summarize history, " .. err, vim.log.levels.ERROR)
+--         return
+--       end
+--
+--       M.session:add_summary(start_idx, end_idx, summary)
+--       M.storage.save_session(M.session)
+--       state.summarize_in_progress = false
+--     end)
+--   end
+-- end
 
 ---@return nil
 ---@param prompt table
@@ -790,7 +891,7 @@ local function load_session()
         if err then
           M.utils.safe_notify("chatm8.nvim: " .. err, vim.log.levels.ERROR)
         else
-          -- TODO: load the session
+          -- TODO: load the session (DONT FORGET TO CLEAR THE CHAT WINDOW!)
           -- print(vim.inspect(M.session:get_messages())) -- TODO remove later
           M.session = M.session:from_table(session --[[@as Session]])
           -- print(vim.inspect(M.session:get_messages())) -- TODO remove later
