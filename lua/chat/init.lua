@@ -895,6 +895,15 @@ local function load_session()
           -- print(vim.inspect(M.session:get_messages())) -- TODO remove later
           M.session = M.session:from_table(session --[[@as Session]])
           -- print(vim.inspect(M.session:get_messages())) -- TODO remove later
+          -- print(vim.inspect(session.messages))
+          for i, msg in ipairs(session.messages) do
+            local role = msg.role
+            local content = msg.content
+            -- use them
+            -- print(i, role, content)
+            -- print(i, role)
+            add_to_chat_window(M.prompt_history_buf, role, content)
+          end
         end
       else
         M.utils.safe_notify("chatm8.nvim: Invalid session", vim.log.levels.ERROR)
