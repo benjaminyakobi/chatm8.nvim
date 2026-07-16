@@ -88,7 +88,9 @@ local function summarize(messages, cb)
 
       Be concise and precise.
 
-      Write the summary as clear bullet points that another engineer can immediately continue from. ]]
+      Write the summary as clear bullet points that another engineer can immediately continue from. ]],
+    os.time(),
+    "0"
   )
   table.insert(messages, summarize_prompt)
   local text
@@ -108,9 +110,12 @@ end
 ---@return nil
 ---@param role string
 ---@param text string
-local function add_to_session(role, text)
+---@param timestamp integer
+---@param token_usage string
+-- TODO: add timestamo and token_usage
+local function add_to_session(role, text, timestamp, token_usage)
   if role == "You" or role == "Assistant" then
-    M.session:add(role, text)
+    M.session:add(role, text, timestamp, token_usage)
     M.storage.save_session(M.session)
   end
 end
@@ -119,16 +124,17 @@ end
 ---@param buf integer
 ---@param role string
 ---@param text string
----@param usage string?
-local function add_to_chat_window(buf, role, text, usage)
+---@param timestamp integer
+---@param token_usage string
+local function add_to_chat_window(buf, role, text, timestamp, token_usage)
   if role ~= "You" and role ~= "Assistant" and role ~= "Error" then
     return
   end
 
   ---@return string
   local function build_header()
-    local timestamp = os.date("%d-%m-%Y %H:%M:%S")
-    local header = "❯ " .. role .. " | " .. timestamp
+    local human_ts = os.date("%d-%m-%Y %H:%M:%S", timestamp)
+    local header = "❯ " .. role .. " | " .. human_ts
     return header
   end
 
@@ -137,8 +143,8 @@ local function add_to_chat_window(buf, role, text, usage)
   local header = build_header()
   local header_line = vim.api.nvim_buf_line_count(buf)
   local total_lines = { header }
-  if usage then
-    total_lines = { header, usage }
+  if token_usage and role == "Assistant" then
+    total_lines = { header, token_usage }
   end
 
   for _, v in ipairs(lines) do
@@ -159,10 +165,10 @@ local function add_to_chat_window(buf, role, text, usage)
     hl_group = role,
     end_col = #header,
   })
-  if usage then
+  if token_usage then
     vim.api.nvim_buf_set_extmark(buf, state.chat_ns, header_line + 1, 0, {
       hl_group = role,
-      end_col = #usage,
+      end_col = #token_usage,
     })
   end
 
@@ -199,10 +205,11 @@ end
 ---@param buf integer
 ---@param role string
 ---@param text string
----@param usage string?
-local function append_message(buf, role, text, usage)
-  add_to_session(role, text)
-  add_to_chat_window(buf, role, text, usage)
+---@param timestamp integer
+---@param token_usage string
+local function append_message(buf, role, text, timestamp, token_usage)
+  add_to_session(role, text, timestamp, token_usage)
+  add_to_chat_window(buf, role, text, timestamp, token_usage)
   maybe_summarize()
 end
 
@@ -223,7 +230,7 @@ local function call_api(prompt, buf, s_line, e_line, prompt_win)
         lock_buf()
 
         if prompt_win then
-          append_message(buf, "Error", result.error)
+          append_message(buf, "Error", result.error, os.time(), "0")
         else
           M.utils.safe_notify(result.error, vim.log.levels.ERROR)
         end
@@ -236,7 +243,7 @@ local function call_api(prompt, buf, s_line, e_line, prompt_win)
       state.prompt_thinking = false
 
       if prompt_win then
-        append_message(buf, "Assistant", result.content, result.usage)
+        append_message(buf, "Assistant", result.content, os.time(), result.usage)
       else
         vim.api.nvim_buf_set_lines(buf, s_line, e_line, false, vim.split(result.content, "\n"))
         M.utils.safe_notify("chatm8.nvim: " .. result.usage, vim.log.levels.INFO)
@@ -316,7 +323,13 @@ local function complete_implementation()
     .. table.concat(func_signatures, "\n")
     .. "\n\n"
     .. "Keep existing coding style and formatting. Output only code or a single clarifying comment if you cannot proceed."
-  call_api({ M.session:pack("You", prompt) }, vim.api.nvim_get_current_buf(), M.start_line - 1, M.end_line + 1, false)
+  call_api(
+    { M.session:pack("You", prompt, os.time(), "0") },
+    vim.api.nvim_get_current_buf(),
+    M.start_line - 1,
+    M.end_line + 1,
+    false
+  )
 end
 
 ---@return nil
@@ -412,7 +425,7 @@ local function open_single_prompt_window()
         .. table.concat(func_signatures, "\n")
         .. "\n\n"
         .. "Keep existing coding style and formatting. Output only code or a single clarifying comment if you cannot proceed."
-      call_api({ M.session:pack("You", prompt) }, current_buf, M.start_line - 1, M.end_line + 1, false)
+      call_api({ M.session:pack("You", prompt, os.time(), "0") }, current_buf, M.start_line - 1, M.end_line + 1, false)
 
       vim.api.nvim_win_close(M.single_prompt_win, true)
     end)
@@ -754,7 +767,7 @@ local function open_prompt_window()
       return
     end
     local prompt_text = table.concat(prompt_lines, "\n")
-    append_message(M.prompt_history_buf, "You", prompt_text)
+    append_message(M.prompt_history_buf, "You", prompt_text, os.time(), "0")
     send_prompt()
     vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, {})
   end)
@@ -818,7 +831,9 @@ local function load_session()
           for _, msg in ipairs(session.messages) do
             local role = msg.role
             local content = msg.content
-            add_to_chat_window(M.prompt_history_buf, role, content)
+            local timestamp = msg.timestamp
+            local token_usage = msg.token_usage
+            add_to_chat_window(M.prompt_history_buf, role, content, timestamp, token_usage)
           end
         end
       else
