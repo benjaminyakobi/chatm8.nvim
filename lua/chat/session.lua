@@ -45,11 +45,12 @@ When showing code changes, keep them minimal and easy to paste into a file.
   ]]
 
 -- TODO: store and load session metadata: original timestamps, token usage for each message
+
 ---@class ChatMessage
 ---@field role string
 ---@field content string
--- ---@field timestamp integer
--- ---@field usage string
+---@field timestamp integer
+---@field token_usage string
 
 ---@class SummaryChunk
 ---@field start_idx integer
@@ -81,7 +82,7 @@ function Session.new() -- session class constructor
     messages = {},
     summaries = {},
   }, Session)
-  self:add("system", SYSTEM_PROMPT)
+  self:add("system", SYSTEM_PROMPT, ts, "0")
 
   return self
 end
@@ -92,21 +93,29 @@ function Session:from_table(data)
   return setmetatable(data, Session)
 end
 
----@return table
+---@return ChatMessage
 ---@param role string
 ---@param content string
-function Session:pack(role, content)
+---@param timestamp integer
+---@param token_usage string
+-- TODO: add timestamo and token_usage
+function Session:pack(role, content, timestamp, token_usage)
   return {
     role = role,
     content = content,
+    timestamp = timestamp,
+    token_usage = token_usage,
   }
 end
 
 ---@return nil
 ---@param role string
 ---@param content string
-function Session:add(role, content)
-  table.insert(self.messages, self:pack(role, content))
+---@param timestamp integer
+---@param token_usage string
+-- TODO: add timestamo and token_usage
+function Session:add(role, content, timestamp, token_usage)
+  table.insert(self.messages, self:pack(role, content, timestamp, token_usage))
 
   self.updated_at = os.time()
 end
@@ -121,7 +130,7 @@ function Session:build_context()
   local context = {}
 
   -- Always keep the system prompt.
-  table.insert(context, vim.deepcopy(self.messages[1]))
+  table.insert(context, vim.deepcopy(self.messages[1])) -- TODO: remove timestamp & token_usage
 
   -- Insert all completed summaries.
   for _, summary in ipairs(self.summaries) do
