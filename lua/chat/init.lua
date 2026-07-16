@@ -89,8 +89,7 @@ local function summarize(messages, cb)
       Be concise and precise.
 
       Write the summary as clear bullet points that another engineer can immediately continue from. ]],
-    os.time(),
-    "0"
+    os.time()
   )
   table.insert(messages, summarize_prompt)
   local text
@@ -111,7 +110,7 @@ end
 ---@param role string
 ---@param text string
 ---@param timestamp integer
----@param token_usage string
+---@param token_usage string?
 -- TODO: add timestamo and token_usage
 local function add_to_session(role, text, timestamp, token_usage)
   if role == "You" or role == "Assistant" then
@@ -125,7 +124,7 @@ end
 ---@param role string
 ---@param text string
 ---@param timestamp integer
----@param token_usage string
+---@param token_usage string?
 local function add_to_chat_window(buf, role, text, timestamp, token_usage)
   if role ~= "You" and role ~= "Assistant" and role ~= "Error" then
     return
@@ -143,7 +142,7 @@ local function add_to_chat_window(buf, role, text, timestamp, token_usage)
   local header = build_header()
   local header_line = vim.api.nvim_buf_line_count(buf)
   local total_lines = { header }
-  if token_usage and role == "Assistant" then
+  if token_usage then
     total_lines = { header, token_usage }
   end
 
@@ -206,7 +205,7 @@ end
 ---@param role string
 ---@param text string
 ---@param timestamp integer
----@param token_usage string
+---@param token_usage string?
 local function append_message(buf, role, text, timestamp, token_usage)
   add_to_session(role, text, timestamp, token_usage)
   add_to_chat_window(buf, role, text, timestamp, token_usage)
@@ -230,7 +229,7 @@ local function call_api(prompt, buf, s_line, e_line, prompt_win)
         lock_buf()
 
         if prompt_win then
-          append_message(buf, "Error", result.error, os.time(), "0")
+          append_message(buf, "Error", result.error, os.time())
         else
           M.utils.safe_notify(result.error, vim.log.levels.ERROR)
         end
@@ -324,7 +323,7 @@ local function complete_implementation()
     .. "\n\n"
     .. "Keep existing coding style and formatting. Output only code or a single clarifying comment if you cannot proceed."
   call_api(
-    { M.session:pack("You", prompt, os.time(), "0") },
+    { M.session:pack("You", prompt, os.time()) },
     vim.api.nvim_get_current_buf(),
     M.start_line - 1,
     M.end_line + 1,
@@ -425,7 +424,7 @@ local function open_single_prompt_window()
         .. table.concat(func_signatures, "\n")
         .. "\n\n"
         .. "Keep existing coding style and formatting. Output only code or a single clarifying comment if you cannot proceed."
-      call_api({ M.session:pack("You", prompt, os.time(), "0") }, current_buf, M.start_line - 1, M.end_line + 1, false)
+      call_api({ M.session:pack("You", prompt, os.time()) }, current_buf, M.start_line - 1, M.end_line + 1, false)
 
       vim.api.nvim_win_close(M.single_prompt_win, true)
     end)
@@ -767,7 +766,7 @@ local function open_prompt_window()
       return
     end
     local prompt_text = table.concat(prompt_lines, "\n")
-    append_message(M.prompt_history_buf, "You", prompt_text, os.time(), "0")
+    append_message(M.prompt_history_buf, "You", prompt_text, os.time())
     send_prompt()
     vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, {})
   end)

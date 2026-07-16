@@ -50,7 +50,7 @@ When showing code changes, keep them minimal and easy to paste into a file.
 ---@field role string
 ---@field content string
 ---@field timestamp integer
----@field token_usage string
+---@field token_usage string?
 
 ---@class SummaryChunk
 ---@field start_idx integer
@@ -82,7 +82,7 @@ function Session.new() -- session class constructor
     messages = {},
     summaries = {},
   }, Session)
-  self:add("system", SYSTEM_PROMPT, ts, "0")
+  self:add("system", SYSTEM_PROMPT, ts)
 
   return self
 end
@@ -97,7 +97,7 @@ end
 ---@param role string
 ---@param content string
 ---@param timestamp integer
----@param token_usage string
+---@param token_usage string?
 -- TODO: add timestamo and token_usage
 function Session:pack(role, content, timestamp, token_usage)
   return {
@@ -112,7 +112,7 @@ end
 ---@param role string
 ---@param content string
 ---@param timestamp integer
----@param token_usage string
+---@param token_usage string?
 -- TODO: add timestamo and token_usage
 function Session:add(role, content, timestamp, token_usage)
   table.insert(self.messages, self:pack(role, content, timestamp, token_usage))
