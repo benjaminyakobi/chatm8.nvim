@@ -48,6 +48,8 @@ When showing code changes, keep them minimal and easy to paste into a file.
 ---@class ChatMessage
 ---@field role string
 ---@field content string
+-- ---@field timestamp integer
+-- ---@field usage string
 
 ---@class SummaryChunk
 ---@field start_idx integer
@@ -70,13 +72,12 @@ function Session.new() -- session class constructor
   local ts = os.time()
   local human_ts = os.date("%Y-%m-%d %H:%M:%S", ts)
 
-  -- TODO: title - instead of "New Chat_timestamp" use "<root_dir>_timestamp"
   ---@type Session
   local self = setmetatable({
     id = ts,
     created_at = ts,
     updated_at = ts,
-    title = "New Chat" .. "_" .. human_ts,
+    title = vim.fs.basename(vim.fn.getcwd()) .. "_" .. human_ts,
     messages = {},
     summaries = {},
   }, Session)
