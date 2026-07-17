@@ -1,6 +1,6 @@
 -- NOTE: this file manages chat sessions
 
-local SUMMARY_CHUNK_SIZE = 44
+local SUMMARY_CHUNK_SIZE = 20
 
 local SYSTEM_PROMPT = [[
 You are a senior software engineer and technical mentor.
