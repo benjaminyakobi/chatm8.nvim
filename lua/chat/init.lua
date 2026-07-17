@@ -112,10 +112,11 @@ end
 ---@param timestamp integer
 ---@param token_usage string?
 local function add_to_session(role, text, timestamp, token_usage)
-  if role == "You" or role == "Assistant" then
-    M.session:add(role, text, timestamp, token_usage)
-    M.storage.save_session(M.session)
+  if role ~= "You" and role ~= "Assistant" and role ~= "Error" then
+    return
   end
+  M.session:add(role, text, timestamp, token_usage)
+  M.storage.save_session(M.session)
 end
 
 ---@return nil
