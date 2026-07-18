@@ -1,5 +1,7 @@
 # chatm8.nvim
-A NeoVim AI Chat Plugin for exploring how AI understands and helps with code.
+My journey to explore how AI understands, reasons about, and helps with code — right inside NeoVim.
+
+> Tree-sitter features are tuned for Go, JavaScript, Python, and Lua.
 
 ## Installation
 Using [lazy.nvim](https://github.com/folke/lazy.nvim)
@@ -15,6 +17,10 @@ Basic setup for OpenAI & Anthropic:
           openai = {
             api_key = '<OPENAI_API_KEY>',
             models = {
+              'gpt-5.6-luna',
+              'gpt-5.6-terra',
+              'gpt-5.6-sol',
+
               'gpt-5.5',
 
               'gpt-5.4-nano',
@@ -62,6 +68,10 @@ Local dev setup:
           openai = {
             api_key = '<OPENAI_API_KEY>',
             models = {
+              'gpt-5.6-luna',
+              'gpt-5.6-terra',
+              'gpt-5.6-sol',
+
               'gpt-5.5',
 
               'gpt-5.4-nano',
@@ -118,7 +128,7 @@ Local dev setup:
      in a split view.
   2. [Chat Window] Maintain a continuous, multi-turn conversation with the model
      that persists across different files and buffers.
-  2.0. [Session] This session is ephemeral: it will be deleted when you quit Neovim.
+  2.0. [Session] This session is persistent: it can be load again with `<Leader>8l`.
     2.1. [Layout] Two windows will open:
          - Upper window: conversation history (read-only).
          - Lower window: prompt input.
@@ -132,3 +142,8 @@ Local dev setup:
      (e.g., `<Leader>8i` inline implementation, `<Leader>8p` single prompt, and `<Leader>8c` chat).
   4. [Persistence] The selection is saved for the current Neovim session.
 
+<Leader>8l: Load Old Sessions
+  1. [Normal Mode] Press `<Leader>8l` to open a list of previously saved chat sessions.
+  2. Select a session to load its conversation history into the chat window.
+  3. [Restore] The loaded session becomes the active context, letting you resume a
+ 
