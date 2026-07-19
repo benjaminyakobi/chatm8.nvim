@@ -724,7 +724,6 @@ end
 local function init_prompt_history_buf()
   local lock_buf = M.utils.unlock_buf(M.prompt_history_buf)
   local session_title = "Persistent session"
-  -- if #vim.api.nvim_buf_get_lines(M.prompt_history_buf, 0, -1, false) > 4 then
   vim.api.nvim_buf_set_lines(M.prompt_history_buf, 0, -1, false, {})
   vim.api.nvim_buf_set_lines(M.prompt_history_buf, 0, 0, false, { session_title })
   set_provider(M.prompt_history_buf, M.providers.current)
@@ -733,7 +732,6 @@ local function init_prompt_history_buf()
     hl_group = "ChatUI",
     end_col = #session_title,
   })
-  -- end
   lock_buf()
 end
 
@@ -744,25 +742,14 @@ local function open_prompt_window()
     return
   end
 
-  -- Create new buffers and windows
-  M.prompt_history_buf = vim.api.nvim_create_buf(false, true)
-  M.prompt_buf = vim.api.nvim_create_buf(false, true)
-
   -- Configure buffers and windows
+  M.prompt_history_buf = vim.api.nvim_create_buf(false, true)
   vim.bo[M.prompt_history_buf].filetype = "markdown"
   vim.bo[M.prompt_history_buf].swapfile = false
-  -- local session_title = "Persistent session"
-  -- vim.api.nvim_buf_set_lines(M.prompt_history_buf, 0, 0, false, { session_title })
-  -- vim.api.nvim_buf_set_extmark(M.prompt_history_buf, state.chat_ns, 0, 0, {
-  --   hl_group = "ChatUI",
-  --   end_col = #session_title,
-  -- })
-  --
-  -- set_provider(M.prompt_history_buf, M.providers.current)
+  vim.bo[M.prompt_history_buf].modifiable = false
   init_prompt_history_buf()
 
-  vim.bo[M.prompt_history_buf].modifiable = false
-
+  M.prompt_buf = vim.api.nvim_create_buf(false, true)
   vim.bo[M.prompt_buf].buftype = "prompt"
   vim.bo[M.prompt_buf].filetype = "markdown"
   vim.bo[M.prompt_buf].swapfile = false
@@ -843,7 +830,6 @@ local function load_session()
         elseif not session then
           M.utils.safe_notify("chatm8.nvim: Failed to retrieve session", vim.log.levels.ERROR)
         else
-          -- TODO: clear the chat window before loading a session
           init_prompt_history_buf()
           M.session = M.session:from_table(session)
           for _, msg in ipairs(session.messages) do
