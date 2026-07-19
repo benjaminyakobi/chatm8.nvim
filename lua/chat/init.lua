@@ -844,6 +844,7 @@ local function load_session()
           M.utils.safe_notify("chatm8.nvim: Failed to retrieve session", vim.log.levels.ERROR)
         else
           -- TODO: clear the chat window before loading a session
+          init_prompt_history_buf()
           M.session = M.session:from_table(session)
           for _, msg in ipairs(session.messages) do
             local role = msg.role
