@@ -721,6 +721,23 @@ local function set_prompt_window_conf(optional_prompt_win_height)
 end
 
 ---@return nil
+local function init_prompt_history_buf()
+  local lock_buf = M.utils.unlock_buf(M.prompt_history_buf)
+  local session_title = "Persistent session"
+  -- if #vim.api.nvim_buf_get_lines(M.prompt_history_buf, 0, -1, false) > 4 then
+  vim.api.nvim_buf_set_lines(M.prompt_history_buf, 0, -1, false, {})
+  vim.api.nvim_buf_set_lines(M.prompt_history_buf, 0, 0, false, { session_title })
+  set_provider(M.prompt_history_buf, M.providers.current)
+
+  vim.api.nvim_buf_set_extmark(M.prompt_history_buf, state.chat_ns, 0, 0, {
+    hl_group = "ChatUI",
+    end_col = #session_title,
+  })
+  -- end
+  lock_buf()
+end
+
+---@return nil
 local function open_prompt_window()
   if M.prompt_buf and M.prompt_history_buf then
     set_prompt_window_conf()
@@ -734,14 +751,15 @@ local function open_prompt_window()
   -- Configure buffers and windows
   vim.bo[M.prompt_history_buf].filetype = "markdown"
   vim.bo[M.prompt_history_buf].swapfile = false
-  local session_title = "Persistent session"
-  vim.api.nvim_buf_set_lines(M.prompt_history_buf, 0, 0, false, { session_title })
-  vim.api.nvim_buf_set_extmark(M.prompt_history_buf, state.chat_ns, 0, 0, {
-    hl_group = "ChatUI",
-    end_col = #session_title,
-  })
-
-  set_provider(M.prompt_history_buf, M.providers.current)
+  -- local session_title = "Persistent session"
+  -- vim.api.nvim_buf_set_lines(M.prompt_history_buf, 0, 0, false, { session_title })
+  -- vim.api.nvim_buf_set_extmark(M.prompt_history_buf, state.chat_ns, 0, 0, {
+  --   hl_group = "ChatUI",
+  --   end_col = #session_title,
+  -- })
+  --
+  -- set_provider(M.prompt_history_buf, M.providers.current)
+  init_prompt_history_buf()
 
   vim.bo[M.prompt_history_buf].modifiable = false
 
