@@ -823,7 +823,25 @@ local function process_session_list()
 end
 
 ---@return nil
-local function delete_session() end
+local function delete_session()
+  ---@type table<string, string>, table<string>
+  local session_titles, sessions_title_id_map = process_session_list()
+
+  vim.ui.select(session_titles, { prompt = "Select session to delete" }, function(choice)
+    if choice then
+      local session_id = sessions_title_id_map[choice]
+      if session_id then
+        ---@type boolean, string?
+        local ok, err = M.storage.delete_session(session_id)
+        if not ok then
+          M.utils.safe_notify("chatm8.nvim: " .. err, vim.log.levels.ERROR)
+        end
+      else
+        M.utils.safe_notify("chatm8.nvim: Invalid session", vim.log.levels.ERROR)
+      end
+    end
+  end)
+end
 
 ---@return nil
 local function load_session()
