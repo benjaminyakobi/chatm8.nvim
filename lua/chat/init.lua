@@ -72,7 +72,7 @@ local state = {
 ---@param messages ChatMessage[]
 ---@param cb function
 local function summarize(messages, cb)
-  local summarize_prompt = M.session:pack(
+  local summarize_prompt = M.active_session:pack(
     "You",
     [[ Summarize this conversation for future context.
 
@@ -119,8 +119,8 @@ local function add_to_session(role, text, timestamp, token_usage)
   if role ~= "You" and role ~= "Assistant" and role ~= "Error" then
     return
   end
-  M.session:add(role, text, timestamp, token_usage)
-  M.storage.save_session(M.session)
+  M.active_session:add(role, text, timestamp, token_usage)
+  M.storage.save_session(M.active_session)
 end
 
 ---@return nil
@@ -187,18 +187,18 @@ end
 
 ---@return nil
 local function maybe_summarize()
-  local start_idx, end_idx = M.session:next_chunk_to_summarize()
+  local start_idx, end_idx = M.active_session:next_chunk_to_summarize()
   if start_idx and end_idx and not state.summarize_in_progress then
     state.summarize_in_progress = true
-    local messages = vim.list_slice(M.session:get_messages(), start_idx, end_idx)
+    local messages = vim.list_slice(M.active_session:get_messages(), start_idx, end_idx)
     summarize(messages, function(summary, err)
       if err then
         M.utils.safe_notify("chatm8.nvim: Failed to summarize history, " .. err, vim.log.levels.ERROR)
         return
       end
 
-      M.session:add_summary(start_idx, end_idx, summary)
-      M.storage.save_session(M.session)
+      M.active_session:add_summary(start_idx, end_idx, summary)
+      M.storage.save_session(M.active_session)
       state.summarize_in_progress = false
     end)
   end
@@ -259,7 +259,7 @@ end
 local function send_prompt()
   if M.prompt_win then
     local win_buf_lines = vim.api.nvim_buf_get_lines(M.prompt_history_buf, 0, -1, false)
-    call_api(M.session:build_context(), M.prompt_history_buf, #win_buf_lines, -1, true)
+    call_api(M.active_session:build_context(), M.prompt_history_buf, #win_buf_lines, -1, true)
   else
     M.utils.safe_notify("chatm8.nvim: Select lines first", vim.log.levels.INFO)
   end
@@ -327,7 +327,7 @@ local function complete_implementation()
     .. "\n\n"
     .. "Keep existing coding style and formatting. Output only code or a single clarifying comment if you cannot proceed."
   call_api(
-    { M.session:pack("You", prompt, os.time()) },
+    { M.active_session:pack("You", prompt, os.time()) },
     vim.api.nvim_get_current_buf(),
     M.start_line - 1,
     M.end_line + 1,
@@ -428,7 +428,13 @@ local function open_single_prompt_window()
         .. table.concat(func_signatures, "\n")
         .. "\n\n"
         .. "Keep existing coding style and formatting. Output only code or a single clarifying comment if you cannot proceed."
-      call_api({ M.session:pack("You", prompt, os.time()) }, current_buf, M.start_line - 1, M.end_line + 1, false)
+      call_api(
+        { M.active_session:pack("You", prompt, os.time()) },
+        current_buf,
+        M.start_line - 1,
+        M.end_line + 1,
+        false
+      )
 
       vim.api.nvim_win_close(M.single_prompt_win, true)
     end)
@@ -838,7 +844,7 @@ local function delete_session()
 
   vim.ui.select(session_titles, { prompt = "Select session to delete" }, function(choice)
     if choice then
-      if sessions_title_id_map[choice] == M.session.id then
+      if sessions_title_id_map[choice] == M.active_session.id then
         M.utils.safe_notify("chatm8.nvim: Impossible to delete active session", vim.log.levels.WARN)
         return
       end
@@ -873,7 +879,7 @@ local function load_session()
           M.utils.safe_notify("chatm8.nvim: Failed to retrieve session", vim.log.levels.ERROR)
         else
           init_prompt_history_buf()
-          M.session = M.session:from_table(session)
+          M.active_session = M.active_session:from_table(session)
           for _, msg in ipairs(session.messages) do
             local role = msg.role
             local content = msg.content
@@ -900,8 +906,8 @@ function M.setup(opts)
   M.utils = require("chat.utils")
   M.providers = require("chat.providers")
   M.storage = require("chat.storage")
-  local Session = require("chat.session")
-  M.session = Session.new()
+  M.session = require("chat.session")
+  M.active_session = M.session:new()
 
   -- setting up a provider
   M.providers.setup(opts.providers, opts.provider)
