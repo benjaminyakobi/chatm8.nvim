@@ -175,10 +175,32 @@ function M.load_session(id)
 end
 
 ---@return boolean success, string? err
----@param id integer
+---@param id string
 -- NOTE: success: return true, failure: return false, error message
 function M.delete_session(id)
-  print(id)
+  local index = read_index()
+
+  ---@type SessionInfo?
+  local entry, idx = find_entry(id, index)
+  if not entry then
+    return false, "Session not found"
+  end
+
+  local path = session_path(entry.filename)
+  local stat = uv.fs_stat(path)
+  if not stat then
+    return false, "Session file missing"
+  end
+
+  local ok, err = uv.fs_unlink(path)
+  if not ok then
+    return false, err
+  end
+
+  table.remove(index, idx)
+  write_index(index)
+
+  return true
 end
 
 ---@return table<string, string>
