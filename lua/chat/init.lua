@@ -827,6 +827,11 @@ local function process_session_list()
 end
 
 ---@return nil
+local function new_session()
+  -- TODO: implement
+end
+
+---@return nil
 local function delete_session()
   ---@type table<string, string>, table<string>
   local session_titles, sessions_title_id_map = process_session_list()
@@ -971,6 +976,12 @@ function M.setup(opts)
     delete_session()
   end, {
     desc = "Delete old sessions",
+  })
+
+  vim.keymap.set("n", "<leader>8n", function()
+    -- new_session()
+  end, {
+    desc = "Start new session",
   })
 
   -- custom key maps including overrides
