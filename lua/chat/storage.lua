@@ -174,10 +174,12 @@ function M.load_session(id)
   return session
 end
 
--- ---@return boolean, string?
--- ---@param id integer
+---@return boolean success, string? err
+---@param id integer
 -- NOTE: success: return true, failure: return false, error message
--- function M.delete_session(id) end
+function M.delete_session(id)
+  print(id)
+end
 
 ---@return table<string, string>
 -- NOTE: return map of sessions titles and ids
