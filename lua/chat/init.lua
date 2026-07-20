@@ -833,6 +833,10 @@ local function delete_session()
 
   vim.ui.select(session_titles, { prompt = "Select session to delete" }, function(choice)
     if choice then
+      if sessions_title_id_map[choice] == M.session.id then
+        M.utils.safe_notify("chatm8.nvim: Impossible to delete active session", vim.log.levels.WARN)
+        return
+      end
       local session_id = sessions_title_id_map[choice]
       if session_id then
         ---@type boolean, string?
