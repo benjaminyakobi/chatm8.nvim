@@ -823,6 +823,9 @@ local function process_session_list()
 end
 
 ---@return nil
+local function delete_session() end
+
+---@return nil
 local function load_session()
   ---@type table<string, string>, table<string>
   local session_titles, sessions_title_id_map = process_session_list()
@@ -936,6 +939,12 @@ function M.setup(opts)
     load_session()
   end, {
     desc = "Load old sessions",
+  })
+
+  vim.keymap.set("n", "<leader>8d", function()
+    delete_session()
+  end, {
+    desc = "Delete old sessions",
   })
 
   -- custom key maps including overrides
