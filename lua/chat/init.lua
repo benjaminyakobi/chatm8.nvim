@@ -808,8 +808,8 @@ local function select_automated_operation(operations, op_keys)
   end)
 end
 
----@return nil
-local function load_session()
+---@return table<string> titles, table<string, string> map
+local function process_session_list()
   ---@type table<string, string>
   local sessions_title_id_map = M.storage.list_sessions()
 
@@ -818,6 +818,14 @@ local function load_session()
   for title, _ in pairs(sessions_title_id_map) do
     table.insert(session_titles, title)
   end
+
+  return session_titles, sessions_title_id_map
+end
+
+---@return nil
+local function load_session()
+  ---@type table<string, string>, table<string>
+  local session_titles, sessions_title_id_map = process_session_list()
 
   vim.ui.select(session_titles, { prompt = "Select session to load" }, function(choice)
     if choice then
