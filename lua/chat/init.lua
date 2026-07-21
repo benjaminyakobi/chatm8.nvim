@@ -15,6 +15,7 @@
 
 local M = {}
 local state = {} -- NOTE: being initialized inside M.setup()
+local imports = {} -- NOTE: being initialized inside M.setup()
 
 ---@return string
 ---@param messages ChatMessage[]
@@ -68,7 +69,7 @@ local function add_to_session(role, text, timestamp, token_usage)
     return
   end
   state.active_session:add(role, text, timestamp, token_usage)
-  M.storage.save_session(state.active_session)
+  imports.storage.save_session(state.active_session)
 end
 
 ---@return nil
@@ -89,7 +90,7 @@ local function add_to_chat_window(buf, role, text, timestamp, token_usage)
     return header
   end
 
-  local lock_buf = M.utils.unlock_buf(buf)
+  local lock_buf = imports.utils.unlock_buf(buf)
   local lines = vim.split(text, "\n", { plain = true })
   local header = build_header()
   local header_line = vim.api.nvim_buf_line_count(buf)
@@ -141,12 +142,12 @@ local function maybe_summarize()
     local messages = vim.list_slice(state.active_session:get_messages(), start_idx, end_idx)
     summarize(messages, function(summary, err)
       if err then
-        M.utils.safe_notify("chatm8.nvim: Failed to summarize history, " .. err, vim.log.levels.ERROR)
+        imports.utils.safe_notify("chatm8.nvim: Failed to summarize history, " .. err, vim.log.levels.ERROR)
         return
       end
 
       state.active_session:add_summary(start_idx, end_idx, summary)
-      M.storage.save_session(state.active_session)
+      imports.storage.save_session(state.active_session)
       state.summarize_in_progress = false
     end)
   end
@@ -171,8 +172,8 @@ end
 ---@param e_line integer
 ---@param prompt_win boolean
 local function call_api(prompt, buf, s_line, e_line, prompt_win)
-  local lock_buf = M.utils.unlock_buf(buf)
-  local stop_spinner = M.utils.start_spinner(buf, s_line, state.chat_ns)
+  local lock_buf = imports.utils.unlock_buf(buf)
+  local stop_spinner = imports.utils.start_spinner(buf, s_line, state.chat_ns)
   state.prompt_thinking = true
   M.provider_module.answer(prompt, function(result)
     vim.schedule(function()
@@ -183,7 +184,7 @@ local function call_api(prompt, buf, s_line, e_line, prompt_win)
         if prompt_win then
           append_message(buf, "Error", result.error, os.time())
         else
-          M.utils.safe_notify(result.error, vim.log.levels.ERROR)
+          imports.utils.safe_notify(result.error, vim.log.levels.ERROR)
         end
         state.prompt_thinking = false
         return
@@ -197,7 +198,7 @@ local function call_api(prompt, buf, s_line, e_line, prompt_win)
         append_message(buf, "Assistant", result.content, os.time(), result.usage)
       else
         vim.api.nvim_buf_set_lines(buf, s_line, e_line, false, vim.split(result.content, "\n"))
-        M.utils.safe_notify("chatm8.nvim: " .. result.usage, vim.log.levels.INFO)
+        imports.utils.safe_notify("chatm8.nvim: " .. result.usage, vim.log.levels.INFO)
       end
     end)
   end)
@@ -209,34 +210,34 @@ local function send_prompt()
     local win_buf_lines = vim.api.nvim_buf_get_lines(M.prompt_history_buf, 0, -1, false)
     call_api(state.active_session:build_context(), M.prompt_history_buf, #win_buf_lines, -1, true)
   else
-    M.utils.safe_notify("chatm8.nvim: Select lines first", vim.log.levels.INFO)
+    imports.utils.safe_notify("chatm8.nvim: Select lines first", vim.log.levels.INFO)
   end
 end
 
 ---@return nil
 ---@param provider_name string
 local function set_provider(buf, provider_name)
-  M.providers.set(provider_name)
-  local ok, provider = pcall(require, "chat.providers." .. M.providers.name)
+  imports.providers.set(provider_name)
+  local ok, provider = pcall(require, "chat.providers." .. imports.providers.name)
   if not ok then
-    M.utils.safe_notify("No provider found for: " .. tostring(M.providers.name), vim.log.levels.ERROR)
+    imports.utils.safe_notify("No provider found for: " .. tostring(imports.providers.name), vim.log.levels.ERROR)
     return
   end
   M.provider_module = provider
-  local session_provider = "Provider: " .. M.providers.current
+  local session_provider = "Provider: " .. imports.providers.current
   vim.api.nvim_buf_set_lines(buf, 2, 4, false, { session_provider, "" })
   vim.api.nvim_buf_set_extmark(buf, state.chat_ns, 2, 0, {
     hl_group = "ChatUI",
     end_col = #session_provider,
   })
-  M.utils.safe_notify("chatm8.nvim: current provider: " .. M.providers.current, vim.log.levels.INFO)
+  imports.utils.safe_notify("chatm8.nvim: current provider: " .. imports.providers.current, vim.log.levels.INFO)
 end
 
 ---@return nil
 local function select_provider()
-  vim.ui.select(M.providers.list, { prompt = "Select chat provider" }, function(choice)
+  vim.ui.select(imports.providers.list, { prompt = "Select chat provider" }, function(choice)
     if choice then
-      local lock_buf = M.utils.unlock_buf(M.prompt_history_buf)
+      local lock_buf = imports.utils.unlock_buf(M.prompt_history_buf)
       set_provider(M.prompt_history_buf, choice)
       lock_buf()
     end
@@ -246,15 +247,15 @@ end
 ---@return nil
 local function complete_implementation()
   if state.prompt_thinking then
-    M.utils.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
+    imports.utils.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
     return
   end
   vim.api.nvim_input("<Esc>") -- exit selection mode for better ux
-  local selected_lines, start_line, end_line = M.utils.get_visual_selection()
+  local selected_lines, start_line, end_line = imports.utils.get_visual_selection()
   M.start_line, M.end_line = start_line, end_line
-  local func_data = M.treesitter.get_func_ast_data(0)
-  local func_signatures = M.treesitter.get_func_signatures(func_data, true, true)
-  local selected_text = M.utils.tag_selected_text(table.concat(selected_lines, "\n"))
+  local func_data = imports.treesitter.get_func_ast_data(0)
+  local func_signatures = imports.treesitter.get_func_signatures(func_data, true, true)
+  local selected_text = imports.utils.tag_selected_text(table.concat(selected_lines, "\n"))
   local prompt = "Implement the following code.\n"
     .. "Respond with code only. Do NOT wrap the output in backticks.\n\n"
     .. "IMPORTANT (read carefully):\n"
@@ -319,12 +320,12 @@ local function open_single_prompt_window()
     vim.api.nvim_win_set_config(M.single_prompt_win, single_prompt_win_conf)
   else
     local selected_text
-    local selected_lines, start_line, end_line = M.utils.get_visual_selection()
+    local selected_lines, start_line, end_line = imports.utils.get_visual_selection()
     M.start_line, M.end_line = start_line, end_line
-    if M.utils.is_empty(selected_lines) then
+    if imports.utils.is_empty(selected_lines) then
       selected_text = table.concat(selected_lines, "\n")
     else
-      selected_text = M.utils.tag_selected_text(table.concat(selected_lines, "\n"))
+      selected_text = imports.utils.tag_selected_text(table.concat(selected_lines, "\n"))
     end
 
     local tagged_selected_lines = vim.split(selected_text, "\n")
@@ -340,20 +341,20 @@ local function open_single_prompt_window()
     -- callback when user presses Enter
     vim.fn.prompt_setcallback(M.single_prompt_buf, function()
       local prompt_lines = vim.api.nvim_buf_get_lines(M.single_prompt_buf, 0, -1, false)
-      if M.utils.is_empty(prompt_lines) then
-        M.utils.safe_notify("Write prompt first", vim.log.levels.WARN)
+      if imports.utils.is_empty(prompt_lines) then
+        imports.utils.safe_notify("Write prompt first", vim.log.levels.WARN)
         vim.api.nvim_buf_set_lines(M.single_prompt_buf, 0, -1, false, {})
         return
       end
 
       if state.prompt_thinking then
-        M.utils.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
+        imports.utils.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
         return
       end
 
       local prompt_text = table.concat(prompt_lines, "\n")
-      local func_data = M.treesitter.get_func_ast_data(0)
-      local func_signatures = M.treesitter.get_func_signatures(func_data, true, true)
+      local func_data = imports.treesitter.get_func_ast_data(0)
+      local func_signatures = imports.treesitter.get_func_signatures(func_data, true, true)
       local prompt = "Modify the selected code according to the user's instructions.\n"
         .. "Respond with code only. Do NOT wrap the output in backticks.\n"
         .. "Do NOT include explanations, notes, comments, markdown, or any text outside the replacement code.\n\n"
@@ -404,21 +405,21 @@ local function open_single_prompt_window()
 
     -- Opening the prompt window
     M.single_prompt_win = vim.api.nvim_open_win(M.single_prompt_buf, true, single_prompt_win_conf)
-    M.utils.set_border(M.single_prompt_win, "PromptBorderActive", "PromptTitleActive")
+    imports.utils.set_border(M.single_prompt_win, "PromptBorderActive", "PromptTitleActive")
 
     -- custom key maps - disabling key maps
     vim.keymap.set("v", "<Leader>8i", function()
       vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "n", false)
-      M.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
+      imports.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
     end, { desc = "Complete implementation (Disabled)", buf = M.single_prompt_buf })
 
     vim.keymap.set("n", "<Leader>8c", function()
-      M.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
+      imports.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
     end, { desc = "Toggle persistent chat window (Disabled)", buf = M.single_prompt_buf })
 
     vim.keymap.set("v", "<Leader>8p", function()
       vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "n", false)
-      M.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
+      imports.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
     end, { desc = "Custom prompt: Replace selection (Disabled)", buf = M.single_prompt_buf })
 
     vim.keymap.set({ "n", "i" }, "<Leader>8p", function()
@@ -434,7 +435,7 @@ local function open_single_prompt_window()
       callback = function()
         local win = vim.api.nvim_get_current_win()
         if win == M.single_prompt_win then
-          M.utils.set_border(M.single_prompt_win, "PromptBorderActive", "PromptTitleActive")
+          imports.utils.set_border(M.single_prompt_win, "PromptBorderActive", "PromptTitleActive")
         end
       end,
     })
@@ -493,12 +494,12 @@ local function open_single_prompt_window()
       callback = function()
         local win = vim.api.nvim_get_current_win()
         if win == M.single_prompt_win then
-          M.utils.set_border(M.single_prompt_win, "ChatBorderInactive", "PromptTitleInactive")
+          imports.utils.set_border(M.single_prompt_win, "ChatBorderInactive", "PromptTitleInactive")
         end
       end,
     })
 
-    M.utils.mouse_guard(M.single_prompt_win, M.single_prompt_buf)
+    imports.utils.mouse_guard(M.single_prompt_win, M.single_prompt_buf)
   end
 end
 
@@ -567,7 +568,7 @@ local function set_prompt_window_conf(optional_prompt_win_height)
     -- set custom options
     vim.api.nvim_set_option_value("number", true, { win = M.prompt_win })
     vim.api.nvim_set_option_value("number", true, { win = M.prompt_history_win })
-    M.utils.set_border(M.prompt_win, "PromptBorderActive", "PromptTitleActive")
+    imports.utils.set_border(M.prompt_win, "PromptBorderActive", "PromptTitleActive")
 
     -- set cursor at the last line & start insert mode
     local last = vim.api.nvim_buf_line_count(M.prompt_buf)
@@ -576,7 +577,7 @@ local function set_prompt_window_conf(optional_prompt_win_height)
     -- custom key maps - disabling key maps
     for _, buf in ipairs({ M.prompt_buf, M.prompt_history_buf }) do
       vim.keymap.set("v", "<Leader>8i", function()
-        M.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
+        imports.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
       end, { desc = "Complete implementation (Disabled)", buf = buf })
     end
 
@@ -600,9 +601,9 @@ local function set_prompt_window_conf(optional_prompt_win_height)
         callback = function()
           local win = vim.api.nvim_get_current_win()
           if win == M.prompt_history_win then
-            M.utils.set_border(M.prompt_history_win, "ChatBorderActive", "PromptTitleActive")
+            imports.utils.set_border(M.prompt_history_win, "ChatBorderActive", "PromptTitleActive")
           elseif win == M.prompt_win then
-            M.utils.set_border(M.prompt_win, "PromptBorderActive", "PromptTitleActive")
+            imports.utils.set_border(M.prompt_win, "PromptBorderActive", "PromptTitleActive")
           end
         end,
       })
@@ -613,9 +614,9 @@ local function set_prompt_window_conf(optional_prompt_win_height)
         callback = function()
           local win = vim.api.nvim_get_current_win()
           if win == M.prompt_history_win then
-            M.utils.set_border(M.prompt_history_win, "ChatBorderInactive", "PromptTitleInactive")
+            imports.utils.set_border(M.prompt_history_win, "ChatBorderInactive", "PromptTitleInactive")
           elseif win == M.prompt_win then
-            M.utils.set_border(M.prompt_win, "PromptBorderInactive", "PromptTitleInactive")
+            imports.utils.set_border(M.prompt_win, "PromptBorderInactive", "PromptTitleInactive")
           end
         end,
       })
@@ -680,11 +681,11 @@ end
 
 ---@return nil
 local function init_prompt_history_buf()
-  local lock_buf = M.utils.unlock_buf(M.prompt_history_buf)
+  local lock_buf = imports.utils.unlock_buf(M.prompt_history_buf)
   local session_title = "Persistent session"
   vim.api.nvim_buf_set_lines(M.prompt_history_buf, 0, -1, false, {})
   vim.api.nvim_buf_set_lines(M.prompt_history_buf, 0, 0, false, { session_title })
-  set_provider(M.prompt_history_buf, M.providers.current)
+  set_provider(M.prompt_history_buf, imports.providers.current)
 
   vim.api.nvim_buf_set_extmark(M.prompt_history_buf, state.chat_ns, 0, 0, {
     hl_group = "ChatUI",
@@ -716,16 +717,16 @@ local function open_prompt_window()
   -- callback when user presses Enter
   vim.fn.prompt_setcallback(M.prompt_buf, function()
     local prompt_lines = vim.api.nvim_buf_get_lines(M.prompt_buf, 0, -1, false)
-    if M.utils.is_empty(prompt_lines) then
-      M.utils.safe_notify("Write prompt first", vim.log.levels.WARN)
+    if imports.utils.is_empty(prompt_lines) then
+      imports.utils.safe_notify("Write prompt first", vim.log.levels.WARN)
       vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, {})
       return
     end
     if state.prompt_thinking then
-      M.utils.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
+      imports.utils.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
       local line_count = vim.api.nvim_buf_line_count(M.prompt_buf)
       vim.api.nvim_buf_set_lines(M.prompt_buf, line_count - 1, line_count, false, {})
-      M.utils.scroll_to_bottom(M.prompt_win, M.prompt_buf)
+      imports.utils.scroll_to_bottom(M.prompt_win, M.prompt_buf)
       return
     end
     local prompt_text = table.concat(prompt_lines, "\n")
@@ -760,7 +761,7 @@ local function select_automated_operation(operations, op_keys)
       if fn then
         fn()
       else
-        M.utils.safe_notify("chatm8.nvim: Invalid operation", vim.log.levels.ERROR)
+        imports.utils.safe_notify("chatm8.nvim: Invalid operation", vim.log.levels.ERROR)
       end
     end
   end)
@@ -769,7 +770,7 @@ end
 ---@return table<string> titles, table<string, string> map
 local function process_session_list()
   ---@type table<string, string>
-  local sessions_title_id_map = M.storage.list_sessions()
+  local sessions_title_id_map = imports.storage.list_sessions()
 
   ---@type table<string>
   local session_titles = {}
@@ -793,18 +794,18 @@ local function delete_session()
   vim.ui.select(session_titles, { prompt = "Select session to delete" }, function(choice)
     if choice then
       if sessions_title_id_map[choice] == state.active_session.id then
-        M.utils.safe_notify("chatm8.nvim: Impossible to delete active session", vim.log.levels.WARN)
+        imports.utils.safe_notify("chatm8.nvim: Impossible to delete active session", vim.log.levels.WARN)
         return
       end
       local session_id = sessions_title_id_map[choice]
       if session_id then
         ---@type boolean, string?
-        local ok, err = M.storage.delete_session(session_id)
+        local ok, err = imports.storage.delete_session(session_id)
         if not ok then
-          M.utils.safe_notify("chatm8.nvim: " .. err, vim.log.levels.ERROR)
+          imports.utils.safe_notify("chatm8.nvim: " .. err, vim.log.levels.ERROR)
         end
       else
-        M.utils.safe_notify("chatm8.nvim: Invalid session", vim.log.levels.ERROR)
+        imports.utils.safe_notify("chatm8.nvim: Invalid session", vim.log.levels.ERROR)
       end
     end
   end)
@@ -820,11 +821,11 @@ local function load_session()
       local session_id = sessions_title_id_map[choice]
       if session_id then
         ---@type Session?, string?
-        local session, err = M.storage.load_session(session_id)
+        local session, err = imports.storage.load_session(session_id)
         if err then
-          M.utils.safe_notify("chatm8.nvim: " .. err, vim.log.levels.ERROR)
+          imports.utils.safe_notify("chatm8.nvim: " .. err, vim.log.levels.ERROR)
         elseif not session then
-          M.utils.safe_notify("chatm8.nvim: Failed to retrieve session", vim.log.levels.ERROR)
+          imports.utils.safe_notify("chatm8.nvim: Failed to retrieve session", vim.log.levels.ERROR)
         else
           init_prompt_history_buf()
           state.active_session = state.active_session:from_table(session)
@@ -837,7 +838,7 @@ local function load_session()
           end
         end
       else
-        M.utils.safe_notify("chatm8.nvim: Invalid session", vim.log.levels.ERROR)
+        imports.utils.safe_notify("chatm8.nvim: Invalid session", vim.log.levels.ERROR)
       end
     end
   end)
@@ -850,14 +851,14 @@ function M.setup(opts)
   opts = opts or {}
 
   -- Importing modules
-  M.treesitter = require("chat.treesitter")
-  M.utils = require("chat.utils")
-  M.providers = require("chat.providers")
-  M.storage = require("chat.storage")
-  M.session = require("chat.session")
+  imports.treesitter = require("chat.treesitter")
+  imports.utils = require("chat.utils")
+  imports.providers = require("chat.providers")
+  imports.storage = require("chat.storage")
+  imports.session = require("chat.session")
 
   -- setting up a provider
-  M.providers.setup(opts.providers, opts.provider)
+  imports.providers.setup(opts.providers, opts.provider)
 
   -- initializing state
   state = {
@@ -866,7 +867,7 @@ function M.setup(opts)
     prompt_thinking = false,
     summarize_in_progress = false,
     chat_ns = vim.api.nvim_create_namespace("llm-chat"),
-    active_session = M.session:new(),
+    active_session = imports.session:new(),
     help = [[
 <Leader>8i: Inline Implementation
   1. [Visual Mode] Select text (either code snippets or natural language instructions).
