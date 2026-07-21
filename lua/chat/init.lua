@@ -46,7 +46,7 @@ local function summarize(messages, cb)
   )
   table.insert(messages, summarize_prompt)
   local text
-  M.provider_module.answer(messages, function(result)
+  state.provider_module.answer(messages, function(result)
     vim.schedule(function()
       if result.error then
         cb(nil, result.error)
@@ -175,7 +175,7 @@ local function call_api(prompt, buf, s_line, e_line, prompt_win)
   local lock_buf = imports.utils.unlock_buf(buf)
   local stop_spinner = imports.utils.start_spinner(buf, s_line, state.chat_ns)
   state.prompt_thinking = true
-  M.provider_module.answer(prompt, function(result)
+  state.provider_module.answer(prompt, function(result)
     vim.schedule(function()
       if result.error then
         stop_spinner(false)
@@ -206,9 +206,9 @@ end
 
 ---@return nil
 local function send_prompt()
-  if M.prompt_win then
-    local win_buf_lines = vim.api.nvim_buf_get_lines(M.prompt_history_buf, 0, -1, false)
-    call_api(state.active_session:build_context(), M.prompt_history_buf, #win_buf_lines, -1, true)
+  if state.prompt_win then
+    local win_buf_lines = vim.api.nvim_buf_get_lines(state.prompt_history_buf, 0, -1, false)
+    call_api(state.active_session:build_context(), state.prompt_history_buf, #win_buf_lines, -1, true)
   else
     imports.utils.safe_notify("chatm8.nvim: Select lines first", vim.log.levels.INFO)
   end
@@ -223,7 +223,7 @@ local function set_provider(buf, provider_name)
     imports.utils.safe_notify("No provider found for: " .. tostring(imports.providers.name), vim.log.levels.ERROR)
     return
   end
-  M.provider_module = provider
+  state.provider_module = provider
   local session_provider = "Provider: " .. imports.providers.current
   vim.api.nvim_buf_set_lines(buf, 2, 4, false, { session_provider, "" })
   vim.api.nvim_buf_set_extmark(buf, state.chat_ns, 2, 0, {
@@ -237,8 +237,8 @@ end
 local function select_provider()
   vim.ui.select(imports.providers.list, { prompt = "Select chat provider" }, function(choice)
     if choice then
-      local lock_buf = imports.utils.unlock_buf(M.prompt_history_buf)
-      set_provider(M.prompt_history_buf, choice)
+      local lock_buf = imports.utils.unlock_buf(state.prompt_history_buf)
+      set_provider(state.prompt_history_buf, choice)
       lock_buf()
     end
   end)
@@ -252,7 +252,7 @@ local function complete_implementation()
   end
   vim.api.nvim_input("<Esc>") -- exit selection mode for better ux
   local selected_lines, start_line, end_line = imports.utils.get_visual_selection()
-  M.start_line, M.end_line = start_line, end_line
+  state.start_line, state.end_line = start_line, end_line
   local func_data = imports.treesitter.get_func_ast_data(0)
   local func_signatures = imports.treesitter.get_func_signatures(func_data, true, true)
   local selected_text = imports.utils.tag_selected_text(table.concat(selected_lines, "\n"))
@@ -278,8 +278,8 @@ local function complete_implementation()
   call_api(
     { state.active_session:pack("You", prompt, os.time()) },
     vim.api.nvim_get_current_buf(),
-    M.start_line - 1,
-    M.end_line + 1,
+    state.start_line - 1,
+    state.end_line + 1,
     false
   )
 end
@@ -314,14 +314,14 @@ local function open_single_prompt_window()
   -- NOTE: storing current buf number before opening the float window
   local current_buf = vim.api.nvim_get_current_buf()
 
-  if M.single_prompt_buf and M.single_prompt_win then
+  if state.single_prompt_buf and state.single_prompt_win then
     single_prompt_win_conf.height =
-      math.min(single_prompt_win_conf.height, vim.api.nvim_win_text_height(M.single_prompt_win, {}).all)
-    vim.api.nvim_win_set_config(M.single_prompt_win, single_prompt_win_conf)
+      math.min(single_prompt_win_conf.height, vim.api.nvim_win_text_height(state.single_prompt_win, {}).all)
+    vim.api.nvim_win_set_config(state.single_prompt_win, single_prompt_win_conf)
   else
     local selected_text
     local selected_lines, start_line, end_line = imports.utils.get_visual_selection()
-    M.start_line, M.end_line = start_line, end_line
+    state.start_line, state.end_line = start_line, end_line
 
     local func_data = imports.treesitter.get_func_ast_data(current_buf)
     local func_signatures = imports.treesitter.get_func_signatures(func_data, true, true)
@@ -335,19 +335,19 @@ local function open_single_prompt_window()
     local tagged_selected_lines = vim.split(selected_text, "\n")
     single_prompt_win_conf.height = math.min(single_prompt_win_conf.height, #tagged_selected_lines)
 
-    M.single_prompt_buf = vim.api.nvim_create_buf(false, true)
-    vim.bo[M.single_prompt_buf].buftype = "prompt"
-    vim.bo[M.single_prompt_buf].filetype = "markdown"
-    vim.bo[M.single_prompt_buf].swapfile = false
-    vim.fn.prompt_setprompt(M.single_prompt_buf, "")
-    vim.api.nvim_buf_set_lines(M.single_prompt_buf, 0, -1, false, tagged_selected_lines)
+    state.single_prompt_buf = vim.api.nvim_create_buf(false, true)
+    vim.bo[state.single_prompt_buf].buftype = "prompt"
+    vim.bo[state.single_prompt_buf].filetype = "markdown"
+    vim.bo[state.single_prompt_buf].swapfile = false
+    vim.fn.prompt_setprompt(state.single_prompt_buf, "")
+    vim.api.nvim_buf_set_lines(state.single_prompt_buf, 0, -1, false, tagged_selected_lines)
 
     -- callback when user presses Enter
-    vim.fn.prompt_setcallback(M.single_prompt_buf, function()
-      local prompt_lines = vim.api.nvim_buf_get_lines(M.single_prompt_buf, 0, -1, false)
+    vim.fn.prompt_setcallback(state.single_prompt_buf, function()
+      local prompt_lines = vim.api.nvim_buf_get_lines(state.single_prompt_buf, 0, -1, false)
       if imports.utils.is_empty(prompt_lines) then
         imports.utils.safe_notify("Write prompt first", vim.log.levels.WARN)
-        vim.api.nvim_buf_set_lines(M.single_prompt_buf, 0, -1, false, {})
+        vim.api.nvim_buf_set_lines(state.single_prompt_buf, 0, -1, false, {})
         return
       end
 
@@ -383,12 +383,12 @@ local function open_single_prompt_window()
       call_api(
         { state.active_session:pack("You", prompt, os.time()) },
         current_buf,
-        M.start_line - 1,
-        M.end_line + 1,
+        state.start_line - 1,
+        state.end_line + 1,
         false
       )
 
-      vim.api.nvim_win_close(M.single_prompt_win, true)
+      vim.api.nvim_win_close(state.single_prompt_win, true)
     end)
 
     -- Creating backdrop buf & win to block mouse clicks
@@ -407,26 +407,26 @@ local function open_single_prompt_window()
     vim.wo[backdrop_win].winblend = 30
 
     -- Opening the prompt window
-    M.single_prompt_win = vim.api.nvim_open_win(M.single_prompt_buf, true, single_prompt_win_conf)
-    imports.utils.set_border(M.single_prompt_win, "PromptBorderActive", "PromptTitleActive")
+    state.single_prompt_win = vim.api.nvim_open_win(state.single_prompt_buf, true, single_prompt_win_conf)
+    imports.utils.set_border(state.single_prompt_win, "PromptBorderActive", "PromptTitleActive")
 
     -- custom key maps - disabling key maps
     vim.keymap.set("v", "<Leader>8i", function()
       vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "n", false)
       imports.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
-    end, { desc = "Complete implementation (Disabled)", buf = M.single_prompt_buf })
+    end, { desc = "Complete implementation (Disabled)", buf = state.single_prompt_buf })
 
     vim.keymap.set("n", "<Leader>8c", function()
       imports.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
-    end, { desc = "Toggle persistent chat window (Disabled)", buf = M.single_prompt_buf })
+    end, { desc = "Toggle persistent chat window (Disabled)", buf = state.single_prompt_buf })
 
     vim.keymap.set("v", "<Leader>8p", function()
       vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "n", false)
       imports.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
-    end, { desc = "Custom prompt: Replace selection (Disabled)", buf = M.single_prompt_buf })
+    end, { desc = "Custom prompt: Replace selection (Disabled)", buf = state.single_prompt_buf })
 
     vim.keymap.set({ "n", "i" }, "<Leader>8p", function()
-      vim.api.nvim_set_current_win(M.single_prompt_win)
+      vim.api.nvim_set_current_win(state.single_prompt_win)
     end, { desc = "Focus custom prompt window", buf = state.parent_buf })
 
     local single_prompt_session_group = vim.api.nvim_create_augroup("llm_single_prompt_session", { clear = true })
@@ -434,11 +434,11 @@ local function open_single_prompt_window()
     -- detecting prompt window enter
     vim.api.nvim_create_autocmd("WinEnter", {
       group = single_prompt_session_group,
-      buffer = M.single_prompt_buf,
+      buffer = state.single_prompt_buf,
       callback = function()
         local win = vim.api.nvim_get_current_win()
-        if win == M.single_prompt_win then
-          imports.utils.set_border(M.single_prompt_win, "PromptBorderActive", "PromptTitleActive")
+        if win == state.single_prompt_win then
+          imports.utils.set_border(state.single_prompt_win, "PromptBorderActive", "PromptTitleActive")
         end
       end,
     })
@@ -446,11 +446,11 @@ local function open_single_prompt_window()
     -- detecting prompt window close
     vim.api.nvim_create_autocmd("WinClosed", {
       group = single_prompt_session_group,
-      buffer = M.single_prompt_buf,
+      buffer = state.single_prompt_buf,
       callback = function(args)
-        if M.single_prompt_win == tonumber(args.match) then
-          M.single_prompt_win = nil
-          M.single_prompt_buf = nil
+        if state.single_prompt_win == tonumber(args.match) then
+          state.single_prompt_win = nil
+          state.single_prompt_buf = nil
           vim.api.nvim_win_close(backdrop_win, true)
           vim.api.nvim_buf_delete(backdrop_buf, {})
           pcall(vim.api.nvim_clear_autocmds, { group = single_prompt_session_group })
@@ -463,7 +463,7 @@ local function open_single_prompt_window()
     local timer
     vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
       group = single_prompt_session_group,
-      buffer = M.single_prompt_buf,
+      buffer = state.single_prompt_buf,
       callback = function()
         -- cancel previous timer on every keystroke
         if timer and not timer:is_closing() then
@@ -482,9 +482,9 @@ local function open_single_prompt_window()
     -- detecting resize events to resize the prompt window
     vim.api.nvim_create_autocmd({ "VimResized", "WinResized" }, {
       group = single_prompt_session_group,
-      buffer = M.single_prompt_buf,
+      buffer = state.single_prompt_buf,
       callback = function(args)
-        if state.parent_win == tonumber(args.match) and M.single_prompt_win ~= nil then
+        if state.parent_win == tonumber(args.match) and state.single_prompt_win ~= nil then
           open_single_prompt_window()
         end
       end,
@@ -493,16 +493,16 @@ local function open_single_prompt_window()
     -- detecting leaving the window to color the window border
     vim.api.nvim_create_autocmd("WinLeave", {
       group = single_prompt_session_group,
-      buffer = M.single_prompt_buf,
+      buffer = state.single_prompt_buf,
       callback = function()
         local win = vim.api.nvim_get_current_win()
-        if win == M.single_prompt_win then
-          imports.utils.set_border(M.single_prompt_win, "ChatBorderInactive", "PromptTitleInactive")
+        if win == state.single_prompt_win then
+          imports.utils.set_border(state.single_prompt_win, "ChatBorderInactive", "PromptTitleInactive")
         end
       end,
     })
 
-    imports.utils.mouse_guard(M.single_prompt_win, M.single_prompt_buf)
+    imports.utils.mouse_guard(state.single_prompt_win, state.single_prompt_buf)
   end
 end
 
@@ -510,7 +510,7 @@ end
 ---@param optional_prompt_win_height integer|nil
 local function set_prompt_window_conf(optional_prompt_win_height)
   -- if these two buffer not exist - do not configure windows
-  if M.prompt_buf == nil or M.prompt_history_buf == nil then
+  if state.prompt_buf == nil or state.prompt_history_buf == nil then
     return
   end
 
@@ -518,12 +518,12 @@ local function set_prompt_window_conf(optional_prompt_win_height)
   optional_prompt_win_height = optional_prompt_win_height or 1
 
   -- parent size
-  if not M.chat_win then
+  if not state.chat_win then
     return
   end
   -- parent size
-  local parent_width = vim.api.nvim_win_get_width(M.chat_win)
-  local parent_height = vim.api.nvim_win_get_height(M.chat_win)
+  local parent_width = vim.api.nvim_win_get_width(state.chat_win)
+  local parent_height = vim.api.nvim_win_get_height(state.chat_win)
 
   -- your desired size
   local width = math.min(90, parent_width - 2)
@@ -537,7 +537,7 @@ local function set_prompt_window_conf(optional_prompt_win_height)
 
   local history_win_conf = {
     relative = "win",
-    win = M.chat_win,
+    win = state.chat_win,
     row = row,
     col = col,
     width = width,
@@ -550,7 +550,7 @@ local function set_prompt_window_conf(optional_prompt_win_height)
 
   local prompt_win_conf = {
     relative = "win",
-    win = M.chat_win,
+    win = state.chat_win,
     row = row + chat_height + 2,
     col = col,
     width = width,
@@ -561,24 +561,24 @@ local function set_prompt_window_conf(optional_prompt_win_height)
     title_pos = "center",
   }
 
-  if M.prompt_win and M.prompt_history_win then
-    vim.api.nvim_win_set_config(M.prompt_win, prompt_win_conf)
-    vim.api.nvim_win_set_config(M.prompt_history_win, history_win_conf)
+  if state.prompt_win and state.prompt_history_win then
+    vim.api.nvim_win_set_config(state.prompt_win, prompt_win_conf)
+    vim.api.nvim_win_set_config(state.prompt_history_win, history_win_conf)
   else -- open new windows and continue configuring them
-    M.prompt_history_win = vim.api.nvim_open_win(M.prompt_history_buf, true, history_win_conf)
-    M.prompt_win = vim.api.nvim_open_win(M.prompt_buf, true, prompt_win_conf)
+    state.prompt_history_win = vim.api.nvim_open_win(state.prompt_history_buf, true, history_win_conf)
+    state.prompt_win = vim.api.nvim_open_win(state.prompt_buf, true, prompt_win_conf)
 
     -- set custom options
-    vim.api.nvim_set_option_value("number", true, { win = M.prompt_win })
-    vim.api.nvim_set_option_value("number", true, { win = M.prompt_history_win })
-    imports.utils.set_border(M.prompt_win, "PromptBorderActive", "PromptTitleActive")
+    vim.api.nvim_set_option_value("number", true, { win = state.prompt_win })
+    vim.api.nvim_set_option_value("number", true, { win = state.prompt_history_win })
+    imports.utils.set_border(state.prompt_win, "PromptBorderActive", "PromptTitleActive")
 
     -- set cursor at the last line & start insert mode
-    local last = vim.api.nvim_buf_line_count(M.prompt_buf)
-    vim.api.nvim_win_set_cursor(M.prompt_win, { last, 0 })
+    local last = vim.api.nvim_buf_line_count(state.prompt_buf)
+    vim.api.nvim_win_set_cursor(state.prompt_win, { last, 0 })
 
     -- custom key maps - disabling key maps
-    for _, buf in ipairs({ M.prompt_buf, M.prompt_history_buf }) do
+    for _, buf in ipairs({ state.prompt_buf, state.prompt_history_buf }) do
       vim.keymap.set("v", "<Leader>8i", function()
         imports.utils.safe_notify("Disabled on prompt window", vim.log.levels.INFO)
       end, { desc = "Complete implementation (Disabled)", buf = buf })
@@ -586,27 +586,27 @@ local function set_prompt_window_conf(optional_prompt_win_height)
 
     -- custom key maps - switcing between prompt & history windows keymaps
     vim.keymap.set({ "n", "v" }, "<C-s>", function()
-      vim.api.nvim_set_current_win(M.prompt_history_win)
-    end, { buf = M.prompt_buf })
+      vim.api.nvim_set_current_win(state.prompt_history_win)
+    end, { buf = state.prompt_buf })
 
     vim.keymap.set({ "n", "v" }, "<C-s>", function()
-      vim.api.nvim_set_current_win(M.prompt_win)
-    end, { buf = M.prompt_history_buf })
+      vim.api.nvim_set_current_win(state.prompt_win)
+    end, { buf = state.prompt_history_buf })
 
     -- set auto commands
     local prompt_session_group = vim.api.nvim_create_augroup("llm_prompt_session", { clear = true })
     local chat_session_group = vim.api.nvim_create_augroup("llm_chat_session", { clear = true })
 
-    for _, buf in ipairs({ M.prompt_buf, M.prompt_history_buf }) do
+    for _, buf in ipairs({ state.prompt_buf, state.prompt_history_buf }) do
       vim.api.nvim_create_autocmd("WinEnter", {
         group = prompt_session_group,
         buffer = buf,
         callback = function()
           local win = vim.api.nvim_get_current_win()
-          if win == M.prompt_history_win then
-            imports.utils.set_border(M.prompt_history_win, "ChatBorderActive", "PromptTitleActive")
-          elseif win == M.prompt_win then
-            imports.utils.set_border(M.prompt_win, "PromptBorderActive", "PromptTitleActive")
+          if win == state.prompt_history_win then
+            imports.utils.set_border(state.prompt_history_win, "ChatBorderActive", "PromptTitleActive")
+          elseif win == state.prompt_win then
+            imports.utils.set_border(state.prompt_win, "PromptBorderActive", "PromptTitleActive")
           end
         end,
       })
@@ -616,10 +616,10 @@ local function set_prompt_window_conf(optional_prompt_win_height)
         buffer = buf,
         callback = function()
           local win = vim.api.nvim_get_current_win()
-          if win == M.prompt_history_win then
-            imports.utils.set_border(M.prompt_history_win, "ChatBorderInactive", "PromptTitleInactive")
-          elseif win == M.prompt_win then
-            imports.utils.set_border(M.prompt_win, "PromptBorderInactive", "PromptTitleInactive")
+          if win == state.prompt_history_win then
+            imports.utils.set_border(state.prompt_history_win, "ChatBorderInactive", "PromptTitleInactive")
+          elseif win == state.prompt_win then
+            imports.utils.set_border(state.prompt_win, "PromptBorderInactive", "PromptTitleInactive")
           end
         end,
       })
@@ -629,17 +629,17 @@ local function set_prompt_window_conf(optional_prompt_win_height)
       group = chat_session_group,
       callback = function(args)
         if
-          M.chat_win == tonumber(args.match)
-          or M.prompt_win == tonumber(args.match)
-          or M.prompt_history_win == tonumber(args.match)
+          state.chat_win == tonumber(args.match)
+          or state.prompt_win == tonumber(args.match)
+          or state.prompt_history_win == tonumber(args.match)
         then
-          vim.api.nvim_win_close(M.prompt_win, true)
-          M.prompt_win = nil
-          vim.api.nvim_win_close(M.prompt_history_win, true)
-          M.prompt_history_win = nil
-          vim.api.nvim_win_close(M.chat_win, true)
-          M.chat_win = nil
-          if M.single_prompt_win then
+          vim.api.nvim_win_close(state.prompt_win, true)
+          state.prompt_win = nil
+          vim.api.nvim_win_close(state.prompt_history_win, true)
+          state.prompt_history_win = nil
+          vim.api.nvim_win_close(state.chat_win, true)
+          state.chat_win = nil
+          if state.single_prompt_win then
             open_single_prompt_window()
           end
         end
@@ -649,10 +649,10 @@ local function set_prompt_window_conf(optional_prompt_win_height)
     vim.api.nvim_create_autocmd({ "VimResized", "WinResized" }, {
       group = chat_session_group,
       callback = function(args)
-        if state.parent_win == tonumber(args.match) or M.chat_win == tonumber(args.match) then
+        if state.parent_win == tonumber(args.match) or state.chat_win == tonumber(args.match) then
           local text_height
-          if M.prompt_win and vim.api.nvim_win_is_valid(M.prompt_win) then
-            text_height = vim.api.nvim_win_text_height(M.prompt_win, {}).all
+          if state.prompt_win and vim.api.nvim_win_is_valid(state.prompt_win) then
+            text_height = vim.api.nvim_win_text_height(state.prompt_win, {}).all
           end
           set_prompt_window_conf(text_height)
         end
@@ -663,7 +663,7 @@ local function set_prompt_window_conf(optional_prompt_win_height)
     local timer
     vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
       group = prompt_session_group,
-      buffer = M.prompt_buf,
+      buffer = state.prompt_buf,
       callback = function()
         -- cancel previous timer on every keystroke
         if timer and not timer:is_closing() then
@@ -674,7 +674,7 @@ local function set_prompt_window_conf(optional_prompt_win_height)
 
         -- defered resize call
         timer = vim.defer_fn(function()
-          local text_height = vim.api.nvim_win_text_height(M.prompt_win, {}).all
+          local text_height = vim.api.nvim_win_text_height(state.prompt_win, {}).all
           set_prompt_window_conf(math.min(15, text_height))
         end, 50)
       end,
@@ -684,13 +684,13 @@ end
 
 ---@return nil
 local function init_prompt_history_buf()
-  local lock_buf = imports.utils.unlock_buf(M.prompt_history_buf)
+  local lock_buf = imports.utils.unlock_buf(state.prompt_history_buf)
   local session_title = "Persistent session"
-  vim.api.nvim_buf_set_lines(M.prompt_history_buf, 0, -1, false, {})
-  vim.api.nvim_buf_set_lines(M.prompt_history_buf, 0, 0, false, { session_title })
-  set_provider(M.prompt_history_buf, imports.providers.current)
+  vim.api.nvim_buf_set_lines(state.prompt_history_buf, 0, -1, false, {})
+  vim.api.nvim_buf_set_lines(state.prompt_history_buf, 0, 0, false, { session_title })
+  set_provider(state.prompt_history_buf, imports.providers.current)
 
-  vim.api.nvim_buf_set_extmark(M.prompt_history_buf, state.chat_ns, 0, 0, {
+  vim.api.nvim_buf_set_extmark(state.prompt_history_buf, state.chat_ns, 0, 0, {
     hl_group = "ChatUI",
     end_col = #session_title,
   })
@@ -699,58 +699,58 @@ end
 
 ---@return nil
 local function open_prompt_window()
-  if M.prompt_buf and M.prompt_history_buf then
+  if state.prompt_buf and state.prompt_history_buf then
     set_prompt_window_conf()
     return
   end
 
   -- Configure buffers and windows
-  M.prompt_history_buf = vim.api.nvim_create_buf(false, true)
-  vim.bo[M.prompt_history_buf].filetype = "markdown"
-  vim.bo[M.prompt_history_buf].swapfile = false
-  vim.bo[M.prompt_history_buf].modifiable = false
+  state.prompt_history_buf = vim.api.nvim_create_buf(false, true)
+  vim.bo[state.prompt_history_buf].filetype = "markdown"
+  vim.bo[state.prompt_history_buf].swapfile = false
+  vim.bo[state.prompt_history_buf].modifiable = false
   init_prompt_history_buf()
 
-  M.prompt_buf = vim.api.nvim_create_buf(false, true)
-  vim.bo[M.prompt_buf].buftype = "prompt"
-  vim.bo[M.prompt_buf].filetype = "markdown"
-  vim.bo[M.prompt_buf].swapfile = false
-  vim.fn.prompt_setprompt(M.prompt_buf, "")
+  state.prompt_buf = vim.api.nvim_create_buf(false, true)
+  vim.bo[state.prompt_buf].buftype = "prompt"
+  vim.bo[state.prompt_buf].filetype = "markdown"
+  vim.bo[state.prompt_buf].swapfile = false
+  vim.fn.prompt_setprompt(state.prompt_buf, "")
 
   -- callback when user presses Enter
-  vim.fn.prompt_setcallback(M.prompt_buf, function()
-    local prompt_lines = vim.api.nvim_buf_get_lines(M.prompt_buf, 0, -1, false)
+  vim.fn.prompt_setcallback(state.prompt_buf, function()
+    local prompt_lines = vim.api.nvim_buf_get_lines(state.prompt_buf, 0, -1, false)
     if imports.utils.is_empty(prompt_lines) then
       imports.utils.safe_notify("Write prompt first", vim.log.levels.WARN)
-      vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, {})
+      vim.api.nvim_buf_set_lines(state.prompt_buf, 0, -1, false, {})
       return
     end
     if state.prompt_thinking then
       imports.utils.safe_notify("Wait for the previous prompt to finish", vim.log.levels.WARN)
-      local line_count = vim.api.nvim_buf_line_count(M.prompt_buf)
-      vim.api.nvim_buf_set_lines(M.prompt_buf, line_count - 1, line_count, false, {})
-      imports.utils.scroll_to_bottom(M.prompt_win, M.prompt_buf)
+      local line_count = vim.api.nvim_buf_line_count(state.prompt_buf)
+      vim.api.nvim_buf_set_lines(state.prompt_buf, line_count - 1, line_count, false, {})
+      imports.utils.scroll_to_bottom(state.prompt_win, state.prompt_buf)
       return
     end
     local prompt_text = table.concat(prompt_lines, "\n")
-    append_message(M.prompt_history_buf, "You", prompt_text, os.time())
+    append_message(state.prompt_history_buf, "You", prompt_text, os.time())
     send_prompt()
-    vim.api.nvim_buf_set_lines(M.prompt_buf, 0, -1, false, {})
+    vim.api.nvim_buf_set_lines(state.prompt_buf, 0, -1, false, {})
   end)
 end
 
 ---@return nil
 local function toggle_persistent_chat_window()
   -- if already open -> close
-  if M.chat_win then
-    vim.api.nvim_win_close(M.chat_win, true)
-    M.chat_win = nil
+  if state.chat_win then
+    vim.api.nvim_win_close(state.chat_win, true)
+    state.chat_win = nil
     return
   end
 
   -- open new split
   vim.cmd("vsplit") -- or "split" for horizontal split window
-  M.chat_win = vim.api.nvim_get_current_win()
+  state.chat_win = vim.api.nvim_get_current_win()
   open_prompt_window()
 end
 
@@ -837,7 +837,7 @@ local function load_session()
             local content = msg.content
             local timestamp = msg.timestamp
             local token_usage = msg.token_usage
-            add_to_chat_window(M.prompt_history_buf, role, content, timestamp, token_usage)
+            add_to_chat_window(state.prompt_history_buf, role, content, timestamp, token_usage)
           end
         end
       else
@@ -1002,8 +1002,8 @@ function M.setup(opts)
     local cur = vim.api.nvim_get_current_win()
 
     -- If we're in the parent split, jump to the float.
-    if cur == state.parent_win and M.prompt_win and vim.api.nvim_win_is_valid(M.prompt_win) then
-      vim.api.nvim_set_current_win(M.prompt_win)
+    if cur == state.parent_win and state.prompt_win and vim.api.nvim_win_is_valid(state.prompt_win) then
+      vim.api.nvim_set_current_win(state.prompt_win)
       return
     end
 
