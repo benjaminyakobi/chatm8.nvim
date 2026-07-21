@@ -14,65 +14,13 @@
 --   M.setup(opts)
 
 local M = {}
-local state = {
-  parent_buf = vim.api.nvim_get_current_buf(),
-  parent_win = vim.api.nvim_get_current_win(),
-  prompt_thinking = false,
-  summarize_in_progress = false,
-  chat_ns = vim.api.nvim_create_namespace("llm-chat"),
-  help = [[
-<Leader>8i: Inline Implementation
-  1. [Visual Mode] Select text (either code snippets or natural language instructions).
-  2. Press <Leader>8i to automatically complete the implementation or transform 
-     the selection directly in the current buffer.
-
-<Leader>8p: Single Prompt (Custom on Selection)
-  1. [Visual Mode] Select text and press `<Leader>8p` to open a single prompt window.
-  2. [Prompt Customization] Write a custom prompt template for this request.
-  3. [Replace Selection] The model response replaces the selected text in the buffer.
-
-<Leader>8o: Select Automated Operation
-  1. [Visual Mode] Select text and press `<Leader>8o` to open an operation menu.
-  2. Choose one of the available automated operations in the list.
-  3. [Replace Selection] The selected operation runs on the selected text and replaces
-     the selection with the model response.
-
-<Leader>8c: Persistent Chat
-  1. [Normal/Visual Mode] Press `<Leader>8c` to toggle a persistent chat window
-     in a split view.
-  2. [Chat Window] Maintain a continuous, multi-turn conversation with the model
-     that persists across different files and buffers.
-  2.0. [Session] This session is persistent: it can be load again with `<Leader>8l`.
-    2.1. [Layout] Two windows will open:
-         - Upper window: conversation history (read-only).
-         - Lower window: prompt input.
-    2.2. [Navigation] Press <C-s> in Normal or Visual mode to switch between the
-         history window and the prompt window.
-
-<Leader>8s: LLM Provider Selection
-  1. Press `<Leader>8s` to open a provider selection menu.
-  2. Choose the active LLM provider (e.g., OpenAI / Anthropic, depending on your setup).
-  3. [Scope] The selected provider becomes the default for all subsequent Leader-8 features
-     (e.g., `<Leader>8i` inline implementation, `<Leader>8p` single prompt, and `<Leader>8c` chat).
-  4. [Persistence] The selection is saved for the current Neovim session.
-
-<Leader>8l: Load Old Sessions
-  1. [Normal Mode] Press `<Leader>8l` to open a list of previously saved chat sessions.
-  2. Select a session to load its conversation history into the chat window.
-  3. [Restore] The loaded session becomes the active context, letting you resume a
-     past conversation across files and buffers.
-
-<Leader>8d: Delete Old Sessions
-  1. [Normal Mode] Press `<Leader>8d` to open a list of previously saved chat sessions.
-  2. Select a session to delete it permanently.
-]],
-}
+local state = {} -- NOTE: being initialized inside M.setup()
 
 ---@return string
 ---@param messages ChatMessage[]
 ---@param cb function
 local function summarize(messages, cb)
-  local summarize_prompt = M.active_session:pack(
+  local summarize_prompt = state.active_session:pack(
     "You",
     [[ Summarize this conversation for future context.
 
@@ -119,8 +67,8 @@ local function add_to_session(role, text, timestamp, token_usage)
   if role ~= "You" and role ~= "Assistant" and role ~= "Error" then
     return
   end
-  M.active_session:add(role, text, timestamp, token_usage)
-  M.storage.save_session(M.active_session)
+  state.active_session:add(role, text, timestamp, token_usage)
+  M.storage.save_session(state.active_session)
 end
 
 ---@return nil
@@ -187,18 +135,18 @@ end
 
 ---@return nil
 local function maybe_summarize()
-  local start_idx, end_idx = M.active_session:next_chunk_to_summarize()
+  local start_idx, end_idx = state.active_session:next_chunk_to_summarize()
   if start_idx and end_idx and not state.summarize_in_progress then
     state.summarize_in_progress = true
-    local messages = vim.list_slice(M.active_session:get_messages(), start_idx, end_idx)
+    local messages = vim.list_slice(state.active_session:get_messages(), start_idx, end_idx)
     summarize(messages, function(summary, err)
       if err then
         M.utils.safe_notify("chatm8.nvim: Failed to summarize history, " .. err, vim.log.levels.ERROR)
         return
       end
 
-      M.active_session:add_summary(start_idx, end_idx, summary)
-      M.storage.save_session(M.active_session)
+      state.active_session:add_summary(start_idx, end_idx, summary)
+      M.storage.save_session(state.active_session)
       state.summarize_in_progress = false
     end)
   end
@@ -259,7 +207,7 @@ end
 local function send_prompt()
   if M.prompt_win then
     local win_buf_lines = vim.api.nvim_buf_get_lines(M.prompt_history_buf, 0, -1, false)
-    call_api(M.active_session:build_context(), M.prompt_history_buf, #win_buf_lines, -1, true)
+    call_api(state.active_session:build_context(), M.prompt_history_buf, #win_buf_lines, -1, true)
   else
     M.utils.safe_notify("chatm8.nvim: Select lines first", vim.log.levels.INFO)
   end
@@ -327,7 +275,7 @@ local function complete_implementation()
     .. "\n\n"
     .. "Keep existing coding style and formatting. Output only code or a single clarifying comment if you cannot proceed."
   call_api(
-    { M.active_session:pack("You", prompt, os.time()) },
+    { state.active_session:pack("You", prompt, os.time()) },
     vim.api.nvim_get_current_buf(),
     M.start_line - 1,
     M.end_line + 1,
@@ -429,7 +377,7 @@ local function open_single_prompt_window()
         .. "\n\n"
         .. "Keep existing coding style and formatting. Output only code or a single clarifying comment if you cannot proceed."
       call_api(
-        { M.active_session:pack("You", prompt, os.time()) },
+        { state.active_session:pack("You", prompt, os.time()) },
         current_buf,
         M.start_line - 1,
         M.end_line + 1,
@@ -844,7 +792,7 @@ local function delete_session()
 
   vim.ui.select(session_titles, { prompt = "Select session to delete" }, function(choice)
     if choice then
-      if sessions_title_id_map[choice] == M.active_session.id then
+      if sessions_title_id_map[choice] == state.active_session.id then
         M.utils.safe_notify("chatm8.nvim: Impossible to delete active session", vim.log.levels.WARN)
         return
       end
@@ -879,7 +827,7 @@ local function load_session()
           M.utils.safe_notify("chatm8.nvim: Failed to retrieve session", vim.log.levels.ERROR)
         else
           init_prompt_history_buf()
-          M.active_session = M.active_session:from_table(session)
+          state.active_session = state.active_session:from_table(session)
           for _, msg in ipairs(session.messages) do
             local role = msg.role
             local content = msg.content
@@ -907,10 +855,65 @@ function M.setup(opts)
   M.providers = require("chat.providers")
   M.storage = require("chat.storage")
   M.session = require("chat.session")
-  M.active_session = M.session:new()
 
   -- setting up a provider
   M.providers.setup(opts.providers, opts.provider)
+
+  -- initializing state
+  state = {
+    parent_buf = vim.api.nvim_get_current_buf(),
+    parent_win = vim.api.nvim_get_current_win(),
+    prompt_thinking = false,
+    summarize_in_progress = false,
+    chat_ns = vim.api.nvim_create_namespace("llm-chat"),
+    active_session = M.session:new(),
+    help = [[
+<Leader>8i: Inline Implementation
+  1. [Visual Mode] Select text (either code snippets or natural language instructions).
+  2. Press <Leader>8i to automatically complete the implementation or transform 
+     the selection directly in the current buffer.
+
+<Leader>8p: Single Prompt (Custom on Selection)
+  1. [Visual Mode] Select text and press `<Leader>8p` to open a single prompt window.
+  2. [Prompt Customization] Write a custom prompt template for this request.
+  3. [Replace Selection] The model response replaces the selected text in the buffer.
+
+<Leader>8o: Select Automated Operation
+  1. [Visual Mode] Select text and press `<Leader>8o` to open an operation menu.
+  2. Choose one of the available automated operations in the list.
+  3. [Replace Selection] The selected operation runs on the selected text and replaces
+     the selection with the model response.
+
+<Leader>8c: Persistent Chat
+  1. [Normal/Visual Mode] Press `<Leader>8c` to toggle a persistent chat window
+     in a split view.
+  2. [Chat Window] Maintain a continuous, multi-turn conversation with the model
+     that persists across different files and buffers.
+  2.0. [Session] This session is persistent: it can be load again with `<Leader>8l`.
+    2.1. [Layout] Two windows will open:
+         - Upper window: conversation history (read-only).
+         - Lower window: prompt input.
+    2.2. [Navigation] Press <C-s> in Normal or Visual mode to switch between the
+         history window and the prompt window.
+
+<Leader>8s: LLM Provider Selection
+  1. Press `<Leader>8s` to open a provider selection menu.
+  2. Choose the active LLM provider (e.g., OpenAI / Anthropic, depending on your setup).
+  3. [Scope] The selected provider becomes the default for all subsequent Leader-8 features
+     (e.g., `<Leader>8i` inline implementation, `<Leader>8p` single prompt, and `<Leader>8c` chat).
+  4. [Persistence] The selection is saved for the current Neovim session.
+
+<Leader>8l: Load Old Sessions
+  1. [Normal Mode] Press `<Leader>8l` to open a list of previously saved chat sessions.
+  2. Select a session to load its conversation history into the chat window.
+  3. [Restore] The loaded session becomes the active context, letting you resume a
+     past conversation across files and buffers.
+
+<Leader>8d: Delete Old Sessions
+  1. [Normal Mode] Press `<Leader>8d` to open a list of previously saved chat sessions.
+  2. Select a session to delete it permanently.
+]],
+  }
 
   open_prompt_window()
 
