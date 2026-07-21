@@ -322,6 +322,10 @@ local function open_single_prompt_window()
     local selected_text
     local selected_lines, start_line, end_line = imports.utils.get_visual_selection()
     M.start_line, M.end_line = start_line, end_line
+
+    local func_data = imports.treesitter.get_func_ast_data(current_buf)
+    local func_signatures = imports.treesitter.get_func_signatures(func_data, true, true)
+
     if imports.utils.is_empty(selected_lines) then
       selected_text = table.concat(selected_lines, "\n")
     else
@@ -353,8 +357,6 @@ local function open_single_prompt_window()
       end
 
       local prompt_text = table.concat(prompt_lines, "\n")
-      local func_data = imports.treesitter.get_func_ast_data(0)
-      local func_signatures = imports.treesitter.get_func_signatures(func_data, true, true)
       local prompt = "Modify the selected code according to the user's instructions.\n"
         .. "Respond with code only. Do NOT wrap the output in backticks.\n"
         .. "Do NOT include explanations, notes, comments, markdown, or any text outside the replacement code.\n\n"
@@ -377,6 +379,7 @@ local function open_single_prompt_window()
         .. table.concat(func_signatures, "\n")
         .. "\n\n"
         .. "Keep existing coding style and formatting. Output only code or a single clarifying comment if you cannot proceed."
+
       call_api(
         { state.active_session:pack("You", prompt, os.time()) },
         current_buf,
