@@ -992,7 +992,9 @@ function M.setup(opts)
   })
 
   vim.keymap.set("n", "<leader>8n", function()
-    -- new_session()
+    init_prompt_history_buf()
+    state.active_session = imports.session:new()
+    imports.utils.safe_notify("chatm8.nvim: Started new session", vim.log.levels.INFO)
   end, {
     desc = "Start new session",
   })
