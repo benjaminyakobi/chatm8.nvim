@@ -786,7 +786,9 @@ end
 
 ---@return nil
 local function new_session()
-  -- TODO: implement
+  init_prompt_history_buf()
+  state.active_session = imports.session:new()
+  imports.utils.safe_notify("chatm8.nvim: Started new session", vim.log.levels.INFO)
 end
 
 ---@return nil
@@ -992,9 +994,7 @@ function M.setup(opts)
   })
 
   vim.keymap.set("n", "<leader>8n", function()
-    init_prompt_history_buf()
-    state.active_session = imports.session:new()
-    imports.utils.safe_notify("chatm8.nvim: Started new session", vim.log.levels.INFO)
+    new_session()
   end, {
     desc = "Start new session",
   })
