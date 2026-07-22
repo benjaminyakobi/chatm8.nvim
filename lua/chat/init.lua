@@ -1,18 +1,3 @@
--- NOTE: functions in this module
---   summarize(messages, cb)
---   append_message(buf, role, text, usage)
---   call_api(prompt, buf, s_line, e_line, prompt_win)
---   send_prompt()
---   set_provider(buf, provider_name)
---   select_provider()
---   complete_implementation()
---   open_single_prompt_window()
---   set_prompt_window_conf(optional_prompt_win_height)
---   open_prompt_window()
---   toggle_persistent_chat_window()
---   select_automated_operation(operations, op_keys)
---   M.setup(opts)
-
 local M = {}
 local state = {} -- NOTE: being initialized inside M.setup()
 local imports = {} -- NOTE: being initialized inside M.setup()
