@@ -203,18 +203,25 @@ function M.delete_session(id)
   return true
 end
 
----@return table<string, string>
+---@return table<string> sessions_title_sorted, table<string, string> sessions_title_id_map
 -- NOTE: return map of sessions titles and ids
 function M.list_sessions()
   local index = vim.deepcopy(read_index())
 
-  ---@type table<string>
+  table.sort(index, function(a, b)
+    return (a.created_at or 0) < (b.created_at or 0)
+  end)
+
+  ---@type table<string, string>
   local sessions_title_id_map = {}
+  ---@type table<string>
+  local sessions_title_sorted = {}
   for _, session in ipairs(index) do
     sessions_title_id_map[session.title] = session.id
+    table.insert(sessions_title_sorted, session.title)
   end
 
-  return vim.deepcopy(sessions_title_id_map)
+  return sessions_title_sorted, vim.deepcopy(sessions_title_id_map)
 end
 
 return M
