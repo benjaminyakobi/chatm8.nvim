@@ -793,7 +793,9 @@ local function delete_session()
         local ok, err = imports.storage.delete_session(session_id)
         if not ok then
           imports.utils.safe_notify("chatm8.nvim: " .. err, vim.log.levels.ERROR)
+          return
         end
+        imports.utils.safe_notify("chatm8.nvim: Deleted " .. choice, vim.log.levels.INFO)
       else
         imports.utils.safe_notify("chatm8.nvim: Invalid session", vim.log.levels.ERROR)
       end
