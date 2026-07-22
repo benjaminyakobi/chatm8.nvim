@@ -9,7 +9,7 @@ local SESSIONS_DIR = ROOT_DIR .. "/sessions"
 local INDEX_PATH = SESSIONS_DIR .. "/index.json"
 
 ---@class SessionInfo
----@field id integer
+---@field id string
 ---@field title string
 ---@field filename string
 ---@field created_at integer
@@ -204,7 +204,6 @@ function M.delete_session(id)
 end
 
 ---@return table<string> sessions_title_sorted, table<string, string> sessions_title_id_map
--- NOTE: return map of sessions titles and ids
 function M.list_sessions()
   local index = vim.deepcopy(read_index())
 
