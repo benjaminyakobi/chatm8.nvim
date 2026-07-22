@@ -826,6 +826,7 @@ local function load_session()
             local token_usage = msg.token_usage
             add_to_chat_window(state.prompt_history_buf, role, content, timestamp, token_usage)
           end
+          imports.utils.safe_notify("chatm8.nvim: Loaded " .. choice, vim.log.levels.INFO)
         end
       else
         imports.utils.safe_notify("chatm8.nvim: Invalid session", vim.log.levels.ERROR)
