@@ -755,18 +755,12 @@ local function select_automated_operation(operations, op_keys)
   end)
 end
 
----@return table<string> titles, table<string, string> map
+---@return table<string>[] titles, table<string, string> map
 local function process_session_list()
-  ---@type table<string, string>
-  local sessions_title_id_map = imports.storage.list_sessions()
+  ---@type table<string, string>, table<string>
+  local sessions_title_sorted, sessions_title_id_map = imports.storage.list_sessions()
 
-  ---@type table<string>
-  local session_titles = {}
-  for title, _ in pairs(sessions_title_id_map) do
-    table.insert(session_titles, title)
-  end
-
-  return session_titles, sessions_title_id_map
+  return sessions_title_sorted, sessions_title_id_map
 end
 
 ---@return nil
