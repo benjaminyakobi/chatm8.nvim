@@ -813,6 +813,8 @@ local function load_session()
         elseif not session then
           imports.utils.safe_notify("chatm8.nvim: Failed to retrieve session", vim.log.levels.ERROR)
         else
+          -- NOTE: first load the sesion and init prompt history window after
+          -- to update the upper section of the chat window also
           state.active_session = state.active_session:from_table(session)
           init_prompt_history_buf()
           for _, msg in ipairs(session.messages) do
