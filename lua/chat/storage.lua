@@ -208,7 +208,7 @@ function M.list_sessions()
   local index = vim.deepcopy(read_index())
 
   table.sort(index, function(a, b)
-    return (a.created_at or 0) < (b.created_at or 0)
+    return (a.created_at or 0) > (b.created_at or 0) -- NOTE: most recent to oldest
   end)
 
   ---@type table<string, string>
