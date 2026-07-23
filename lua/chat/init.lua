@@ -670,7 +670,7 @@ end
 ---@return nil
 local function init_prompt_history_buf()
   local lock_buf = imports.utils.unlock_buf(state.prompt_history_buf)
-  local session_title = "Persistent session"
+  local session_title = "Persistent session: " .. state.active_session.title
   vim.api.nvim_buf_set_lines(state.prompt_history_buf, 0, -1, false, {})
   vim.api.nvim_buf_set_lines(state.prompt_history_buf, 0, 0, false, { session_title })
   set_provider(state.prompt_history_buf, imports.providers.current)
@@ -813,8 +813,8 @@ local function load_session()
         elseif not session then
           imports.utils.safe_notify("chatm8.nvim: Failed to retrieve session", vim.log.levels.ERROR)
         else
-          init_prompt_history_buf()
           state.active_session = state.active_session:from_table(session)
+          init_prompt_history_buf()
           for _, msg in ipairs(session.messages) do
             local role = msg.role
             local content = msg.content
