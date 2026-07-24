@@ -75,8 +75,7 @@ end
 ---@param text string
 ---@param timestamp integer
 ---@param token_usage string?
----@param total_token_usage integer?
-local function add_to_chat_window(buf, role, text, timestamp, token_usage, total_token_usage)
+local function add_to_chat_window(buf, role, text, timestamp, token_usage)
   if role ~= "You" and role ~= "Assistant" and role ~= "Error" then
     return
   end
@@ -162,7 +161,7 @@ end
 ---@param total_token_usage integer?
 local function append_message(buf, role, text, timestamp, token_usage, total_token_usage)
   add_to_session(role, text, timestamp, token_usage, total_token_usage)
-  add_to_chat_window(buf, role, text, timestamp, token_usage, total_token_usage)
+  add_to_chat_window(buf, role, text, timestamp, token_usage)
   maybe_summarize()
 end
 
