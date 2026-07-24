@@ -45,14 +45,11 @@ local function summarize(messages, cb)
 end
 
 ---@return nil
----@param s_line integer
----@param e_line integer
-local function set_total_token_usage(s_line, e_line)
+local function set_total_token_usage()
   local ttu = "Total Token Usage: " .. state.active_session.total_token_usage
-  -- vim.api.nvim_buf_set_lines(state.prompt_history_buf, s_line, e_line, false, { ttu, "" })
   vim.api.nvim_buf_set_lines(state.prompt_history_buf, 2, 4, false, { ttu, "" })
 
-  vim.api.nvim_buf_set_extmark(state.prompt_history_buf, state.chat_ns, s_line, 0, {
+  vim.api.nvim_buf_set_extmark(state.prompt_history_buf, state.chat_ns, 2, 0, {
     hl_group = "ChatUI",
     end_col = #ttu,
   })
@@ -93,7 +90,7 @@ local function add_to_chat_window(buf, role, text, timestamp, token_usage, total
 
   local lock_buf = imports.utils.unlock_buf(buf)
   -- TODO: update total token usage line (number 2)
-  set_total_token_usage(2, 3)
+  set_total_token_usage()
   local lines = vim.split(text, "\n", { plain = true })
   local header = build_header()
   local header_line = vim.api.nvim_buf_line_count(buf)
@@ -220,9 +217,7 @@ end
 
 ---@return nil
 ---@param provider_name string
----@param s_line integer
----@param e_line integer
-local function set_provider(buf, provider_name, s_line, e_line)
+local function set_provider(buf, provider_name)
   imports.providers.set(provider_name)
   local ok, provider = pcall(require, "chat.providers." .. imports.providers.name)
   if not ok then
@@ -244,7 +239,7 @@ local function select_provider()
   vim.ui.select(imports.providers.list, { prompt = "Select chat provider" }, function(choice)
     if choice then
       local lock_buf = imports.utils.unlock_buf(state.prompt_history_buf)
-      set_provider(state.prompt_history_buf, choice, 4, 5)
+      set_provider(state.prompt_history_buf, choice)
       lock_buf()
     end
   end)
@@ -694,8 +689,8 @@ local function init_prompt_history_buf()
   local session_title = "Persistent session: " .. state.active_session.title
   vim.api.nvim_buf_set_lines(state.prompt_history_buf, 0, -1, false, {})
   vim.api.nvim_buf_set_lines(state.prompt_history_buf, 0, 1, false, { session_title, "" })
-  set_total_token_usage(2, 3)
-  set_provider(state.prompt_history_buf, imports.providers.current, 4, 5)
+  set_total_token_usage()
+  set_provider(state.prompt_history_buf, imports.providers.current)
 
   vim.api.nvim_buf_set_extmark(state.prompt_history_buf, state.chat_ns, 0, 0, {
     hl_group = "ChatUI",
