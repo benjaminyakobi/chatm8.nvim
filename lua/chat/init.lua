@@ -45,15 +45,30 @@ local function summarize(messages, cb)
 end
 
 ---@return nil
+---@param s_line integer
+---@param e_line integer
+local function set_total_token_usage(s_line, e_line)
+  local ttu = "Total Token Usage: " .. state.active_session.total_token_usage
+  -- vim.api.nvim_buf_set_lines(state.prompt_history_buf, s_line, e_line, false, { ttu, "" })
+  vim.api.nvim_buf_set_lines(state.prompt_history_buf, 2, 4, false, { ttu, "" })
+
+  vim.api.nvim_buf_set_extmark(state.prompt_history_buf, state.chat_ns, s_line, 0, {
+    hl_group = "ChatUI",
+    end_col = #ttu,
+  })
+end
+
+---@return nil
 ---@param role string
 ---@param text string
 ---@param timestamp integer
 ---@param token_usage string?
-local function add_to_session(role, text, timestamp, token_usage)
+---@param total_token_usage integer?
+local function add_to_session(role, text, timestamp, token_usage, total_token_usage)
   if role ~= "You" and role ~= "Assistant" and role ~= "Error" then
     return
   end
-  state.active_session:add(role, text, timestamp, token_usage)
+  state.active_session:add(role, text, timestamp, token_usage, total_token_usage)
   imports.storage.save_session(state.active_session)
 end
 
@@ -63,7 +78,8 @@ end
 ---@param text string
 ---@param timestamp integer
 ---@param token_usage string?
-local function add_to_chat_window(buf, role, text, timestamp, token_usage)
+---@param total_token_usage integer?
+local function add_to_chat_window(buf, role, text, timestamp, token_usage, total_token_usage)
   if role ~= "You" and role ~= "Assistant" and role ~= "Error" then
     return
   end
@@ -76,6 +92,8 @@ local function add_to_chat_window(buf, role, text, timestamp, token_usage)
   end
 
   local lock_buf = imports.utils.unlock_buf(buf)
+  -- TODO: update total token usage line (number 2)
+  set_total_token_usage(2, 3)
   local lines = vim.split(text, "\n", { plain = true })
   local header = build_header()
   local header_line = vim.api.nvim_buf_line_count(buf)
@@ -144,9 +162,10 @@ end
 ---@param text string
 ---@param timestamp integer
 ---@param token_usage string?
-local function append_message(buf, role, text, timestamp, token_usage)
-  add_to_session(role, text, timestamp, token_usage)
-  add_to_chat_window(buf, role, text, timestamp, token_usage)
+---@param total_token_usage integer?
+local function append_message(buf, role, text, timestamp, token_usage, total_token_usage)
+  add_to_session(role, text, timestamp, token_usage, total_token_usage)
+  add_to_chat_window(buf, role, text, timestamp, token_usage, total_token_usage)
   maybe_summarize()
 end
 
@@ -180,7 +199,7 @@ local function call_api(prompt, buf, s_line, e_line, prompt_win)
       state.prompt_thinking = false
 
       if prompt_win then
-        append_message(buf, "Assistant", result.content, os.time(), result.usage)
+        append_message(buf, "Assistant", result.content, os.time(), result.usage, result.total_usage)
       else
         vim.api.nvim_buf_set_lines(buf, s_line, e_line, false, vim.split(result.content, "\n"))
         imports.utils.safe_notify("chatm8.nvim: " .. result.usage, vim.log.levels.INFO)
@@ -201,7 +220,9 @@ end
 
 ---@return nil
 ---@param provider_name string
-local function set_provider(buf, provider_name)
+---@param s_line integer
+---@param e_line integer
+local function set_provider(buf, provider_name, s_line, e_line)
   imports.providers.set(provider_name)
   local ok, provider = pcall(require, "chat.providers." .. imports.providers.name)
   if not ok then
@@ -210,8 +231,8 @@ local function set_provider(buf, provider_name)
   end
   state.provider_module = provider
   local session_provider = "Provider: " .. imports.providers.current
-  vim.api.nvim_buf_set_lines(buf, 2, 4, false, { session_provider, "" })
-  vim.api.nvim_buf_set_extmark(buf, state.chat_ns, 2, 0, {
+  vim.api.nvim_buf_set_lines(buf, 4, 6, false, { session_provider, "" })
+  vim.api.nvim_buf_set_extmark(buf, state.chat_ns, 4, 0, {
     hl_group = "ChatUI",
     end_col = #session_provider,
   })
@@ -223,7 +244,7 @@ local function select_provider()
   vim.ui.select(imports.providers.list, { prompt = "Select chat provider" }, function(choice)
     if choice then
       local lock_buf = imports.utils.unlock_buf(state.prompt_history_buf)
-      set_provider(state.prompt_history_buf, choice)
+      set_provider(state.prompt_history_buf, choice, 4, 5)
       lock_buf()
     end
   end)
@@ -672,8 +693,9 @@ local function init_prompt_history_buf()
   local lock_buf = imports.utils.unlock_buf(state.prompt_history_buf)
   local session_title = "Persistent session: " .. state.active_session.title
   vim.api.nvim_buf_set_lines(state.prompt_history_buf, 0, -1, false, {})
-  vim.api.nvim_buf_set_lines(state.prompt_history_buf, 0, 0, false, { session_title })
-  set_provider(state.prompt_history_buf, imports.providers.current)
+  vim.api.nvim_buf_set_lines(state.prompt_history_buf, 0, 1, false, { session_title, "" })
+  set_total_token_usage(2, 3)
+  set_provider(state.prompt_history_buf, imports.providers.current, 4, 5)
 
   vim.api.nvim_buf_set_extmark(state.prompt_history_buf, state.chat_ns, 0, 0, {
     hl_group = "ChatUI",
@@ -765,8 +787,8 @@ end
 
 ---@return nil
 local function new_session()
-  init_prompt_history_buf()
   state.active_session = imports.session:new()
+  init_prompt_history_buf()
   imports.utils.safe_notify("chatm8.nvim: Started new session", vim.log.levels.INFO)
 end
 
