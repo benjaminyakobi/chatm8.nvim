@@ -137,6 +137,7 @@ function M.answer(prompt, callback)
     callback({
       content = text,
       usage = "Prompt Tokens: " .. prompt_count .. " | Completion Tokens: " .. completion_count,
+      total_usage = prompt_count + completion_count,
     })
   end)
 end
