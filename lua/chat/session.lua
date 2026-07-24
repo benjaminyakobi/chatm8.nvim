@@ -62,6 +62,7 @@ When showing code changes, keep them minimal and easy to paste into a file.
 ---@field title string
 ---@field messages ChatMessage[]
 ---@field summaries SummaryChunk[]
+---@field total_token_usage integer
 local Session = {}
 
 Session.__index = Session
@@ -79,6 +80,7 @@ function Session.new() -- session class constructor
     title = vim.fs.basename(vim.fn.getcwd()) .. "_" .. human_ts,
     messages = {},
     summaries = {},
+    total_token_usage = 0,
   }, Session)
   self:add("system", SYSTEM_PROMPT, ts)
 
@@ -96,12 +98,14 @@ end
 ---@param content string
 ---@param timestamp integer
 ---@param token_usage string?
-function Session:pack(role, content, timestamp, token_usage)
+---@param total_token_usage integer?
+function Session:pack(role, content, timestamp, token_usage, total_token_usage)
   return {
     role = role,
     content = content,
     timestamp = timestamp,
     token_usage = token_usage,
+    total_token_usage = total_token_usage,
   }
 end
 
@@ -110,9 +114,11 @@ end
 ---@param content string
 ---@param timestamp integer
 ---@param token_usage string?
-function Session:add(role, content, timestamp, token_usage)
-  table.insert(self.messages, self:pack(role, content, timestamp, token_usage))
-
+---@param total_token_usage integer?
+function Session:add(role, content, timestamp, token_usage, total_token_usage)
+  local ttu = (self.total_token_usage or 0) + (total_token_usage or 0)
+  self.total_token_usage = ttu
+  table.insert(self.messages, self:pack(role, content, timestamp, token_usage, ttu))
   self.updated_at = os.time()
 end
 
