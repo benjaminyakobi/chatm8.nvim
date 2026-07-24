@@ -194,11 +194,16 @@ local function call_api(prompt, buf, s_line, e_line, prompt_win)
       lock_buf()
       state.prompt_thinking = false
 
+      local token_usage_str = "Prompt Tokens: "
+        .. result.prompt_tokens
+        .. " | Completion Tokens: "
+        .. result.completion_tokens
+
       if prompt_win then
-        append_message(buf, "Assistant", result.content, os.time(), result.usage, result.total_usage)
+        append_message(buf, "Assistant", result.content, os.time(), token_usage_str, result.total_usage)
       else
         vim.api.nvim_buf_set_lines(buf, s_line, e_line, false, vim.split(result.content, "\n"))
-        imports.utils.safe_notify("chatm8.nvim: " .. result.usage, vim.log.levels.INFO)
+        imports.utils.safe_notify("chatm8.nvim: " .. token_usage_str, vim.log.levels.INFO)
       end
     end)
   end)
