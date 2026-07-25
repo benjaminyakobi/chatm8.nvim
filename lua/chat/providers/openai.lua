@@ -118,7 +118,6 @@ function M.answer(prompt, callback)
       content = text,
       prompt_tokens = prompt_count,
       completion_tokens = completion_count,
-      total_usage = prompt_count + completion_count,
     })
   end)
 end
