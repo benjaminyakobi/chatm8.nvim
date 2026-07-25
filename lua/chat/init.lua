@@ -104,7 +104,7 @@ local function add_to_chat_window(buf, role, text, timestamp, prompt_tokens, com
   local header_line = vim.api.nvim_buf_line_count(buf)
   local total_lines = { header }
   local token_usage_str
-  if prompt_tokens and completion_tokens then
+  if role == "Assistant" then
     token_usage_str = get_token_usage_str(prompt_tokens, completion_tokens)
     total_lines = { header, token_usage_str }
   end
