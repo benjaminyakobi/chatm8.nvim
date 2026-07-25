@@ -48,7 +48,8 @@ When showing code changes, keep them minimal and easy to paste into a file.
 ---@field role string
 ---@field content string
 ---@field timestamp integer
----@field token_usage string?
+---@field prompt_tokens integer
+---@field completion_tokens integer
 
 ---@class SummaryChunk
 ---@field start_idx integer
@@ -82,7 +83,7 @@ function Session.new() -- session class constructor
     summaries = {},
     total_token_usage = 0,
   }, Session)
-  self:add("system", SYSTEM_PROMPT, ts)
+  self:add("system", SYSTEM_PROMPT, ts, 0, 0)
 
   return self
 end
@@ -97,15 +98,15 @@ end
 ---@param role string
 ---@param content string
 ---@param timestamp integer
----@param token_usage string?
----@param total_token_usage integer?
-function Session:pack(role, content, timestamp, token_usage, total_token_usage)
+---@param prompt_tokens integer
+---@param completion_tokens integer
+function Session:pack(role, content, timestamp, prompt_tokens, completion_tokens)
   return {
     role = role,
     content = content,
     timestamp = timestamp,
-    token_usage = token_usage,
-    total_token_usage = total_token_usage,
+    prompt_tokens = prompt_tokens,
+    completion_tokens = completion_tokens,
   }
 end
 
@@ -113,13 +114,12 @@ end
 ---@param role string
 ---@param content string
 ---@param timestamp integer
----@param token_usage string?
----@param total_token_usage integer?
-function Session:add(role, content, timestamp, token_usage, total_token_usage)
-  local ttu = (self.total_token_usage or 0) + (total_token_usage or 0)
-  self.total_token_usage = ttu
-  table.insert(self.messages, self:pack(role, content, timestamp, token_usage, ttu))
+---@param prompt_tokens integer
+---@param completion_tokens integer
+function Session:add(role, content, timestamp, prompt_tokens, completion_tokens)
+  table.insert(self.messages, self:pack(role, content, timestamp, prompt_tokens, completion_tokens))
   self.updated_at = os.time()
+  self.total_token_usage = (self.total_token_usage or 0) + (prompt_tokens or 0) + (completion_tokens or 0)
 end
 
 ---@return ChatMessage[]
