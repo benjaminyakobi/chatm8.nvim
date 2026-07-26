@@ -855,6 +855,9 @@ local function load_session()
               msg.completion_tokens
             )
           end
+          if not state.chat_win then
+            toggle_persistent_chat_window()
+          end
           imports.utils.safe_notify("chatm8.nvim: Loaded " .. choice, vim.log.levels.INFO)
         end
       else
