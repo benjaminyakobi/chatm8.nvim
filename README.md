@@ -147,3 +147,10 @@ Local dev setup:
   2. Select a session to load its conversation history into the chat window.
   3. [Restore] The loaded session becomes the active context, letting you resume a
  
+<Leader>8d: Delete Old Sessions
+  1. [Normal Mode] Press `<Leader>8d` to open a list of previously saved chat sessions.
+  2. Select a session to delete it permanently.
+
+<Leader>8n: Start New Session
+  1. [Normal Mode] Press `<Leader>8n` to start a new session.
+
