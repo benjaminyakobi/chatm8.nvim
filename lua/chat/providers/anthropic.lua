@@ -87,7 +87,7 @@ function M.answer(prompt, callback)
   }, { text = true }, function(res)
     if res.code ~= 0 then
       callback({
-        error = "Request failed: " .. (res.stderr or "unknown error"),
+        error = "Request failed:\n" .. (res.stderr or "unknown error"),
       })
       return
     end
@@ -100,39 +100,34 @@ function M.answer(prompt, callback)
       return
     end
 
-    local ok_extract, text = pcall(function()
-      if not data.content then
-        callback({
-          error = "Missing data.content",
-        })
-      end
-
-      local parts = {}
-      for _, item in ipairs(data.content) do
-        if item.type == "text" and item.text then
-          table.insert(parts, item.text)
-        end
-      end
-
-      return table.concat(parts, "")
-    end)
-
-    local ok_usage, usage = pcall(function()
-      return data.usage
-    end)
-
-    if not ok_extract or not ok_usage then
+    if not data.content then
       -- keep your original behavior: try to surface error.message
       callback({
-        error = (data and data.error and data.error.message) or "Unknown error",
+        error = "Missing data.content",
       })
       return
     end
 
+    if not data.usage then
+      -- keep your original behavior: try to surface error.message
+      callback({
+        error = "Missing data.usage",
+      })
+      return
+    end
+
+    local parts = {}
+    for _, item in ipairs(data.content) do
+      if item.type == "text" and item.text then
+        table.insert(parts, item.text)
+      end
+    end
+    local text = table.concat(parts, "")
+
     -- Claude usage fields are typically:
     -- input_tokens, output_tokens
-    local prompt_count = tostring((usage and (usage.input_tokens or usage.prompt_tokens)) or 0)
-    local completion_count = tostring((usage and (usage.output_tokens or usage.completion_tokens)) or 0)
+    local prompt_count = tostring((data.usage and (data.usage.input_tokens or data.usage.prompt_tokens)) or 0)
+    local completion_count = tostring((data.usage and (data.usage.output_tokens or data.usage.completion_tokens)) or 0)
 
     callback({
       content = text,
