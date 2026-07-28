@@ -82,13 +82,12 @@ function M.answer(prompt, callback)
   }, { text = true }, function(res)
     if res.code ~= 0 then
       callback({
-        error = "Request failed: " .. (res.stderr or "unknown error"),
+        error = "Request failed:\n" .. (res.stderr or "unknown error"),
       })
       return
     end
 
     local ok_decode, data = pcall(vim.json.decode, res.stdout)
-
     if not ok_decode then
       callback({
         error = "JSON decode failed",
