@@ -1,30 +1,34 @@
--- NOTE: openai provider
+-- NOTE: anthropic provider
 local M = {}
 
 local providers = require("chat.providers")
 
----@return table
+---@return table|nil, table|nil
 ---@param prompt table
 local function normalize_prompt(prompt)
-  -- NOTE: OpenAI valid roles: SYSTEM, DEVELOPER, USER, ASSISTANT
+  -- NOTE: Anthropic valid roles: USER, ASSISTANT, SYSTEM (top level only!)
   -- Exmaple:
+  -- body = {
+  --   system = "system prompt....",
   --   messages = {
-  --     { role = "system", content = "You are a helpful coding assistant" },
   --     { role = "user", content = "Write quicksort in Python" },
   --     { role = "assistant", content = "..." },
   --     { role = "user", content = "Now convert to Go" },
   --     }
+  -- }
   local system_prompt = nil
-  local contents = {}
+  local messages = {}
 
+  -- Preserve order; system messages become a single system string.
+  -- If multiple system messages exist, we join them with newlines.
   for _, msg in ipairs(prompt) do
     if msg.role == "Assistant" then
-      table.insert(contents, {
+      table.insert(messages, {
         role = "assistant",
         content = msg.content,
       })
     elseif msg.role == "You" then
-      table.insert(contents, {
+      table.insert(messages, {
         role = "user",
         content = msg.content,
       })
@@ -37,28 +41,25 @@ local function normalize_prompt(prompt)
     end
   end
 
-  -- NOTE: returning single system prompt instead of multiple
-  if system_prompt then
-    return {
-      {
-        role = "system",
-        content = system_prompt,
-      },
-      unpack(contents),
-    }
-  end
-  return contents
+  return system_prompt, messages
 end
 
 ---@return nil
 ---@param prompt table
 ---@param callback function
 function M.answer(prompt, callback)
-  local messages = normalize_prompt(prompt)
+  local system_prompt, messages = normalize_prompt(prompt)
   local body = {
     model = providers.model,
+    max_tokens = providers.max_tokens or 1024,
     messages = messages,
   }
+
+  -- NOTE:system prompt should be "top level prompt"
+  --      the messages table should contain "user" & assistant message only
+  if system_prompt and system_prompt ~= "" then
+    body.system = system_prompt
+  end
 
   local ok_encode, json = pcall(vim.json.encode, body)
   if not ok_encode then
@@ -70,11 +71,15 @@ function M.answer(prompt, callback)
 
   vim.system({
     "curl",
-    "https://api.openai.com/v1/chat/completions",
+    "https://api.anthropic.com/v1/messages",
     "-H",
     "Content-Type: application/json",
+    -- Anthropic requires a special header in addition to the API key:
     "-H",
-    "Authorization: Bearer " .. providers.api_key,
+    "x-api-key: " .. providers.api_key,
+    -- Required by Anthropic for messages API:
+    "-H",
+    "anthropic-version: 2023-06-01",
     "-X",
     "POST",
     "-d",
@@ -95,23 +100,34 @@ function M.answer(prompt, callback)
       return
     end
 
-    local ok_extract, text = pcall(function()
-      return data.choices[1].message.content
-    end)
-
-    local ok_usage, usage = pcall(function()
-      return data.usage
-    end)
-
-    if not ok_extract or not ok_usage then
+    if not data.content then
+      -- keep your original behavior: try to surface error.message
       callback({
-        error = data.error.message,
+        error = "Missing data.content",
       })
       return
     end
 
-    local prompt_count = tostring((usage and usage.prompt_tokens) or 0)
-    local completion_count = tostring((usage and usage.completion_tokens) or 0)
+    if not data.usage then
+      -- keep your original behavior: try to surface error.message
+      callback({
+        error = "Missing data.usage",
+      })
+      return
+    end
+
+    local parts = {}
+    for _, item in ipairs(data.content) do
+      if item.type == "text" and item.text then
+        table.insert(parts, item.text)
+      end
+    end
+    local text = table.concat(parts, "")
+
+    -- Claude usage fields are typically:
+    -- input_tokens, output_tokens
+    local prompt_count = tostring((data.usage and (data.usage.input_tokens or data.usage.prompt_tokens)) or 0)
+    local completion_count = tostring((data.usage and (data.usage.output_tokens or data.usage.completion_tokens)) or 0)
 
     callback({
       content = text,
