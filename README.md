@@ -10,6 +10,7 @@ Basic setup for OpenAI & Anthropic:
 ```lua
   {
     'benjaminyakobi/chatm8.nvim',
+    -- dir = '<CLONE_BASE_DIR>/chatm8.nvim/', -- NOTE: uncomment for dev setup
     config = function()
       require('chat').setup {
         provider = 'openai',
@@ -55,61 +56,13 @@ Basic setup for OpenAI & Anthropic:
           },
         },
       }
-    end,
-  },
-```
-Local dev setup:
 
-```lua
-  {
-    'benjaminyakobi/chatm8.nvim',
-    dir = '<CLONE_BASE_DIR>/chatm8.nvim/',
-    config = function()
-      require('chat').setup {
-        dev = true,
-        provider = 'openai',
-        providers = {
-          openai = {
-            api_key = '<OPENAI_API_KEY>',
-            models = {
-              'gpt-5.6-luna',
-              'gpt-5.6-terra',
-              'gpt-5.6-sol',
+      -- NOTE: uncomment for dev setup
+      -- vim.api.nvim_create_user_command('ChatM8Reload', function()
+      --   vim.cmd 'wall'
+      --   vim.cmd 'Lazy reload chatm8.nvim'
+      -- end, {})
 
-              'gpt-5.5',
-
-              'gpt-5.4-nano',
-              'gpt-5.4-mini',
-              'gpt-5.4',
-
-              'gpt-5-nano',
-              'gpt-5-mini',
-              'gpt-5',
-
-              'gpt-4.1-nano',
-              'gpt-4.1-mini',
-              'gpt-4.1',
-            },
-          },
-          anthropic = {
-            api_key = '<ANTHROPIC_API_KEY>',
-            max_tokens = 25000,
-            models = {
-              'claude-fable-5',
-
-              'claude-opus-5',
-              'claude-opus-4-8',
-              'claude-opus-4-7',
-              'claude-opus-4-6',
-              'claude-opus-4-5',
-
-              'claude-sonnet-5',
-              'claude-sonnet-4-6',
-              'claude-sonnet-4-5',
-            },
-          },
-        },
-      }
     end,
   },
 ```
