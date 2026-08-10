@@ -20,16 +20,20 @@ local function get_text(node)
   return ts.get_node_text(node, 0)
 end
 
----@return table|nil
+---@return table?, string?
 ---@param buf integer
 ---@param lang string
 local function get_parser_root(buf, lang)
-  local parser = ts.get_parser(buf, lang)
-  if not parser then
-    return
+  local parser, err = ts.get_parser(buf, lang)
+  if err then
+    return nil, err
   end
+  -- if parser == nil then
+  --   return nil, "Parser not found for " .. lang
+  -- end
+  assert(parser ~= nil, "nil check failed on TSNode object")
   local tree = parser:parse()[1]
-  return tree and tree:root()
+  return tree and tree:root(), nil
 end
 
 ---@return table
@@ -151,8 +155,9 @@ function M.get_func_ast_data(buf)
   buf = buf or 0
   local lang = vim.bo[buf].filetype
 
-  local root = get_parser_root(buf, lang)
-  if not root then
+  local root, err = get_parser_root(buf, lang)
+  if err then
+    utils.safe_notify(err, vim.log.levels.WARN)
     return {}
   end
 
@@ -170,6 +175,7 @@ function M.get_func_ast_data(buf)
 
   local results = {}
 
+  assert(root ~= nil, "nil check failed on TSNode object")
   for _, match in query:iter_matches(root, buf) do
     local item = extractor(match, query)
     if item then
