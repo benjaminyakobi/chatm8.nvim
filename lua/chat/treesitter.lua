@@ -100,6 +100,18 @@ local function build_signature(lang, item)
     return sig
   end
 
+  if lang == "rust" then
+    local sig
+    sig = string.format("fn %s%s", item.name, item.params)
+    if item.return_type then
+      sig = sig .. " -> " .. item.return_type
+    end
+    if item.visibility then
+      sig = item.visibility .. " " .. sig
+    end
+    return sig
+  end
+
   return ""
 end
 
@@ -232,6 +244,58 @@ extractors.lua = function(match, query)
     range = range,
     nested = is_nested,
     anonymous = name == nil or name == "",
+  }
+end
+
+---@return table|nil
+---@param match table
+---@param query table
+-- NOTE: Rust extractor
+extractors.rust = function(match, query)
+  local name, params, ret, receiver, function_node, func_type, visibility
+
+  for i, cap in ipairs(query.captures) do
+    local node = match[i]
+
+    if cap == "name" then
+      name = get_text(node)
+    elseif cap == "params" then
+      params = get_text(node)
+    elseif cap == "return" then
+      ret = get_text(node)
+    elseif cap == "receiver" then
+      receiver = get_text(node)
+    elseif cap == "visibility" then
+      visibility = get_text(node)
+    elseif cap == "func" or cap == "method" or cap == "closure" then
+      function_node = node
+    end
+  end
+
+  if not params then
+    return nil
+  end
+
+  function_node = normalize_node(function_node)
+  local is_nested = is_function_nested(function_node)
+
+  local range
+  if function_node then
+    local start_row, start_col, end_row, end_col = function_node:range()
+    range = { start_row, start_col, end_row, end_col }
+    func_type = function_node:type()
+  end
+
+  return {
+    type = func_type,
+    name = name or "",
+    params = params,
+    return_type = ret,
+    receiver = receiver,
+    range = range,
+    nested = is_nested,
+    anonymous = name == nil or name == "",
+    visibility = visibility,
   }
 end
 
