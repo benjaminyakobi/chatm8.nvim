@@ -1,7 +1,9 @@
 # chatm8.nvim
 My journey to explore how AI understands, reasons about, and helps with code — right inside NeoVim.
 
-> Tree-sitter features are tuned for Go, JavaScript, Python, and Lua.
+> Tree-sitter features are tuned for Go, JavaScript, Python, Rust, and Lua.
+
+*Make sure parsers for the languages listed above are included in your treesitter setup.*
 
 ## How it works
 <Leader>8i: Inline Implementation
