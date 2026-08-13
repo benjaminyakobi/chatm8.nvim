@@ -87,7 +87,7 @@ end
 ---@param completion_tokens integer
 local function add_to_chat_window(buf, role, text, timestamp, prompt_tokens, completion_tokens)
   if role ~= "You" and role ~= "Assistant" and role ~= "Error" then
-    return
+    return -- NOTE: return when role == "system"
   end
 
   ---@return string
